@@ -1,0 +1,309 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<title>Consolidación HIJ — Informe para la familia</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;margin:28px;line-height:1.5;color:#202124}
+  h1{font-size:28px;margin:0 0 4px 0} .sub{color:#5f6368;margin:0 0 16px 0}
+  h2{margin-top:28px} h3{margin-top:18px;margin-bottom:8px}
+  .kpis{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 18px 0}
+  .card{border:1px solid #e0e0e0;border-radius:12px;padding:12px 14px;min-width:160px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card .big{font-size:22px;font-weight:700} .muted{color:#5f6368}
+  .table{border-collapse:collapse;width:100%;margin:8px 0 18px 0}
+  .table th,.table td{border:1px solid #e0e0e0;padding:8px 10px}
+  .callout{background:#f7fafe;border:1px solid #d2e3fc;padding:12px 14px;border-radius:10px}
+  .ucard{border:1px solid #e0e0e0;border-radius:10px;padding:10px 12px;margin:8px 0;background:#fafbfc}
+  .utitle{font-weight:600} .usub{color:#5f6368;font-size:13px}
+  code{background:#f6f8fa;border:1px solid #eee;border-radius:6px;padding:1px 4px}
+  ul.clean{margin-top:6px}
+  .small{font-size:13px}.tiny{font-size:12px}
+</style>
+</head><body>
+<h1>Consolidación HIJ</h1>
+<p class='sub'>Informe legible para toda la familia — Generado el 21/09/2025 22:14</p>
+
+<div class='kpis'>
+  <div class='card'><div class='muted'>Espacio reorganizado</div><div class='big'>646,68 GB</div></div>
+  <div class='card'><div class='muted'>Ficheros movidos OK</div><div class='big'>28356</div></div>
+  <div class='card'><div class='muted'>Ficheros ya no estaban (GONE)</div><div class='big'>29</div></div>
+  <div class='card'><div class='muted'>Ficheros con incidencia (FAIL)</div><div class='big'>457</div></div>
+</div>
+
+<h2>¿Qué hemos hecho?</h2>
+<p>Se ordenaron y consolidaron archivos en las unidades <b>H:</b>, <b>I:</b> y <b>J:</b>.
+Los duplicados se movieron a una carpeta segura de <b>cuarentena</b> (<code>H:\_quarantine_from_HIJ</code>) para prevenir pérdidas. Todo quedó documentado.</p>
+
+<h2>¿Qué es la “cuarentena”?</h2>
+<div class='callout'>
+  <p>
+    <b>Cuarentena</b> = sitio seguro donde guardamos los duplicados que se han movido
+    para evitar pérdidas. Ubicación: <code>H:\_quarantine_from_HIJ</code>.
+  </p>
+  <ul class='clean'>
+    <li><b>No se borra automáticamente</b>. Sirve para revisar con calma.</li>
+    <li>Si algo hiciera falta, <b>se recupera desde aquí</b> a su carpeta definitiva.</li>
+    <li>Cuando la familia dé el OK, se puede <b>vaciar</b> (tras copiar una copia a disco externo si se desea).</li>
+  </ul>
+</div>
+<h2>¿Dónde queda lo bueno (carpeta final)?</h2>
+<p>
+  El material <b>válido</b> y sin duplicados debe residir en la carpeta de trabajo
+  acordada por la familia (por ejemplo <b>MEDIA_FINAL</b> o similar). Esa carpeta es la
+  que se <b>respalda</b> y se comparte. La cuarentena <i>no</i> es copia de trabajo.
+</p>
+<ul class='clean'>
+  <li>Propuesta de orden: <b>AÑO / MES / EVENTO</b> para fotos/vídeos.</li>
+  <li>Renombrado con fecha EXIF cuando aplique.</li>
+  <li>Subcarpetas de documentos/música con nombres claros.</li>
+</ul>
+<h2>¿Se puede borrar? — Política de borrado sencilla</h2>
+<table class='table'>
+  <thead><tr><th>Cuándo</th><th>Qué</th><th>Acción recomendada</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Ahora mismo</b></td>
+      <td>Ficheros de sistema: <code>Thumbs.db</code>, <code>Desktop.ini</code>, <code>.DS_Store</code></td>
+      <td>Se pueden borrar sin riesgo (no son contenido).</td>
+    </tr>
+    <tr>
+      <td><b>Tras aprobación familiar</b></td>
+      <td>Contenido en <b>cuarentena</b> (duplicados ya detectados)</td>
+      <td>Vaciarla o archivarla a un disco externo y luego borrar la copia local.</td>
+    </tr>
+    <tr>
+      <td><b>Nunca directamente</b></td>
+      <td>Carpeta final de trabajo (p.ej. <b>MEDIA_FINAL</b>)</td>
+      <td>Siempre con copia de seguridad previa.</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Revisión en 10 minutos</h2>
+<ol>
+  <li>Abrid las tablas de “Top 10 carpetas” de H:, I:, J: y mirad si los nombres tienen sentido.</li>
+  <li>Si veis carpetas de “copias antiguas/backup/descargas”, marcad para mover/limpiar.</li>
+  <li>Si falta algo, buscadlo: si está en cuarentena, se <b>recupera</b> desde ahí.</li>
+  <li>Cuando todo cuadra, se <b>aprueba vaciar la cuarentena</b> (ver política de borrado).</li>
+</ol>
+
+<h2>Carpetas del proyecto (qué son)</h2>
+<ul class='clean'><li><b>01_cache/</b> — Guarda una huella digital por archivo para acelerar la detección de duplicados.</li><li><b>02_detection/</b> — Ficheros con la lista de duplicados y sus hashes.</li><li><b>03_plans/</b> — Planes de movimiento (qué archivos irán a cuarentena y dónde).</li><li><b>04_logs/</b> — Registro detallado de todo lo ocurrido (OK/GONE/FAIL) y tablas auxiliares.</li><li><b>99_docs/</b> — Documentación como este informe o el README.</li></ul>
+
+<h2>¿Qué hay dentro de H:, I:, J:?</h2>
+  <div class='ucard'>
+    <div class='utitle'>Unidad <b>H:</b></div>
+    <div class='usub'>Tamaño: 1862.99 GB • Usado: 1104.93 GB • Libre: 758.06 GB</div>
+    <div class='usub'>Carpetas raíz analizadas: 7</div>
+  </div>
+  <div class='ucard'>
+    <div class='utitle'>Unidad <b>I:</b></div>
+    <div class='usub'>Tamaño: 2280.33 GB • Usado: 1856.5 GB • Libre: 423.83 GB</div>
+    <div class='usub'>Carpetas raíz analizadas: 5</div>
+  </div>
+  <div class='ucard'>
+    <div class='utitle'>Unidad <b>J:</b></div>
+    <div class='usub'>Tamaño: 514.18 GB • Usado: 337.06 GB • Libre: 177.12 GB</div>
+    <div class='usub'>Carpetas raíz analizadas: 4</div>
+  </div>
+<div class='ucard'><div class='utitle'>Unidad <b>J:</b></div><div class='usub'>Tamaño: 514.18 GB • Usado: 337.06 GB • Libre: 177.12 GB</div><div class='usub'>Carpetas raíz analizadas: 4</div></div>
+<h3>Top 10 carpetas por tamaño — H:</h3>
+<table class='table'>
+  <thead><tr><th>Carpeta</th><th style='text-align:right'>Ficheros</th><th style='text-align:right'>GB</th><th style='text-align:right'>Último cambio</th><th>Gráfico</th></tr></thead>
+  <tbody>
+<tr>
+  <td><b>Media_Final</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>H:\Media_Final</code></div></td>
+  <td style='text-align:right'>193</td>
+  <td style='text-align:right'>350,41</td>
+  <td style='text-align:right'>10/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>350,41 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>offload</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>H:\offload</code></div></td>
+  <td style='text-align:right'>1.167</td>
+  <td style='text-align:right'>94,65</td>
+  <td style='text-align:right'>11/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:27%'></div><span class='barlabel'>94,65 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>_quarantine</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>H:\_quarantine</code></div></td>
+  <td style='text-align:right'>1</td>
+  <td style='text-align:right'>4,16</td>
+  <td style='text-align:right'>07/09/2011</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>4,16 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>VIDEOS FAMILIA</b><div class='muted small'>Vídeos</div><div class='muted tiny'><code>H:\VIDEOS FAMILIA</code></div></td>
+  <td style='text-align:right'>4</td>
+  <td style='text-align:right'>0,20</td>
+  <td style='text-align:right'>22/05/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,2 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>FOTOS FAMILIA</b><div class='muted small'>Fotos y recuerdos</div><div class='muted tiny'><code>H:\FOTOS FAMILIA</code></div></td>
+  <td style='text-align:right'>214</td>
+  <td style='text-align:right'>0,04</td>
+  <td style='text-align:right'>04/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,04 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>.Spotlight-V100</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>H:\.Spotlight-V100</code></div></td>
+  <td style='text-align:right'>44</td>
+  <td style='text-align:right'>0,01</td>
+  <td style='text-align:right'>04/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,01 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>quarantine</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>H:\quarantine</code></div></td>
+  <td style='text-align:right'>1</td>
+  <td style='text-align:right'>0,00</td>
+  <td style='text-align:right'>11/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0 GB</span></div></td>
+</tr>
+  </tbody>
+</table>
+<h3>Top 10 carpetas por tamaño — I:</h3>
+<table class='table'>
+  <thead><tr><th>Carpeta</th><th style='text-align:right'>Ficheros</th><th style='text-align:right'>GB</th><th style='text-align:right'>Último cambio</th><th>Gráfico</th></tr></thead>
+  <tbody>
+<tr>
+  <td><b>PELICULAS</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>I:\PELICULAS</code></div></td>
+  <td style='text-align:right'>242</td>
+  <td style='text-align:right'>954,05</td>
+  <td style='text-align:right'>03/03/2015</td>
+  <td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>954,05 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>VIDEOS CIENCIA Y TECNOLOGIA</b><div class='muted small'>Vídeos</div><div class='muted tiny'><code>I:\VIDEOS CIENCIA Y TECNOLOGIA</code></div></td>
+  <td style='text-align:right'>387</td>
+  <td style='text-align:right'>668,91</td>
+  <td style='text-align:right'>05/06/2016</td>
+  <td><div class='bar'><div class='barfill' style='width:70%'></div><span class='barlabel'>668,91 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>_quarantine</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>I:\_quarantine</code></div></td>
+  <td style='text-align:right'>4.401</td>
+  <td style='text-align:right'>98,97</td>
+  <td style='text-align:right'>29/12/2013</td>
+  <td><div class='bar'><div class='barfill' style='width:10%'></div><span class='barlabel'>98,97 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>FAMILIA</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>I:\FAMILIA</code></div></td>
+  <td style='text-align:right'>48</td>
+  <td style='text-align:right'>97,41</td>
+  <td style='text-align:right'>01/01/2014</td>
+  <td><div class='bar'><div class='barfill' style='width:10%'></div><span class='barlabel'>97,41 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>media_final</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>I:\media_final</code></div></td>
+  <td style='text-align:right'>1</td>
+  <td style='text-align:right'>1,40</td>
+  <td style='text-align:right'>03/11/2012</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>1,4 GB</span></div></td>
+</tr>
+  </tbody>
+</table>
+<h3>Top 10 carpetas por tamaño — J:</h3>
+<table class='table'>
+  <thead><tr><th>Carpeta</th><th style='text-align:right'>Ficheros</th><th style='text-align:right'>GB</th><th style='text-align:right'>Último cambio</th><th>Gráfico</th></tr></thead>
+  <tbody>
+<tr>
+  <td><b>_quarantine_from_I</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\_quarantine_from_I</code></div></td>
+  <td style='text-align:right'>23.732</td>
+  <td style='text-align:right'>273,32</td>
+  <td style='text-align:right'>29/09/2016</td>
+  <td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>273,32 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>VIDEO</b><div class='muted small'>Vídeos</div><div class='muted tiny'><code>J:\VIDEO</code></div></td>
+  <td style='text-align:right'>76</td>
+  <td style='text-align:right'>55,95</td>
+  <td style='text-align:right'>03/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:20%'></div><span class='barlabel'>55,95 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>_quarantine_from_H</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\_quarantine_from_H</code></div></td>
+  <td style='text-align:right'>1.754</td>
+  <td style='text-align:right'>4,43</td>
+  <td style='text-align:right'>18/08/2013</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>4,43 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>FOUND.000</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\FOUND.000</code></div></td>
+  <td style='text-align:right'>2</td>
+  <td style='text-align:right'>0,00</td>
+  <td style='text-align:right'>04/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0 GB</span></div></td>
+</tr>
+  </tbody>
+</table>
+<h3>Top 10 carpetas por tamaño — J:</h3><table class='table'><thead><tr><th>Carpeta</th><th style='text-align:right'>Ficheros</th><th style='text-align:right'>GB</th><th style='text-align:right'>Último cambio</th><th>Gráfico</th></tr></thead><tbody><tr>
+  <td><b>_quarantine_from_I</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\_quarantine_from_I</code></div></td>
+  <td style='text-align:right'>23.732</td>
+  <td style='text-align:right'>273,32</td>
+  <td style='text-align:right'>29/09/2016</td>
+  <td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>273,32 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>VIDEO</b><div class='muted small'>Vídeos</div><div class='muted tiny'><code>J:\VIDEO</code></div></td>
+  <td style='text-align:right'>76</td>
+  <td style='text-align:right'>55,95</td>
+  <td style='text-align:right'>03/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:20%'></div><span class='barlabel'>55,95 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>_quarantine_from_H</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\_quarantine_from_H</code></div></td>
+  <td style='text-align:right'>1.754</td>
+  <td style='text-align:right'>4,43</td>
+  <td style='text-align:right'>18/08/2013</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>4,43 GB</span></div></td>
+</tr>
+<tr>
+  <td><b>FOUND.000</b><div class='muted small'>Contenido general</div><div class='muted tiny'><code>J:\FOUND.000</code></div></td>
+  <td style='text-align:right'>2</td>
+  <td style='text-align:right'>0,00</td>
+  <td style='text-align:right'>04/09/2025</td>
+  <td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0 GB</span></div></td>
+</tr></tbody></table>
+
+<h2>Resultados globales</h2>
+<h3>Resultados por estado</h3><table class='table'><thead><tr><th>Estado</th><th style='text-align:right'>Archivos</th><th>Gráfico</th></tr></thead><tbody><tr><td><code>FAIL</code></td><td style='text-align:right'>457</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>457 archivos</span></div></td></tr>
+<tr><td><code>GONE</code></td><td style='text-align:right'>29</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>29 archivos</span></div></td></tr>
+<tr><td><code>OK</code></td><td style='text-align:right'>28.356</td><td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>28356 archivos</span></div></td></tr></tbody></table>
+<h3>Resultados por unidad</h3><table class='table'><thead><tr><th>Unidad</th><th style='text-align:right'>Archivos</th><th style='text-align:right'>GB</th><th style='text-align:right'>OK</th><th style='text-align:right'>GONE</th><th style='text-align:right'>FAIL</th></tr></thead><tbody><tr><td><b>H</b></td><td style='text-align:right'>6.972</td><td style='text-align:right'>545.43 GB</td><td style='text-align:right'></td><td style='text-align:right'></td><td style='text-align:right'></td></tr> <tr><td><b>I</b></td><td style='text-align:right'>287</td><td style='text-align:right'>28.85 GB</td><td style='text-align:right'></td><td style='text-align:right'></td><td style='text-align:right'></td></tr> <tr><td><b>J</b></td><td style='text-align:right'>21.583</td><td style='text-align:right'>72.4 GB</td><td style='text-align:right'></td><td style='text-align:right'></td><td style='text-align:right'></td></tr></tbody></table>
+<h3>Tipos de archivo más frecuentes (espacio)</h3><table class='table'><thead><tr><th>Extensión</th><th style='text-align:right'>Archivos</th><th style='text-align:right'>GB</th><th>Gráfico</th></tr></thead><tbody><tr><td><code>.m2ts</code></td><td style='text-align:right'>184</td><td style='text-align:right'>284.07 GB</td><td><div class='bar'><div class='barfill' style='width:100%'></div><span class='barlabel'>284,07 GB</span></div></td></tr>
+<tr><td><code>.mpg</code></td><td style='text-align:right'>342</td><td style='text-align:right'>269.41 GB</td><td><div class='bar'><div class='barfill' style='width:95%'></div><span class='barlabel'>269,41 GB</span></div></td></tr>
+<tr><td><code>.jpg</code></td><td style='text-align:right'>23.640</td><td style='text-align:right'>51.69 GB</td><td><div class='bar'><div class='barfill' style='width:18%'></div><span class='barlabel'>51,69 GB</span></div></td></tr>
+<tr><td><code>.avi</code></td><td style='text-align:right'>27</td><td style='text-align:right'>22.38 GB</td><td><div class='bar'><div class='barfill' style='width:8%'></div><span class='barlabel'>22,38 GB</span></div></td></tr>
+<tr><td><code>.mp4</code></td><td style='text-align:right'>12</td><td style='text-align:right'>11.13 GB</td><td><div class='bar'><div class='barfill' style='width:4%'></div><span class='barlabel'>11,13 GB</span></div></td></tr>
+<tr><td><code>.tif</code></td><td style='text-align:right'>102</td><td style='text-align:right'>2.15 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>2,15 GB</span></div></td></tr>
+<tr><td><code>.bmp</code></td><td style='text-align:right'>426</td><td style='text-align:right'>1.33 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>1,33 GB</span></div></td></tr>
+<tr><td><code>.dcr</code></td><td style='text-align:right'>141</td><td style='text-align:right'>1.25 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>1,25 GB</span></div></td></tr>
+<tr><td><code>.nef</code></td><td style='text-align:right'>69</td><td style='text-align:right'>0.91 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,91 GB</span></div></td></tr>
+<tr><td><code>.chk</code></td><td style='text-align:right'>3.089</td><td style='text-align:right'>0.75 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,75 GB</span></div></td></tr>
+<tr><td><code>.mp3</code></td><td style='text-align:right'>84</td><td style='text-align:right'>0.33 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,33 GB</span></div></td></tr>
+<tr><td><code>.psd</code></td><td style='text-align:right'>9</td><td style='text-align:right'>0.25 GB</td><td><div class='bar'><div class='barfill' style='width:2%'></div><span class='barlabel'>0,25 GB</span></div></td></tr></tbody></table>
+
+<h2>Basura típica encontrada</h2>
+<h3>Basura típica detectada</h3>
+<table class='table'>
+  <thead><tr><th>Unidad</th><th>Tipo</th><th style='text-align:right'>Cantidad</th></tr></thead>
+  <tbody><tr><td>H:</td><td><code> Thumbs.db</code></td><td style='text-align:right'>173</td></tr>
+<tr><td>H:</td><td><code> Desktop.ini</code></td><td style='text-align:right'>0</td></tr>
+<tr><td>H:</td><td><code> .DS_Store</code></td><td style='text-align:right'>0</td></tr>
+<tr><td>I:</td><td><code> Thumbs.db</code></td><td style='text-align:right'>27</td></tr>
+<tr><td>I:</td><td><code> Desktop.ini</code></td><td style='text-align:right'>0</td></tr>
+<tr><td>I:</td><td><code> .DS_Store</code></td><td style='text-align:right'>0</td></tr>
+<tr><td>J:</td><td><code> Thumbs.db</code></td><td style='text-align:right'>350</td></tr>
+<tr><td>J:</td><td><code> Desktop.ini</code></td><td style='text-align:right'>9</td></tr>
+<tr><td>J:</td><td><code> .DS_Store</code></td><td style='text-align:right'>0</td></tr></tbody>
+</table>
+
+<h2>Recomendaciones concretas</h2>
+<ul>
+<ul>
+<li>Hay <b>457</b> incidencias «FAIL». Reintentar en ventana administrativa y con soporte para rutas largas. Si persiste, revisar permisos.</li><li>Se detectaron <b>29</b> ficheros «GONE» que ya no existían al moverlos; no requieren acción salvo comprobar que no hay pérdidas inesperadas.</li><li>Los ficheros de sistema (Thumbs.db, Desktop.ini, .DS_Store) pueden borrarse sin riesgo.</li><li>La mayor parte del espacio está en fotos/vídeos. Organiza en una estructura coherente Año/Mes/Evento y normaliza nombres según fecha EXIF.</li><li>Mantener la carpeta de cuarentena (<code>H:\_quarantine_from_HIJ</code>) intacta hasta finalizar la revisión familiar.</li><li>Guardar este informe como PDF y subirlo al repositorio para dejar constancia.</li></ul><li>La unidad <b>J:</b> tiene poco espacio libre (<b>34.4%</b>). Se recomienda consolidar/archivar.</li>
+
+<p class='muted'>Este informe se generó automáticamente a partir de los registros en <code>C:\Users\anton\media-dedup</code>.</p>
+<table>
+</table>
+</body></html>
