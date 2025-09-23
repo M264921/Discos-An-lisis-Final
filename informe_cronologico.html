@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe cronológico H/I/J</title>
+<style>
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:28px;line-height:1.6;color:#202124;background:#fafafa}
+  h1{margin:0 0 8px 0;font-size:30px;color:#0b2545}
+  .lead{color:#4a4a4a;margin:0 0 24px 0;max-width:880px}
+  h2{margin-top:36px;color:#0b2545}
+  h3{margin-top:26px;margin-bottom:12px;color:#183153}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:24px}
+  .card{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:16px 18px;box-shadow:0 3px 8px rgba(15,23,42,.08)}
+  .card .title{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#5f6368;margin-bottom:6px}
+  .card .big{font-size:26px;font-weight:700;color:#0b2545}
+  .card .meta{color:#5f6368;font-size:13px;margin-top:6px}
+  .timeline{position:relative;margin:24px 0;padding-left:24px}
+  .timeline:before{content:"";position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:#cbd5f5}
+  .t-item{position:relative;margin-bottom:18px;padding-left:18px}
+  .t-item:last-child{margin-bottom:0}
+  .t-item:before{content:"";position:absolute;left:-18px;top:4px;width:12px;height:12px;border-radius:50%;background:#0b2545;box-shadow:0 0 0 3px #e7ecff}
+  .t-date{font-weight:600;color:#0b2545}
+  .t-body{color:#3c4043}
+  .bar-chart{display:flex;flex-direction:column;gap:10px;margin:12px 0 20px 0}
+  .bar{display:flex;align-items:center;gap:12px}
+  .bar-label{flex:0 0 130px;font-weight:600;color:#183153}
+  .bar-track{flex:1;height:14px;background:#e8eefc;border-radius:999px;position:relative;overflow:hidden}
+  .bar-fill{height:100%;background:linear-gradient(90deg,#4f46e5,#60a5fa);border-radius:999px}
+  .bar-value{flex:0 0 110px;text-align:right;font-variant-numeric:tabular-nums;color:#3c4043}
+  table{border-collapse:collapse;width:100%;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(15,23,42,.06)}
+  th,td{border:1px solid #e0e0e0;padding:10px 12px;text-align:left}
+  th{background:#f1f4ff;color:#183153;font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .callout{background:#f1f5f9;border-left:4px solid #2563eb;padding:14px 18px;border-radius:10px;margin-top:16px}
+  .tiny{font-size:12px;color:#5f6368}
+  @media (max-width:720px){
+    body{margin:18px}
+    .bar-label{flex:0 0 110px}
+    .bar-value{flex:0 0 90px}
+  }
+</style>
+</head>
+<body>
+<h1>Informe cronológico del proyecto H/I/J</h1>
+<p class="lead">Recopilación paso a paso de lo ocurrido con los discos familiares H:, I: y J:. Incluye cifras reales del inventario (<code>index_by_hash.csv</code>) y explica en lenguaje llano cómo evolucionó la limpieza hasta el índice final del 23/09/2025.</p>
+
+<section class="cards">
+  <div class="card">
+    <div class="title">Huella analizada</div>
+    <div class="big">3.282,50 GB</div>
+    <div class="meta">60.639 archivos revisados entre las tres unidades</div>
+  </div>
+  <div class="card">
+    <div class="title">Duplicados localizados</div>
+    <div class="big">28.783 ficheros</div>
+    <div class="meta">Representan el 47,5% del total y 995,24 GB (30,3% del espacio)</div>
+  </div>
+  <div class="card">
+    <div class="title">Material en cuarentena</div>
+    <div class="big">59.420 ítems</div>
+    <div class="meta">1.122,22 GB guardados de forma segura para revisión</div>
+  </div>
+  <div class="card">
+    <div class="title">Fecha de consolidación</div>
+    <div class="big">23/09/2025</div>
+    <div class="meta">El índice maestro se generó ese día</div>
+  </div>
+</section>
+
+<h2>Historia en orden cronológico</h2>
+<div class="timeline">
+  <div class="t-item">
+    <div class="t-date">2000-2002 • Primeros recuerdos digitales</div>
+    <div class="t-body">1.698 archivos (5,1 GB) inauguraron la colección, principalmente fotos tempranas y documentos ligeros.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">2003-2005 • Consolidación familiar</div>
+    <div class="t-body">21.053 archivos (74,17 GB) guardaron eventos como vacaciones y celebraciones, sentando la base del archivo familiar.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">2006-2009 • Auge de cámaras compactas</div>
+    <div class="t-body">25.416 elementos (201,59 GB) retratan viajes y fiestas; aquí empiezan a duplicarse muchas fotos y vídeos.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">2010-2012 • Llegada de los vídeos Full HD</div>
+    <div class="t-body">7.343 archivos pero 1.209,27 GB: los clips <code>.m2ts</code> y <code>.mp4</code> disparan el peso almacenado.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">2013-2014 • Máxima expansión</div>
+    <div class="t-body">1.757 archivos ocupan 1.585,56 GB gracias a proyectos audiovisuales de gran tamaño que quedaron duplicados en varias carpetas.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">2015-2016 • Últimas cámaras reflex</div>
+    <div class="t-body">151 ficheros (165,16 GB) documentan sesiones específicas de foto y vídeo antes de un largo parón.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">Mayo 2025 • Nuevos aportes</div>
+    <div class="t-body">12 archivos recientes (0,20 GB) —entre ellos <i>“CENA MONTALVOS VERANO 1992.mpg”</i> y varias fotos IMG_00xx— reactivan el archivo.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">04/09/2025 • Limpieza de restos del sistema</div>
+    <div class="t-body">3.106 ficheros de <code>Spotlight</code> y <code>FOUND.000</code> (0,76 GB) se enviaron a cuarentena para evitar confusión con contenidos reales.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">10/09/2025 • Traslado de documentales científicos</div>
+    <div class="t-body">15 vídeos <code>.m2ts</code> (27,70 GB) como <i>“ALERTA ASTEROIDES”</i> o <i>“LA CIUDAD PERFECTA”</i> se centralizaron en la carpeta segura.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">11/09/2025 • Colecciones de astronomía y familia</div>
+    <div class="t-body">29 piezas (9,10 GB) —vídeos planetarios y álbumes “CASA 2009”— pasaron al inventario de cuarentena manteniendo todo accesible.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">14/09/2025 • Métricas de la sesión</div>
+    <div class="t-body">Se exportaron <code>session_kpis.csv</code> y <code>timings_by_drive.csv</code> para documentar tiempos y resultados.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">19-21/09/2025 • Últimos ajustes</div>
+    <div class="t-body">El <code>moves_retry_log.csv</code> y el <code>moves_log.csv</code> dejaron constancia de los reintentos y de todos los movimientos correctos.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">22/09/2025 • Inventario final del disco J:</div>
+    <div class="t-body">Los listados <code>contenido-J-drive.xlsx</code> y <code>.csv</code> confirmaron la organización final previa al cierre.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">23/09/2025 • Índice maestro listo</div>
+    <div class="t-body">Se publica el “Índice por hash” con 60.639 entradas, dejando trazabilidad para cualquier revisión futura.</div>
+  </div>
+</div>
+
+<h2>Gráficos clave</h2>
+<h3>Evolución del volumen por periodo</h3>
+<div class="bar-chart">
+  <div class="bar"><div class="bar-label">2000-2002</div><div class="bar-track"><div class="bar-fill" style="width:0.3%"></div></div><div class="bar-value">1.698 archivos • 5,14 GB</div></div>
+  <div class="bar"><div class="bar-label">2003-2005</div><div class="bar-track"><div class="bar-fill" style="width:4.7%"></div></div><div class="bar-value">21.053 archivos • 74,17 GB</div></div>
+  <div class="bar"><div class="bar-label">2006-2009</div><div class="bar-track"><div class="bar-fill" style="width:12.7%"></div></div><div class="bar-value">25.416 archivos • 201,59 GB</div></div>
+  <div class="bar"><div class="bar-label">2010-2012</div><div class="bar-track"><div class="bar-fill" style="width:76.3%"></div></div><div class="bar-value">7.343 archivos • 1.209,27 GB</div></div>
+  <div class="bar"><div class="bar-label">2013-2014</div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div class="bar-value">1.757 archivos • 1.585,56 GB</div></div>
+  <div class="bar"><div class="bar-label">2015-2016</div><div class="bar-track"><div class="bar-fill" style="width:10.4%"></div></div><div class="bar-value">151 archivos • 165,16 GB</div></div>
+  <div class="bar"><div class="bar-label">2025</div><div class="bar-track"><div class="bar-fill" style="width:2.6%"></div></div><div class="bar-value">3.221 archivos • 41,61 GB</div></div>
+</div>
+<p class="tiny">Las barras muestran el peso acumulado por fecha de última modificación. El periodo 2013-2014 concentra la mayor parte del tamaño gracias a los proyectos audiovisuales en HD.</p>
+
+<h3>Duplicados por tipo de archivo</h3>
+<div class="bar-chart">
+  <div class="bar"><div class="bar-label">.m2ts</div><div class="bar-track"><div class="bar-fill" style="width:62.8%"></div></div><div class="bar-value">62,8% del espacio duplicado</div></div>
+  <div class="bar"><div class="bar-label">.mpg</div><div class="bar-track"><div class="bar-fill" style="width:27.1%"></div></div><div class="bar-value">27,1%</div></div>
+  <div class="bar"><div class="bar-label">.jpg</div><div class="bar-track"><div class="bar-fill" style="width:5.2%"></div></div><div class="bar-value">5,2%</div></div>
+  <div class="bar"><div class="bar-label">.avi</div><div class="bar-track"><div class="bar-fill" style="width:2.2%"></div></div><div class="bar-value">2,2%</div></div>
+  <div class="bar"><div class="bar-label">.mp4</div><div class="bar-track"><div class="bar-fill" style="width:1.9%"></div></div><div class="bar-value">1,9%</div></div>
+  <div class="bar"><div class="bar-label">.tif</div><div class="bar-track"><div class="bar-fill" style="width:0.2%"></div></div><div class="bar-value">0,2%</div></div>
+</div>
+<p class="tiny">Dos tercios del espacio duplicado procede de vídeos <code>.m2ts</code>, muy comunes en cámaras domésticas de la década de 2010.</p>
+
+<h3>Distribución por unidad</h3>
+<div class="bar-chart">
+  <div class="bar"><div class="bar-label">Unidad I:</div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div class="bar-value">1,81 TB • 5.080 archivos</div></div>
+  <div class="bar"><div class="bar-label">Unidad H:</div><div class="bar-track"><div class="bar-fill" style="width:59.2%"></div></div><div class="bar-value">1,07 TB • 29.990 archivos</div></div>
+  <div class="bar"><div class="bar-label">Unidad J:</div><div class="bar-track"><div class="bar-fill" style="width:18%"></div></div><div class="bar-value">0,33 TB • 25.569 archivos</div></div>
+</div>
+<p class="tiny">Aunque I: alberga el mayor tamaño, H: concentra la mayoría de los ficheros porque actúa como repositorio central tras la deduplicación.</p>
+
+<h2>Espacio en cuarentena (top 8)</h2>
+<table>
+  <thead><tr><th>Ubicación</th><th class="num">Archivos</th><th class="num">GB</th></tr></thead>
+  <tbody>
+    <tr><td>H:\_quarantine_from_HIJ\media_final</td><td class="num">177</td><td class="num">277,31</td></tr>
+    <tr><td>J:\_quarantine_from_I\migrated</td><td class="num">20.002</td><td class="num">255,46</td></tr>
+    <tr><td>H:\_quarantine_from_HIJ\VIDEOS FAMILIA</td><td class="num">263</td><td class="num">246,67</td></tr>
+    <tr><td>I:\_quarantine\migrated</td><td class="num">4.397</td><td class="num">89,38</td></tr>
+    <tr><td>H:\offload\_quarantine_from_I\migrated</td><td class="num">184</td><td class="num">83,75</td></tr>
+    <tr><td>H:\_quarantine_from_HIJ\_quarantine_from_H</td><td class="num">14.544</td><td class="num">34,86</td></tr>
+    <tr><td>H:\_quarantine_from_HIJ\_quarantine_from_I</td><td class="num">3.871</td><td class="num">34,62</td></tr>
+    <tr><td>H:\_quarantine_from_HIJ\offload</td><td class="num">2.951</td><td class="num">16,02</td></tr>
+  </tbody>
+</table>
+<p class="tiny">La cuarentena suma 1,12 TB repartidos en carpetas temáticas. El material permanece disponible para recuperar recuerdos sin riesgo.</p>
+
+<h2>Fases detalladas de septiembre de 2025</h2>
+<div class="timeline">
+  <div class="t-item">
+    <div class="t-date">04/09</div>
+    <div class="t-body">Barrido de 3.106 archivos técnicos (<code>Spotlight</code>, <code>FOUND.000</code>) que se marcaron como descartables pero conservados por seguridad.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">10/09</div>
+    <div class="t-body">Centralización de 15 documentales HD en la cuarentena común (<i>ALERTA ASTEROIDES</i>, <i>LA CIUDAD PERFECTA</i>, etc.).</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">11/09</div>
+    <div class="t-body">Movimiento de colecciones de astronomía y álbumes “CASA 2009” para evitar copias dobles en las unidades principales.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">14/09</div>
+    <div class="t-body">Exportación de los KPI de la sesión: se midieron tiempos y conteos de archivos movidos.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">19/09</div>
+    <div class="t-body">Registro de reintentos en <code>moves_retry_log.csv</code> para documentar incidencias resueltas.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">21/09</div>
+    <div class="t-body">Consolidación final de movimientos en <code>moves_log.csv</code>, con trazabilidad completa.</div>
+  </div>
+  <div class="t-item">
+    <div class="t-date">22/09</div>
+    <div class="t-body">Creación de los listados de contenido del disco J:, último chequeo antes del cierre.</div>
+  </div>
+</div>
+<p class="callout"><strong>Resultado:</strong> el 23/09/2025 se emitió el índice maestro de 60.639 archivos. Todo el material válido quedó identificado y los duplicados están aislados para revisarse con calma.</p>
+
+<h2>Recomendaciones finales</h2>
+<ul>
+  <li>Revisar la carpeta <strong>media_final</strong> en la cuarentena y decidir qué se conserva en la biblioteca oficial.</li>
+  <li>Validar con la familia los documentales y vídeos de astronomía antes de liberar espacio: suman casi 37 GB recientes.</li>
+  <li>Respaldar el disco I: tras la reorganización: contiene el mayor volumen (1,81 TB) aunque con pocos ficheros críticos.</li>
+  <li>Cuando todo esté aprobado, se puede vaciar la cuarentena sabiendo que existe un índice por hash que garantiza la trazabilidad.</li>
+</ul>
+
+</body>
+</html>
