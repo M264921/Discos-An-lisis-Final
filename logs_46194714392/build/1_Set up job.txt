@@ -1,0 +1,33 @@
+﻿2025-09-24T15:56:53.1132069Z Current runner version: '2.328.0'
+2025-09-24T15:56:53.1156035Z ##[group]Runner Image Provisioner
+2025-09-24T15:56:53.1156858Z Hosted Compute Agent
+2025-09-24T15:56:53.1157618Z Version: 20250829.383
+2025-09-24T15:56:53.1158272Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+2025-09-24T15:56:53.1159026Z Build Date: 2025-08-29T13:48:48Z
+2025-09-24T15:56:53.1159824Z ##[endgroup]
+2025-09-24T15:56:53.1160506Z ##[group]Operating System
+2025-09-24T15:56:53.1161103Z Ubuntu
+2025-09-24T15:56:53.1161550Z 24.04.3
+2025-09-24T15:56:53.1162049Z LTS
+2025-09-24T15:56:53.1162520Z ##[endgroup]
+2025-09-24T15:56:53.1163015Z ##[group]Runner Image
+2025-09-24T15:56:53.1163575Z Image: ubuntu-24.04
+2025-09-24T15:56:53.1164061Z Version: 20250907.24.1
+2025-09-24T15:56:53.1165059Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250907.24/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-24T15:56:53.1166419Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250907.24
+2025-09-24T15:56:53.1167629Z ##[endgroup]
+2025-09-24T15:56:53.1168713Z ##[group]GITHUB_TOKEN Permissions
+2025-09-24T15:56:53.1170673Z Contents: read
+2025-09-24T15:56:53.1171321Z Metadata: read
+2025-09-24T15:56:53.1171854Z Pages: write
+2025-09-24T15:56:53.1172339Z ##[endgroup]
+2025-09-24T15:56:53.1174294Z Secret source: Actions
+2025-09-24T15:56:53.1175124Z Prepare workflow directory
+2025-09-24T15:56:53.1497907Z Prepare all required actions
+2025-09-24T15:56:53.1535780Z Getting action download info
+2025-09-24T15:56:53.4867508Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-24T15:56:53.6457977Z Download action repository 'actions/jekyll-build-pages@v1' (SHA:44a6e6beabd48582f863aeeb6cb2151cc1716697)
+2025-09-24T15:56:53.8616695Z Download action repository 'actions/upload-pages-artifact@v3' (SHA:56afc609e74202658d3ffba0e8f6dda462b719fa)
+2025-09-24T15:56:54.0776584Z Getting action download info
+2025-09-24T15:56:54.1965096Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-09-24T15:56:54.6033069Z Complete job name: build

@@ -1,0 +1,232 @@
+﻿2025-09-24T15:56:53.1132677Z Current runner version: '2.328.0'
+2025-09-24T15:56:53.1156058Z ##[group]Runner Image Provisioner
+2025-09-24T15:56:53.1156863Z Hosted Compute Agent
+2025-09-24T15:56:53.1157625Z Version: 20250829.383
+2025-09-24T15:56:53.1158368Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+2025-09-24T15:56:53.1159030Z Build Date: 2025-08-29T13:48:48Z
+2025-09-24T15:56:53.1159831Z ##[endgroup]
+2025-09-24T15:56:53.1160511Z ##[group]Operating System
+2025-09-24T15:56:53.1161106Z Ubuntu
+2025-09-24T15:56:53.1161553Z 24.04.3
+2025-09-24T15:56:53.1162053Z LTS
+2025-09-24T15:56:53.1162523Z ##[endgroup]
+2025-09-24T15:56:53.1163019Z ##[group]Runner Image
+2025-09-24T15:56:53.1163578Z Image: ubuntu-24.04
+2025-09-24T15:56:53.1164064Z Version: 20250907.24.1
+2025-09-24T15:56:53.1165065Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250907.24/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-24T15:56:53.1166669Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250907.24
+2025-09-24T15:56:53.1167633Z ##[endgroup]
+2025-09-24T15:56:53.1168717Z ##[group]GITHUB_TOKEN Permissions
+2025-09-24T15:56:53.1170691Z Contents: read
+2025-09-24T15:56:53.1171325Z Metadata: read
+2025-09-24T15:56:53.1171857Z Pages: write
+2025-09-24T15:56:53.1172341Z ##[endgroup]
+2025-09-24T15:56:53.1174312Z Secret source: Actions
+2025-09-24T15:56:53.1175128Z Prepare workflow directory
+2025-09-24T15:56:53.1497943Z Prepare all required actions
+2025-09-24T15:56:53.1535810Z Getting action download info
+2025-09-24T15:56:53.4867544Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-24T15:56:53.6458006Z Download action repository 'actions/jekyll-build-pages@v1' (SHA:44a6e6beabd48582f863aeeb6cb2151cc1716697)
+2025-09-24T15:56:53.8616729Z Download action repository 'actions/upload-pages-artifact@v3' (SHA:56afc609e74202658d3ffba0e8f6dda462b719fa)
+2025-09-24T15:56:54.0776623Z Getting action download info
+2025-09-24T15:56:54.1965155Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-09-24T15:56:54.6033102Z Complete job name: build
+2025-09-24T15:56:54.6483792Z ##[group]Pull down action image 'ghcr.io/actions/jekyll-build-pages:v1.0.13'
+2025-09-24T15:56:54.6534589Z ##[command]/usr/bin/docker pull ghcr.io/actions/jekyll-build-pages:v1.0.13
+2025-09-24T15:56:55.0176714Z v1.0.13: Pulling from actions/jekyll-build-pages
+2025-09-24T15:56:55.0177296Z efc2b5ad9eec: Pulling fs layer
+2025-09-24T15:56:55.0177589Z 165b60d1bb48: Pulling fs layer
+2025-09-24T15:56:55.0177867Z 2a328af1ca3a: Pulling fs layer
+2025-09-24T15:56:55.0178137Z 32b58fa44788: Pulling fs layer
+2025-09-24T15:56:55.0178410Z 590ab93c22d2: Pulling fs layer
+2025-09-24T15:56:55.0178669Z 26ea96c4c14c: Pulling fs layer
+2025-09-24T15:56:55.0178960Z bd7e451dfea1: Pulling fs layer
+2025-09-24T15:56:55.0179222Z c209e9dadc51: Pulling fs layer
+2025-09-24T15:56:55.0179493Z a4925b5c711a: Pulling fs layer
+2025-09-24T15:56:55.0180126Z cd9459784e3c: Pulling fs layer
+2025-09-24T15:56:55.0180434Z 32b58fa44788: Waiting
+2025-09-24T15:56:55.0180731Z 590ab93c22d2: Waiting
+2025-09-24T15:56:55.0181052Z 26ea96c4c14c: Waiting
+2025-09-24T15:56:55.0181434Z bd7e451dfea1: Waiting
+2025-09-24T15:56:55.0182525Z c209e9dadc51: Waiting
+2025-09-24T15:56:55.0182894Z a4925b5c711a: Waiting
+2025-09-24T15:56:55.0183158Z cd9459784e3c: Waiting
+2025-09-24T15:56:55.0612472Z 2a328af1ca3a: Verifying Checksum
+2025-09-24T15:56:55.0613221Z 2a328af1ca3a: Download complete
+2025-09-24T15:56:55.1175052Z 165b60d1bb48: Verifying Checksum
+2025-09-24T15:56:55.1177423Z 165b60d1bb48: Download complete
+2025-09-24T15:56:55.1716589Z efc2b5ad9eec: Verifying Checksum
+2025-09-24T15:56:55.1717793Z efc2b5ad9eec: Download complete
+2025-09-24T15:56:55.1833291Z 590ab93c22d2: Verifying Checksum
+2025-09-24T15:56:55.1850469Z 590ab93c22d2: Download complete
+2025-09-24T15:56:55.2455269Z bd7e451dfea1: Verifying Checksum
+2025-09-24T15:56:55.2461044Z bd7e451dfea1: Download complete
+2025-09-24T15:56:55.2551674Z 32b58fa44788: Verifying Checksum
+2025-09-24T15:56:55.2554906Z 32b58fa44788: Download complete
+2025-09-24T15:56:55.3671059Z a4925b5c711a: Verifying Checksum
+2025-09-24T15:56:55.3672551Z a4925b5c711a: Download complete
+2025-09-24T15:56:55.6759139Z cd9459784e3c: Verifying Checksum
+2025-09-24T15:56:55.6762278Z cd9459784e3c: Download complete
+2025-09-24T15:56:55.7056939Z c209e9dadc51: Verifying Checksum
+2025-09-24T15:56:55.7057600Z c209e9dadc51: Download complete
+2025-09-24T15:56:55.8024905Z 26ea96c4c14c: Verifying Checksum
+2025-09-24T15:56:55.8025609Z 26ea96c4c14c: Download complete
+2025-09-24T15:56:56.4633899Z efc2b5ad9eec: Pull complete
+2025-09-24T15:56:58.6422133Z 165b60d1bb48: Pull complete
+2025-09-24T15:56:58.6530327Z 2a328af1ca3a: Pull complete
+2025-09-24T15:56:59.5934136Z 32b58fa44788: Pull complete
+2025-09-24T15:56:59.6038160Z 590ab93c22d2: Pull complete
+2025-09-24T15:57:03.6267250Z 26ea96c4c14c: Pull complete
+2025-09-24T15:57:03.6364502Z bd7e451dfea1: Pull complete
+2025-09-24T15:57:05.6457895Z c209e9dadc51: Pull complete
+2025-09-24T15:57:05.6708959Z a4925b5c711a: Pull complete
+2025-09-24T15:57:05.6813095Z cd9459784e3c: Pull complete
+2025-09-24T15:57:05.6848575Z Digest: sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041
+2025-09-24T15:57:05.6861545Z Status: Downloaded newer image for ghcr.io/actions/jekyll-build-pages:v1.0.13
+2025-09-24T15:57:05.6873639Z ghcr.io/actions/jekyll-build-pages:v1.0.13
+2025-09-24T15:57:05.6895636Z ##[endgroup]
+2025-09-24T15:57:05.7172896Z ##[group]Run actions/checkout@v4
+2025-09-24T15:57:05.7173491Z with:
+2025-09-24T15:57:05.7173675Z   ref: main
+2025-09-24T15:57:05.7173851Z   submodules: recursive
+2025-09-24T15:57:05.7174129Z   repository: M264921/Discos-An-lisis-Final
+2025-09-24T15:57:05.7174531Z   token: ***
+2025-09-24T15:57:05.7174729Z   ssh-strict: true
+2025-09-24T15:57:05.7174918Z   ssh-user: git
+2025-09-24T15:57:05.7175108Z   persist-credentials: true
+2025-09-24T15:57:05.7175331Z   clean: true
+2025-09-24T15:57:05.7175520Z   sparse-checkout-cone-mode: true
+2025-09-24T15:57:05.7175764Z   fetch-depth: 1
+2025-09-24T15:57:05.7175962Z   fetch-tags: false
+2025-09-24T15:57:05.7176152Z   show-progress: true
+2025-09-24T15:57:05.7176332Z   lfs: false
+2025-09-24T15:57:05.7176530Z   set-safe-directory: true
+2025-09-24T15:57:05.7176954Z ##[endgroup]
+2025-09-24T15:57:05.8248596Z Syncing repository: M264921/Discos-An-lisis-Final
+2025-09-24T15:57:05.8250267Z ##[group]Getting Git version info
+2025-09-24T15:57:05.8250817Z Working directory is '/home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final'
+2025-09-24T15:57:05.8251457Z [command]/usr/bin/git version
+2025-09-24T15:57:05.8314030Z git version 2.51.0
+2025-09-24T15:57:05.8340518Z ##[endgroup]
+2025-09-24T15:57:05.8354850Z Temporarily overriding HOME='/home/runner/work/_temp/23d34535-6cc9-42ad-a63e-bc890cd1c005' before making global git config changes
+2025-09-24T15:57:05.8356108Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-24T15:57:05.8368529Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final
+2025-09-24T15:57:05.8405173Z Deleting the contents of '/home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final'
+2025-09-24T15:57:05.8408497Z ##[group]Initializing the repository
+2025-09-24T15:57:05.8413068Z [command]/usr/bin/git init /home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final
+2025-09-24T15:57:05.8503915Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-24T15:57:05.8504827Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-24T15:57:05.8505760Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-24T15:57:05.8506338Z hint:
+2025-09-24T15:57:05.8506795Z hint: 	git config --global init.defaultBranch <name>
+2025-09-24T15:57:05.8507154Z hint:
+2025-09-24T15:57:05.8507463Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-24T15:57:05.8508107Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-24T15:57:05.8509192Z hint:
+2025-09-24T15:57:05.8509501Z hint: 	git branch -m <name>
+2025-09-24T15:57:05.8510049Z hint:
+2025-09-24T15:57:05.8510548Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-24T15:57:05.8511542Z Initialized empty Git repository in /home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final/.git/
+2025-09-24T15:57:05.8521026Z [command]/usr/bin/git remote add origin https://github.com/M264921/Discos-An-lisis-Final
+2025-09-24T15:57:05.8557067Z ##[endgroup]
+2025-09-24T15:57:05.8557522Z ##[group]Disabling automatic garbage collection
+2025-09-24T15:57:05.8561530Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-24T15:57:05.8589273Z ##[endgroup]
+2025-09-24T15:57:05.8596890Z ##[group]Setting up auth
+2025-09-24T15:57:05.8597311Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-24T15:57:05.8626320Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-24T15:57:05.8945027Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-24T15:57:05.8975083Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-24T15:57:05.9200237Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-24T15:57:05.9237533Z ##[endgroup]
+2025-09-24T15:57:05.9237979Z ##[group]Fetching the repository
+2025-09-24T15:57:05.9246848Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/main*:refs/remotes/origin/main* +refs/tags/main*:refs/tags/main*
+2025-09-24T15:57:08.1893993Z From https://github.com/M264921/Discos-An-lisis-Final
+2025-09-24T15:57:08.1894428Z  * [new branch]      main       -> origin/main
+2025-09-24T15:57:08.1924869Z ##[endgroup]
+2025-09-24T15:57:08.1925245Z ##[group]Determining the checkout info
+2025-09-24T15:57:08.1932074Z [command]/usr/bin/git branch --list --remote origin/main
+2025-09-24T15:57:08.1954416Z   origin/main
+2025-09-24T15:57:08.1960828Z ##[endgroup]
+2025-09-24T15:57:08.1965032Z [command]/usr/bin/git sparse-checkout disable
+2025-09-24T15:57:08.2003994Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-24T15:57:08.2029968Z ##[group]Checking out the ref
+2025-09-24T15:57:08.2034034Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-09-24T15:57:08.6466565Z Switched to a new branch 'main'
+2025-09-24T15:57:08.6467350Z branch 'main' set up to track 'origin/main'.
+2025-09-24T15:57:08.6474374Z ##[endgroup]
+2025-09-24T15:57:08.6475013Z ##[group]Setting up auth for fetching submodules
+2025-09-24T15:57:08.6481754Z [command]/usr/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-24T15:57:08.6521917Z [command]/usr/bin/git config --global --unset-all url.https://github.com/.insteadOf
+2025-09-24T15:57:08.6552124Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+2025-09-24T15:57:08.6582077Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf org-90904607@github.com:
+2025-09-24T15:57:08.6608037Z ##[endgroup]
+2025-09-24T15:57:08.6608664Z ##[group]Fetching submodules
+2025-09-24T15:57:08.6613183Z [command]/usr/bin/git submodule sync --recursive
+2025-09-24T15:57:08.6839253Z [command]/usr/bin/git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+2025-09-24T15:57:08.7062783Z [command]/usr/bin/git submodule foreach --recursive git config --local gc.auto 0
+2025-09-24T15:57:08.7288660Z ##[endgroup]
+2025-09-24T15:57:08.7289448Z ##[group]Persisting credentials for submodules
+2025-09-24T15:57:08.7296701Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+2025-09-24T15:57:08.7519838Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-09-24T15:57:08.7739001Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+2025-09-24T15:57:08.7960912Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'org-90904607@github.com:'
+2025-09-24T15:57:08.8174090Z ##[endgroup]
+2025-09-24T15:57:08.8218397Z [command]/usr/bin/git log -1 --format=%H
+2025-09-24T15:57:08.8240856Z cccb80334a57e271a5dfe74aec41733b5e5cfadb
+2025-09-24T15:57:08.8412144Z ##[group]Run actions/jekyll-build-pages@v1
+2025-09-24T15:57:08.8412444Z with:
+2025-09-24T15:57:08.8412624Z   source: ./docs
+2025-09-24T15:57:08.8412817Z   destination: ./docs/_site
+2025-09-24T15:57:08.8413020Z   future: false
+2025-09-24T15:57:08.8413263Z   build_revision: cccb80334a57e271a5dfe74aec41733b5e5cfadb
+2025-09-24T15:57:08.8413545Z   verbose: true
+2025-09-24T15:57:08.8413852Z   token: ***
+2025-09-24T15:57:08.8414025Z ##[endgroup]
+2025-09-24T15:57:08.8505967Z ##[command]/usr/bin/docker run --name ghcrioactionsjekyllbuildpagesv1013_a8d494 --label 968d58 --workdir /github/workspace --rm -e "INPUT_SOURCE" -e "INPUT_DESTINATION" -e "INPUT_FUTURE" -e "INPUT_BUILD_REVISION" -e "INPUT_VERBOSE" -e "INPUT_TOKEN" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_ID_TOKEN_REQUEST_URL" -e "ACTIONS_ID_TOKEN_REQUEST_TOKEN" -e "ACTIONS_RESULTS_URL" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final":"/github/workspace" ghcr.io/actions/jekyll-build-pages:v1.0.13
+2025-09-24T15:57:09.8074856Z [33mConfiguration file: none[0m
+2025-09-24T15:57:09.9208952Z To use retry middleware with Faraday v2.0+, install `faraday-retry` gem
+2025-09-24T15:57:10.2045731Z [31m  Conversion error: Jekyll::Converters::Scss encountered an error while converting 'assets/css/style.scss':[0m
+2025-09-24T15:57:10.2046787Z [31m                    No such file or directory @ dir_chdir0 - /github/workspace/docs[0m
+2025-09-24T15:57:10.2048745Z /usr/local/bundle/gems/jekyll-sass-converter-1.5.2/lib/jekyll/converters/scss.rb:86:in `chdir': No such file or directory @ dir_chdir0 - /github/workspace/docs (Errno::ENOENT)
+2025-09-24T15:57:10.2050396Z 	from /usr/local/bundle/gems/jekyll-sass-converter-1.5.2/lib/jekyll/converters/scss.rb:86:in `sass_load_paths'
+2025-09-24T15:57:10.2051553Z 	from /usr/local/bundle/gems/jekyll-sass-converter-1.5.2/lib/jekyll/converters/scss.rb:114:in `sass_configs'
+2025-09-24T15:57:10.2052966Z 	from /usr/local/bundle/gems/jekyll-sass-converter-1.5.2/lib/jekyll/converters/scss.rb:119:in `convert'
+2025-09-24T15:57:10.2053927Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:101:in `block in convert'
+2025-09-24T15:57:10.2054756Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:99:in `each'
+2025-09-24T15:57:10.2055546Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:99:in `reduce'
+2025-09-24T15:57:10.2056455Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:99:in `convert'
+2025-09-24T15:57:10.2057324Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:83:in `render_document'
+2025-09-24T15:57:10.2058163Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/renderer.rb:62:in `run'
+2025-09-24T15:57:10.2059295Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:479:in `render_regenerated'
+2025-09-24T15:57:10.2060352Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:472:in `block in render_pages'
+2025-09-24T15:57:10.2061225Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:471:in `each'
+2025-09-24T15:57:10.2062047Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:471:in `render_pages'
+2025-09-24T15:57:10.2062853Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:192:in `render'
+2025-09-24T15:57:10.2063608Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/site.rb:71:in `process'
+2025-09-24T15:57:10.2064351Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/command.rb:28:in `process_site'
+2025-09-24T15:57:10.2065238Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/commands/build.rb:65:in `build'
+2025-09-24T15:57:10.2066135Z 	from /usr/local/bundle/gems/jekyll-3.10.0/lib/jekyll/commands/build.rb:36:in `process'
+2025-09-24T15:57:10.2067177Z 	from /usr/local/bundle/gems/github-pages-232/bin/github-pages:70:in `block (3 levels) in <top (required)>'
+2025-09-24T15:57:10.2068316Z 	from /usr/local/bundle/gems/mercenary-0.3.6/lib/mercenary/command.rb:220:in `block in execute'
+2025-09-24T15:57:10.2069293Z 	from /usr/local/bundle/gems/mercenary-0.3.6/lib/mercenary/command.rb:220:in `each'
+2025-09-24T15:57:10.2070368Z 	from /usr/local/bundle/gems/mercenary-0.3.6/lib/mercenary/command.rb:220:in `execute'
+2025-09-24T15:57:10.2071278Z 	from /usr/local/bundle/gems/mercenary-0.3.6/lib/mercenary/program.rb:42:in `go'
+2025-09-24T15:57:10.2072162Z 	from /usr/local/bundle/gems/mercenary-0.3.6/lib/mercenary.rb:19:in `program'
+2025-09-24T15:57:10.2073066Z 	from /usr/local/bundle/gems/github-pages-232/bin/github-pages:6:in `<top (required)>'
+2025-09-24T15:57:10.2073821Z 	from /usr/local/bundle/bin/github-pages:25:in `load'
+2025-09-24T15:57:10.2074384Z 	from /usr/local/bundle/bin/github-pages:25:in `<main>'
+2025-09-24T15:57:10.2177991Z ##[error] Logging at level: debug GitHub Pages: github-pages v232 GitHub Pages: jekyll v3.10.0 Theme: jekyll-theme-primer Theme source: /usr/local/bundle/gems/jekyll-theme-primer-0.6.0 Requiring: jekyll-github-metadata Requiring: jekyll-seo-tag Requiring: jekyll-coffeescript Requiring: jekyll-commonmark-ghpages Requiring: jekyll-gist Requiring: jekyll-github-metadata Requiring: jekyll-paginate Requiring: jekyll-relative-links Requiring: jekyll-optional-front-matter Requiring: jekyll-readme-index Requiring: jekyll-default-layout Requiring: jekyll-titles-from-headings GitHub Metadata: Initializing... Source: /github/workspace/./docs Destination: /github/workspace/./docs/_site Incremental build: disabled. Enable with --incremental Generating... Generating: JekyllOptionalFrontMatter::Generator finished in 1.3967e-05 seconds. Generating: JekyllReadmeIndex::Generator finished in 6.583e-06 seconds. Generating: Jekyll::Paginate::Pagination finished in 3.747e-06 seconds. Generating: JekyllRelativeLinks::Generator finished in 2.5278e-05 seconds. Generating: JekyllDefaultLayout::Generator finished in 1.1792e-05 seconds. Generating: JekyllTitlesFromHeadings::Generator finished in 7.564e-06 seconds. Rendering: assets/css/style.scss Pre-Render Hooks: assets/css/style.scss Rendering Markup: assets/css/style.scss github-pages 232 | Error: No such file or directory @ dir_chdir0 - /github/workspace/docs 
+2025-09-24T15:57:10.2993878Z Post job cleanup.
+2025-09-24T15:57:10.3938062Z [command]/usr/bin/git version
+2025-09-24T15:57:10.3975871Z git version 2.51.0
+2025-09-24T15:57:10.4020462Z Temporarily overriding HOME='/home/runner/work/_temp/eb3bf67f-acbb-4f91-8c78-9c2f512f0d5c' before making global git config changes
+2025-09-24T15:57:10.4021346Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-24T15:57:10.4034814Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Discos-An-lisis-Final/Discos-An-lisis-Final
+2025-09-24T15:57:10.4070244Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-24T15:57:10.4104044Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-24T15:57:10.4333499Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-24T15:57:10.4355411Z http.https://github.com/.extraheader
+2025-09-24T15:57:10.4368834Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-24T15:57:10.4400501Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-24T15:57:10.4726427Z Cleaning up orphan processes
