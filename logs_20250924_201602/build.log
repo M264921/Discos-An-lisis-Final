@@ -1,0 +1,25 @@
+[2025-09-24 20:16:02] Repositorio: C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final
+[2025-09-24 20:16:02] Python detectado en: C:\Python313\python.exe
+[2025-09-24 20:16:02] Generando Listado_Duplicados_interactivo.html: C:\Python313\python.exe C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\tools\generate_duplicates_table.py
+Generado C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\Listado_Duplicados_interactivo.html À 398 grupos À 807 entradas À 697,1 GB
+[2025-09-24 20:16:02] Actualizado index.html
+[2025-09-24 20:16:02] Actualizado Listado_Duplicados_interactivo.html
+[2025-09-24 20:16:03] Actualizado Listado_H_interactivo.html
+[2025-09-24 20:16:03] Actualizado Listado_I_interactivo.html
+[2025-09-24 20:16:03] Actualizado Listado_J_interactivo.html
+[2025-09-24 20:16:03] Actualizado dupes_confirmed.csv
+[2025-09-24 20:16:03] git add docs/index.html: git add docs/index.html
+[2025-09-24 20:16:03] git add docs/Listado_Duplicados_interactivo.html: git add docs/Listado_Duplicados_interactivo.html
+[2025-09-24 20:16:03] git add docs/Listado_H_interactivo.html: git add docs/Listado_H_interactivo.html
+[2025-09-24 20:16:03] git add docs/Listado_I_interactivo.html: git add docs/Listado_I_interactivo.html
+[2025-09-24 20:16:03] git add docs/Listado_J_interactivo.html: git add docs/Listado_J_interactivo.html
+[2025-09-24 20:16:04] git add docs/dupes_confirmed.csv: git add docs/dupes_confirmed.csv
+[2025-09-24 20:16:04] git add Listado_Duplicados_interactivo.html: git add Listado_Duplicados_interactivo.html
+[2025-09-24 20:16:04] git add informe_cronologico.html: git add informe_cronologico.html
+[2025-09-24 20:16:04] git commit: git commit -m chore(docs): refresh hij report
+[main 404aafb] chore(docs): refresh hij report
+ 2 files changed, 571 insertions(+), 188081 deletions(-)
+[2025-09-24 20:16:04] git push: git push
+To https://github.com/M264921/Discos-An-lisis-Final.git
+   401f4b4..404aafb  main -> main
+[2025-09-24 20:16:09] Build log disponible en C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\logs_20250924_201602\build.log
