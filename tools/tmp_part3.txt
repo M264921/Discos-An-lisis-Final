@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+"""Generate the interactive duplicates explorer from dupes_confirmed.csv."""
+
+from __future__ import annotations
+
+import csv
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple
+from urllib.parse import quote
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE_CSV = ROOT / "dupes_confirmed.csv"
+TARGET_HTML = ROOT / "Listado_Duplicados_interactivo.html"
+
+VIDEO_EXT = {
+    ".mp4", ".m2ts", ".avi", ".mov", ".mpg", ".mpeg", ".mts", ".wmv",
+    ".m4v", ".mkv", ".flv", ".ts", ".webm",
+}
+PHOTO_EXT = {
+    ".jpg", ".jpeg", ".png", ".gif", ".heic", ".tif", ".tiff", ".bmp",
+    ".raw", ".nef", ".cr2", ".cr3", ".arw", ".psd", ".svg", ".webp", ".ai",
+}
+AUDIO_EXT = {
+    ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".wma", ".aiff",
+    ".aif", ".mid", ".midi",
+}
+DOC_EXT = {
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt",
+    ".csv", ".rtf", ".odt", ".ods", ".odp", ".md", ".html",
+}
+
+
+def classify(ext: str) -> Tuple[str, str]:
+    ext = ext.lower()
+    if ext in VIDEO_EXT:
+        return "video", "🎞"
+    if ext in PHOTO_EXT:
+        return "foto", "🖼"
+    if ext in AUDIO_EXT:
+        return "audio", "🎵"
+    if ext in DOC_EXT:
+        return "documento", "📄"
+    return "otro", "📦"
+
+
+def human_size(value: float) -> str:
+    amount = float(value)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if amount < 1024 or unit == "TB":
+            if amount == 0:
+                return "0 B"
+            if unit == "B":
+                return f"{int(amount)} {unit}"
+            return f"{amount:.1f} {unit}"
+        amount /= 1024
+    return f"{amount:.1f} TB"
+
+
+def load_groups(csv_path: Path) -> List[Dict[str, object]]:
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Missing source file: {csv_path}")
+
+    with csv_path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        if not reader.fieldnames:
+            return []
+
+        lookup = {name.lstrip("\ufeff").lower(): name for name in reader.fieldnames}
+        hash_key = lookup.get("hash")
+        path_key = lookup.get("path")
+        bytes_key = next((lookup[name] for name in lookup if "bytes" in name), None)
+        last_key = next((lookup[name] for name in lookup if "lastwrite" in name or "last_modified" in name), None)
+        if not hash_key or not path_key:
+            raise KeyError("CSV must include 'Hash' and 'Path' columns")
+
+        groups: Dict[str, List[Dict[str, object]]] = {}
+        for row in reader:
+            sha = (row.get(hash_key) or "").strip()
+            if not sha:
+                continue
+            raw_path = (row.get(path_key) or "").strip()
+            if not raw_path:
+                continue
+            path = raw_path.replace("\\\\", "\\")
+            raw_size = (row.get(bytes_key) or "0") if bytes_key else "0"
+            raw_size = raw_size.replace("\"", "").replace(",", "").strip()
+            try:
+                size = int(raw_size)
+            except ValueError:
+                size = 0
+            last = (row.get(last_key) or "").strip() if last_key else ""
+            drive = path.split(":", 1)[0] if ":" in path else "—"
+            name = path.split("\\")[-1]
+            ext = f".{name.split('.')[-1]}" if "." in name else ""
+            category, icon = classify(ext)
+            entry = {
+                "sha": sha,
+                "path": path,
+                "name": name,
+                "drive": drive,
+                "bytes": size,
+                "sizeLabel": human_size(size),
+                "lastWrite": last,
+                "category": category,
+                "icon": icon,
+            }
+            groups.setdefault(sha, []).append(entry)
+
+    ordered: List[Dict[str, object]] = []
+    priority = {"H": 0, "I": 1, "J": 2}
+    for sha, entries in groups.items():
+        entries.sort(key=lambda e: (priority.get(e["drive"], 9), e["path"].lower()))
+        for idx, entry in enumerate(entries):
+            entry["role"] = "Principal" if idx == 0 else "Duplicado"
+        drives = sorted({entry["drive"] for entry in entries})
+        total = sum(entry["bytes"] for entry in entries)
+        ordered.append({
+            "sha": sha,
+            "count": len(entries),
+            "drives": drives,
+            "multiDrive": len(drives) > 1,
+            "totalBytes": total,
+            "totalLabel": human_size(total),
+            "entries": entries,
+        })
+
+    ordered.sort(key=lambda g: (-g["count"], -g["totalBytes"]))
+    for idx, group in enumerate(ordered, start=1):
+        group["group"] = idx
+    return ordered
+
+
+def file_uri(path: str) -> str:
+    if ":" not in path:
+        return ""
+    drive, remainder = path.split(":", 1)
+    remainder = remainder.replace("\\", "/")
+    return f"file:///{drive}:{quote(remainder)}"
+
+
+def build_html(groups: List[Dict[str, object]]) -> str:
+    summary = {
+        "generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "groups": len(groups),
+        "items": sum(len(g["entries"]) for g in groups),
+        "bytes": sum(g["totalBytes"] for g in groups),
+    }
+    summary["bytesLabel"] = human_size(summary["bytes"])
+    payload = json.dumps({"summary": summary, "groups": groups}, ensure_ascii=False)
+
+    return f"""<!DOCTYPE html>
+<html lang='es'>
+<head>
+<meta charset='utf-8' />
+<title>Duplicados interactivos HIJ</title>
+<style>
+*{{box-sizing:border-box;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Roboto',Arial,'Apple Color Emoji','Segoe UI Emoji';}}
+body{{margin:16px;color:#0f172a;background:#f7f9fc;}}
+h1{{font-size:22px;margin-bottom:4px;color:#0b2545;}}
+.summary{{color:#475569;margin-bottom:14px;font-size:14px;}}
+.stats{{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}}
+.stat-card{{background:#fff;border:1px solid #dce3f8;border-radius:12px;padding:14px 16px;box-shadow:0 12px 28px -28px rgba(15,23,42,.4);min-width:200px;}}
+.stat-card .label{{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#64748b;}}
+.stat-card .value{{font-size:20px;font-weight:700;color:#0b2545;}}
+.stat-card .meta{{font-size:12px;color:#475569;margin-top:4px;}}
+.toolbar{{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center;}}
+.toolbar input[type=search]{{padding:8px 10px;border:1px solid #d1d9f5;border-radius:8px;min-width:260px;}}
+.filter-chip{{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #cbd5f5;background:#fff;cursor:pointer;font-size:13px;}}
+.filter-chip[data-active=true]{{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}}
+.toggle{{display:flex;gap:6px;align-items:center;font-size:13px;}}
+.toggle input{{margin:0;}}
+.legend{{background:#fff;border:1px solid #dce3f8;border-radius:12px;padding:14px 16px;box-shadow:0 12px 28px -28px rgba(15,23,42,.35);margin-bottom:16px;}}
+.legend h2{{margin:0 0 10px 0;font-size:16px;color:#0b2545;}}
+.legend ul{{margin:0;padding-left:18px;color:#475569;font-size:13px;}}
+.legend li{{margin-bottom:6px;}}
+.table-wrap{{overflow:auto;border:1px solid #dbe3ff;border-radius:14px;background:#fff;box-shadow:0 18px 40px -32px rgba(15,23,42,.4);}}
+th.sortable{{cursor:pointer;position:relative;}}
+th.sortable::after{{content:'';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:#475569;}}
+th.sortable[data-direction='asc']::after{{content:'▲';}}
+th.sortable[data-direction='desc']::after{{content:'▼';}}
+tr.column-filters input{{width:100%;padding:6px;border:1px solid #dbe3ff;border-radius:6px;font-size:12px;}}
+tr.column-filters input:focus{{outline:none;border-color:#1d4ed8;}}
+table{{border-collapse:collapse;width:100%;min-width:940px;}}
+th,td{{border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:13px;}}
+th{{background:#eef2ff;color:#1e3a8a;font-weight:600;}}
+tr.group-row{{background:#f8faff;font-weight:600;cursor:pointer;}}
+tr.group-row:hover{{background:#eef4ff;}}
+tr.entry-row:nth-child(odd){{background:#fbfdff;}}
+td.path{{font-family:'Cascadia Code','Consolas','Fira Code',monospace;font-size:12px;}}
+td.icon{{width:32px;text-align:center;font-size:16px;}}
+td.actions{{white-space:nowrap;display:flex;gap:6px;align-items:center;}}
+td.actions a{{padding:6px 10px;border-radius:8px;border:1px solid #d1d9f5;background:#f8fafc;text-decoration:none;color:#1d4ed8;}}
+td.actions button{{padding:6px 10px;border-radius:8px;border:1px solid #d1d9f5;background:#fff;cursor:pointer;color:#475569;}}
+td.actions button:hover,td.actions a:hover{{background:#eef4ff;}}
+.badge{{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 8px;border-radius:999px;background:#edf2ff;color:#1d4ed8;}}
+.badge.multi{{background:#fef3c7;color:#b45309;}}
+footer{{margin-top:16px;color:#64748b;font-size:12px;}}
+.hide{{display:none !important;}}
+.controls{{display:flex;gap:8px;align-items:center;}}
+.controls label{{font-size:12px;color:#475569;}}
+</style>
+</head>
+<body>
+<h1>Duplicados de los discos H · I · J</h1>
+<p class='summary'>Generado: {summary['generated']} — {summary['groups']} grupos / {summary['items']} entradas / {summary['bytesLabel']} acumulados.</p>
+<div class='stats'>
+  <div class='stat-card'><div class='label'>Grupos</div><div class='value' id='stat-groups'>{summary['groups']}</div><div class='meta'>Hash únicos con más de una copia</div></div>
+  <div class='stat-card'><div class='label'>Entradas visibles</div><div class='value' id='stat-visible'>—</div><div class='meta'>Se actualiza con los filtros</div></div>
+  <div class='stat-card'><div class='label'>Tamaño visible</div><div class='value' id='stat-size'>—</div><div class='meta'>Suma de duplicados filtrados</div></div>
+</div>
+<div class='toolbar'>
+  <input id='search' type='search' placeholder='Filtrar por nombre, carpeta o hash...' />
+  <div class='controls'>
+    <label>Unidades:</label>
+    <span class='filter-chip' data-drive='H' data-active='true'>H:</span>
+    <span class='filter-chip' data-drive='I' data-active='true'>I:</span>
+    <span class='filter-chip' data-drive='J' data-active='true'>J:</span>
+  </div>
+  <div class='controls'>
+    <label>Tipo:</label>
+    <span class='filter-chip' data-type='all' data-active='true'>Todos</span>
+    <span class='filter-chip' data-type='video'>Vídeo</span>
+    <span class='filter-chip' data-type='foto'>Foto</span>
+    <span class='filter-chip' data-type='audio'>Audio</span>
+    <span class='filter-chip' data-type='documento'>Documentos</span>
+    <span class='filter-chip' data-type='otro'>Otros</span>
+  </div>
+  <label class='toggle'><input type='checkbox' id='multi' /> Solo multi-unidad</label>
+  <button id='reset' class='filter-chip'>Limpiar filtros</button>
+</div>
+<div class='legend'>
+  <h2>Cómo leer las rutas</h2>
+  <ul>
+    <li><strong>H:\\_quarantine_from_HIJ</strong> — incubadora común; aparcamos aquí lo que sale de H:/I:/J: antes de borrarlo definitivamente.</li>
+    <li><strong>H:\\offload\\...</strong> — volcados puntuales para ganar espacio; sirven de colchón temporal.</li>
+    <li><strong>J:\\_quarantine_from_I\\migrated</strong> — copia espejo de I: a la espera de revisión familiar.</li>
+    <li><strong>_quarantine_from_H</strong> / <strong>_quarantine_from_I</strong> — subcarpetas que chivan de qué unidad venía cada fichero.</li>
+    <li><strong>media_final</strong> — biblioteca “buena”: sólo entra material aprobado, mejor no tocarlo sin consenso.</li>
+  </ul>
+</div>
+<div class='table-wrap'>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th class='sortable' data-sort='sha'>SHA256</th>
+        <th class='sortable' data-sort='role'>Rol</th>
+        <th class='sortable' data-sort='type'>Tipo</th>
+        <th class='sortable' data-sort='name'>Nombre</th>
+        <th class='sortable' data-sort='path'>Ubicación</th>
+        <th class='sortable' data-sort='drive'>Unidad</th>
+        <th class='sortable' data-sort='size'>Tamaño</th>
+        <th class='sortable' data-sort='last'>Modificado</th>
+        <th>Acciones</th>
+      </tr>
+      <tr class='column-filters'>
+        <td></td>
+        <td><input data-filter='sha' placeholder='Hash...'></td>
+        <td><input data-filter='role' placeholder='Rol...'></td>
+        <td><input data-filter='type' placeholder='Tipo...'></td>
+        <td><input data-filter='name' placeholder='Nombre...'></td>
+        <td><input data-filter='path' placeholder='Carpeta...'></td>
+        <td><input data-filter='drive' placeholder='Unidad...'></td>
+        <td><input data-filter='size' placeholder='Tamaño...'></td>
+        <td><input data-filter='last' placeholder='Fecha...'></td>
+        <td></td>
+      </tr>
+    </thead>
+    <tbody id='results'></tbody>
+  </table>
+</div>
+<footer>Pulsa la cabecera de cada grupo para plegar/expandir duplicados. Con los filtros decides qué copia conservar antes de mover o borrar.</footer>
+<script id='duplicates-data' type='application/json'>""" + payload + """</script>
+<script>
+(function(){
+  const raw = JSON.parse(document.getElementById('duplicates-data').textContent);
+  const groups = raw.groups;
+  const drives = new Set(['H','I','J']);
+  let typeFilter = 'all';
+  let searchTerm = '';
+  let multiOnly = false;
+  const columnFilters = { sha:'', role:'', type:'', name:'', path:'', drive:'', size:'', last:'' };
+  const sortConfig = { field: null, direction: 'asc' };
+
+  const searchInput = document.getElementById('search');
+  const chips = document.querySelectorAll('.filter-chip[data-drive], .filter-chip[data-type]');
+  const multiToggle = document.getElementById('multi');
+  const resetBtn = document.getElementById('reset');
+  const tbody = document.getElementById('results');
+  const statVisible = document.getElementById('stat-visible');
+  const statSize = document.getElementById('stat-size');
+  const headers = document.querySelectorAll('th[data-sort]');
+  const columnInputs = document.querySelectorAll('tr.column-filters input[data-filter]');
+
+  function formatSize(num){
+    const units = ['B','KB','MB','GB','TB'];
+    let value = num;
+    for(const unit of units){
+      if(value < 1024 || unit === 'TB'){
+        return unit === 'B' ? ${Math.round(value)}  : ${value.toFixed(1)} ;
+      }
+      value /= 1024;
+    }
+  }
+
+  function normalise(value){
+    return (value || '').toString().toLowerCase();
+  }
+
+  function entryValue(entry, field){
+    switch(field){
+      case 'sha':
+        return entry.sha;
+      case 'role':
+        return entry.role;
+      case 'type':
+        return entry.category;
+      case 'name':
+        return entry.name;
+      case 'path':
+        return entry.path;
+      case 'drive':
+        return entry.drive;
+      case 'size':
+        return entry.bytes;
+      case 'last':
+        return entry.lastWrite || '';
+      default:
+        return '';
+    }
+  }
+
+  function compareEntries(a, b, field){
+    if(field === 'size'){
+      return (a.bytes || 0) - (b.bytes || 0);
+    }
+    if(field === 'last'){
+      const da = Date.parse(a.lastWrite) || 0;
+      const db = Date.parse(b.lastWrite) || 0;
+      return da - db;
+    }
+    return normalise(entryValue(a, field)).localeCompare(normalise(entryValue(b, field)), 'es');
+  }
+
+  function compareGroups(a, b){
+    const field = sortConfig.field;
+    if(!field){
+      return a.groupInfo.group - b.groupInfo.group;
+    }
+    if(field === 'sha'){
+      return a.groupInfo.sha.localeCompare(b.groupInfo.sha, 'es');
+    }
+    const aEntry = a.entries[0] || {};
+    const bEntry = b.entries[0] || {};
+    if(field === 'size'){
+      return (aEntry.bytes || 0) - (bEntry.bytes || 0);
+    }
+    if(field === 'last'){
+      const da = Date.parse(aEntry.lastWrite) || 0;
+      const db = Date.parse(bEntry.lastWrite) || 0;
+      return da - db;
+    }
+    return normalise(entryValue(aEntry, field)).localeCompare(normalise(entryValue(bEntry, field)), 'es');
+  }
+
+  function matchesEntry(entry){
+    if(!drives.has(entry.drive)) return false;
+    if(typeFilter !== 'all' && entry.category !== typeFilter) return false;
+    if(columnFilters.role and not normalise(entry.role).includes(columnFilters.role)) return false;
