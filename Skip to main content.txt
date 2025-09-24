@@ -1,0 +1,365 @@
+Skip to main content
+Windows on ARM report: Why AMD & Intel laptops are often (still) the better choice over Snapdragon laptops : r/hardware
+
+
+r/hardware
+Current search is within r/hardware
+
+Remove r/hardware filter and expand search to all of Reddit
+Search in r/hardware
+Log In
+
+Expand user menu
+Skip to NavigationSkip to Right Sidebar
+
+Back
+r/hardware icon
+Go to hardware
+r/hardware
+•
+8 mo. ago
+signed7
+
+Windows on ARM report: Why AMD & Intel laptops are often (still) the better choice over Snapdragon laptops
+notebookcheck.net
+
+Open
+22
+·
+46
+Comments Section
+u/Srslyairbag avatar
+Srslyairbag
+•
+8mo ago
+This is a complete zero-effort junk article. The text reads like it was written by chatgpt, and the benchmarks are, as ever, completely useless, with the cpu test being just the usual shitty freeware Cinebench test, and the battery life test being run with the displays at their individual max brightnesses, rather than to a standard actual brightness. It isn't worth reading.
+
+track me
+
+52
+PoL0
+•
+8mo ago
+why is cinebench shitty? it's a good measure of a CPU raw performance.
+
+agree that additional productivity oriented benchmarks would add value. lazy article indeed.
+
+10
+
+4 more replies
+u/GenericUser1983 avatar
+GenericUser1983
+•
+8mo ago
+When I got my wife a laptop for here work last summer besides the price the gaming performance was a big draw into getting her a Ryzen machine vs a Snapdragon. You see, our children regularly have friends over and it is nice to have a spare Fortnite machine for the kids. We can't be the only parents who think that way.
+
+Honestly the Snapdragon machines in general seem to be in an awkward position. If all you care about is web browsing, office work, and battery life, and don't need full x86 compatibility or game, well might as well just get a Mac. Those are better for that use case. If you do even light gaming or have one or two oddball programs that don't play nice with the compatibility layer then an AMD or Intel machine makes more sense. The niche were the Snapdragon laptops make sense is just small.
+
+
+6
+
+New_Amomongo
+•
+8mo ago
+u/chx_ avatar
+chx_
+•
+8mo ago
+There never was a point and I don't think there ever will be.
+
+I never saw a good answer to the question: who is the target of these? Business doesn't want this because any incompatibility would bite the executive signing off on these. End users at this price point? I just don't see a target audience.
+
+
+16
+signed7
+OP
+•
+8mo ago
+If Qualcomm actually matched or got close to Apple M series's perf/power I'd get one tbh... Love my MacBook's battery life, performance on battery, quietness/temps etc but prefer Windows
+
+But instead this is barely more powerful or efficient than Intel/AMD (and even weaker in many ways e.g. GPU) while having a ton of incompatibilities
+
+15
+
+18 more replies
+u/trololololo2137 avatar
+trololololo2137
+•
+8mo ago
+People that want fast laptops that aren't space heaters. price point is not really an issue unless you unironically compare business machines to cheap gaming laptops
+
+3
+
+2 more replies
+
+6 more replies
+locked-in-place
+•
+8mo ago
+ARM is a blessing for mobile devices and Apple has shown how much can be done with it. However, splitting the Windows "market" into two definitely wasn't a good decision. Windows on ARM is useless if you do anything other than very basic tasks. Apple doesn't have this problem as they switched everything to ARM and have a unified architecture across their Mac devices.
+
+5
+uF0n
+•
+8mo ago
+I've found this post while researching Windows on ARM for the first time, and discovering that most posts are negative but are 7 months old. I am interested to know if the opinion has changed after updates to Windows and to popular software since then, resulting in a decent level of compatibility and performance; however, reading this thread does not paint a positive picture overall.
+
+I've started down this path while considering a laptop for my son to use while preparing for A levels and to take to University later this year. He currently uses a Chromebook for school and has no complaints, but almost exclusively uses Google Classroom, Google Office and online services (YT, Netflix, etc).
+
+I'm concerned that a Chromebook won't cut it at University in terms of software capability, but I think he will benefit from a laptop that can get through a whole day of lectures on battery. Being portable is a bonus provided by something like MS Surface, but not essential (as long as it's not an overly heavy laptop). On this basis, I'm looking at Snapdragon/Windows laptops for offering great battery life and decent performance, notably the Asus ProArt PZ13 that I've found on sale. I know it won't run many games, but I feel most laptops that are ideal for taking to university classes are not going to be ideal for gaming.
+
+TLDR, will I regret getting him a Snapdragon X laptop for uni?
+
+2
+
+2 more replies
+u/ptrkhh avatar
+ptrkhh
+•
+8mo ago
+Bought an ARM laptop, just for the sheer trauma of handling Connected Standby / Modern Standby on x86 laptops
+
+As I don't play games on my laptop, everything I need on the laptop works flawlessly (fingers crossed)
+
+Admittedly I don't have much experience with modern AMD/Intel machines, but this Snapdragon runs cold, only barely warm, and I can't hear the fan spinning at all. It's night and day compared to my toasty, loud Intel 6th gen XPS and 7th gen MacBook
+
+2
+djashjones
+•
+8mo ago
+Windows on Arm is dead to me until the Hardware and Software I use is fully supported, just like linux & MacOS.
+
+-2
+Huge-Highlight-8883
+•
+8mo ago
+I love my surface 7 x elite 15 inch and I had top msi and xps laptops,,windows on arm is the future.
+
+0
+u/AutoModerator avatar
+AutoModerator
+MOD
+•
+8mo ago
+Hello signed7! Please double check that this submission is original reporting and is not an unverified rumor or repost that does not rise to the standards of r/hardware. If this link is reporting on the work of another site/source or is an unverified rumor, please delete this submission. If this warning is in error, please report this comment and we will remove it.
+
+I am a bot, and this action was performed automatically. Please contact the moderators of this subreddit if you have any questions or concerns.
+
+1
+New to Reddit?
+Create your account and connect with a world of communities.
+
+
+Continue With Phone Number
+By continuing, you agree to our User Agreement and acknowledge that you understand the Privacy Policy.
+More posts you may like
+Are ARM windows laptops the future or a fad?
+r/laptops
+•
+7 mo. ago
+Are ARM windows laptops the future or a fad?
+23 upvotes · 77 comments
+NotebookCheckReviews - Windows on ARM is finally here! - Snapdragon X Elite review
+r/hardware icon
+r/hardware
+•
+1 yr. ago
+NotebookCheckReviews - Windows on ARM is finally here! - Snapdragon X Elite review
+r/hardware - NotebookCheckReviews - Windows on ARM is finally here! - Snapdragon X Elite review
+youtube
+92 upvotes · 173 comments
+While everyone focusing on AMD, Intel is the real deal in my opinion for handhelds
+r/Handhelds icon
+r/Handhelds
+•
+2 mo. ago
+While everyone focusing on AMD, Intel is the real deal in my opinion for handhelds
+18 upvotes · 46 comments
+ARM is absolutely amazing, never going back to AMD64
+r/Surface icon
+r/Surface
+•
+8 mo. ago
+ARM is absolutely amazing, never going back to AMD64
+124 upvotes · 70 comments
+My experience so far with a Windows ARM device
+r/sysadmin icon
+r/sysadmin
+•
+1 yr. ago
+My experience so far with a Windows ARM device
+163 upvotes · 69 comments
+The hate for Windows on ARM is unnecessary.
+r/Surface icon
+r/Surface
+•
+3 mo. ago
+The hate for Windows on ARM is unnecessary.
+69 upvotes · 57 comments
+Windows on ARM not getting much traction sadly
+r/Surface icon
+r/Surface
+•
+3 mo. ago
+Windows on ARM not getting much traction sadly
+83 upvotes · 114 comments
+It's official: AMD beats Intel in gaming laptops | Digital Trends
+r/hardware icon
+r/hardware
+•
+1 yr. ago
+It's official: AMD beats Intel in gaming laptops | Digital Trends
+r/hardware - It's official: AMD beats Intel in gaming laptops | Digital Trends
+digitaltrends
+430 upvotes · 147 comments
+Are ARM processors really that bad?
+r/laptops
+•
+1 yr. ago
+Are ARM processors really that bad?
+30 upvotes · 74 comments
+Microsoft announces an Arm-powered Surface Laptop
+r/hardware icon
+r/hardware
+•
+1 yr. ago
+Microsoft announces an Arm-powered Surface Laptop
+r/hardware - Microsoft announces an Arm-powered Surface Laptop
+theverge
+449 upvotes · 251 comments
+What's the state of Arm vs Intel/AMD in 2022?
+r/chromeos icon
+r/chromeos
+•
+3 yr. ago
+What's the state of Arm vs Intel/AMD in 2022?
+10 upvotes · 30 comments
+ARM vs Intel on a new high end laptop.
+r/sysadmin icon
+r/sysadmin
+•
+3 mo. ago
+ARM vs Intel on a new high end laptop.
+3 upvotes · 65 comments
+What laptop should I aim for? And whether AMD or Intel is better for learning computer science?
+r/archlinux icon
+r/archlinux
+•
+1 yr. ago
+What laptop should I aim for? And whether AMD or Intel is better for learning computer science?
+11 upvotes · 29 comments
+Why are so many 2025 laptops using Intel?
+r/GamingLaptops icon
+r/GamingLaptops
+•
+8 mo. ago
+Why are so many 2025 laptops using Intel?
+145 upvotes · 115 comments
+Does ARM mean Windows laptops are finally reliable?
+r/laptops
+•
+1 yr. ago
+Does ARM mean Windows laptops are finally reliable?
+11 comments
+I think I know why the Surface Laptop 7 ARM Return Rate is so high
+r/Surface icon
+r/Surface
+•
+4 mo. ago
+I think I know why the Surface Laptop 7 ARM Return Rate is so high
+39 upvotes · 91 comments
+Considering that laptops with AMD GPUs are typically cheaper than their Nvidia equivalent, why we don't see a dominance of AMD devices in budget gaming laptops?
+r/GamingLaptops icon
+r/GamingLaptops
+•
+1 yr. ago
+Considering that laptops with AMD GPUs are typically cheaper than their Nvidia equivalent, why we don't see a dominance of AMD devices in budget gaming laptops?
+60 upvotes · 23 comments
+Does Windows on ARM mean it can compete with Macs on reliability?
+r/mac icon
+r/mac
+•
+1 yr. ago
+Does Windows on ARM mean it can compete with Macs on reliability?
+35 comments
+Thoughts on the new Snapdragon-based Windows tablets – performance and long-term concerns
+r/Surface icon
+r/Surface
+•
+3 mo. ago
+Thoughts on the new Snapdragon-based Windows tablets – performance and long-term concerns
+9 comments
+Tried Windows on Arm and I liked it
+r/windows icon
+r/windows
+•
+2 mo. ago
+Tried Windows on Arm and I liked it
+20 upvotes · 13 comments
+Macbooks vs Snapdragon x elite? Do you still prefer macbooks? Why?
+r/developersIndia icon
+r/developersIndia
+•
+10 mo. ago
+Macbooks vs Snapdragon x elite? Do you still prefer macbooks? Why?
+44 comments
+ARM Chips - What happened?
+r/windows icon
+r/windows
+•
+6 mo. ago
+ARM Chips - What happened?
+3 upvotes · 15 comments
+Do you think linux is ready for daily driving ARM laptop?
+r/linux icon
+r/linux
+•
+10 mo. ago
+Do you think linux is ready for daily driving ARM laptop?
+79 upvotes · 119 comments
+Do you think in the future Windows will be only-ARM?
+r/windows icon
+r/windows
+•
+1 yr. ago
+Do you think in the future Windows will be only-ARM?
+33 upvotes · 163 comments
+Anyone using those new Qualcomm ARM laptops? Worth it?
+r/laptops
+•
+1 mo. ago
+Anyone using those new Qualcomm ARM laptops? Worth it?
+6 upvotes · 42 comments
+Related discussions
+Best Snapdragon Laptop
+Best Processor for Laptop AMD or Intel
+Best Looking Laptops
+Best 10th Gen Intel Laptop
+See more
+View Post in
+日本語
+Tiếng Việt
+Русский
+Français
+中文 (简体)
+Hindi
+Community Info Section
+r/hardware
+Join
+/r/hardware: a technology subreddit for computer hardware news, reviews and discussion.
+/r/hardware is a place for quality computer hardware news, reviews, and intelligent discussion.
+Public
+Top Posts
+Reddit
+reReddit: Top posts of January 29, 2025
+Reddit
+reReddit: Top posts of January 2025
+Reddit
+reReddit: Top posts of 2025
+Reddit Rules
+Privacy Policy
+User Agreement
+Accessibility
+Reddit, Inc. © 2025. All rights reserved.
+
+Collapse Navigation
