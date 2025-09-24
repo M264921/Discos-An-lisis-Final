@@ -1,0 +1,42 @@
+[2025-09-24 20:23:19] Repositorio: C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final
+[2025-09-24 20:23:19] Python detectado en: C:\Python313\python.exe
+[2025-09-24 20:23:19] Generando Listado_Duplicados_interactivo.html: C:\Python313\python.exe C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\tools\generate_duplicates_table.py
+Generado C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\Listado_Duplicados_interactivo.html À 398 grupos À 807 entradas À 697,1 GB
+[2025-09-24 20:23:19] Actualizado index.html
+[2025-09-24 20:23:19] Actualizado Listado_Duplicados_interactivo.html
+[2025-09-24 20:23:19] Actualizado Listado_H_interactivo.html
+[2025-09-24 20:23:19] Actualizado Listado_I_interactivo.html
+[2025-09-24 20:23:19] Actualizado Listado_J_interactivo.html
+[2025-09-24 20:23:19] Actualizado dupes_confirmed.csv
+[2025-09-24 20:23:19] git add docs/index.html: git add docs/index.html
+[2025-09-24 20:23:19] git add docs/Listado_Duplicados_interactivo.html: git add docs/Listado_Duplicados_interactivo.html
+[2025-09-24 20:23:20] git add docs/Listado_H_interactivo.html: git add docs/Listado_H_interactivo.html
+warning: in the working copy of 'docs/Listado_H_interactivo.html', LF will be replaced by CRLF the next time Git touches it
+[2025-09-24 20:23:20] git add docs/Listado_I_interactivo.html: git add docs/Listado_I_interactivo.html
+warning: in the working copy of 'docs/Listado_I_interactivo.html', LF will be replaced by CRLF the next time Git touches it
+[2025-09-24 20:23:20] git add docs/Listado_J_interactivo.html: git add docs/Listado_J_interactivo.html
+warning: in the working copy of 'docs/Listado_J_interactivo.html', LF will be replaced by CRLF the next time Git touches it
+[2025-09-24 20:23:20] git add docs/dupes_confirmed.csv: git add docs/dupes_confirmed.csv
+[2025-09-24 20:23:20] git add Listado_Duplicados_interactivo.html: git add Listado_Duplicados_interactivo.html
+[2025-09-24 20:23:20] git add informe_cronologico.html: git add informe_cronologico.html
+[2025-09-24 20:23:21] git commit: git commit -m chore(docs): refresh hij report
+[detached HEAD 57a1bf5] chore(docs): refresh hij report
+ 15 files changed, 259208 insertions(+), 188624 deletions(-)
+ create mode 100644 AGENTS.md
+ create mode 100644 Listado_Duplicados_interactivo2.html
+ create mode 100644 docs/Listado_Duplicados_interactivo.html
+ create mode 100644 docs/Listado_H_interactivo.html
+ create mode 100644 docs/Listado_I_interactivo.html
+ create mode 100644 docs/Listado_J_interactivo.html
+ create mode 100644 docs/dupes_confirmed.csv
+ create mode 100644 docs/index.html
+ delete mode 100644 index_by_hash.html
+ create mode 100644 logs_20250924_185436/build.log
+ create mode 100644 logs_20250924_185717/build.log
+ create mode 100644 tools/Generate-HIJ-Report.ps1
+[2025-09-24 20:23:22] git push: git push
+fatal: You are not currently on a branch.
+To push the history leading to the current (detached HEAD)
+state now, use
+
+    git push origin HEAD:<name-of-remote-branch>

@@ -1,0 +1,27 @@
+[2025-09-24 20:43:29] Repositorio: C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final
+[2025-09-24 20:43:29] Python detectado en: C:\Python313\python.exe
+[2025-09-24 20:43:29] Generando Listado_Duplicados_interactivo.html: C:\Python313\python.exe C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\tools\generate_duplicates_table.py
+Generado C:\Users\anton\Desktop\Discos duros\Discos-An-lisis-Final\Listado_Duplicados_interactivo.html À 398 grupos À 807 entradas À 697,1 GB
+[2025-09-24 20:43:31] Actualizado index.html
+[2025-09-24 20:43:31] Actualizado Listado_Duplicados_interactivo.html
+[2025-09-24 20:43:31] Actualizado Listado_H_interactivo.html
+[2025-09-24 20:43:31] Actualizado Listado_I_interactivo.html
+[2025-09-24 20:43:31] Actualizado Listado_J_interactivo.html
+[2025-09-24 20:43:31] Actualizado dupes_confirmed.csv
+[2025-09-24 20:43:31] git add docs/index.html: git add docs/index.html
+[2025-09-24 20:43:32] git add docs/Listado_Duplicados_interactivo.html: git add docs/Listado_Duplicados_interactivo.html
+[2025-09-24 20:43:32] git add docs/Listado_H_interactivo.html: git add docs/Listado_H_interactivo.html
+[2025-09-24 20:43:32] git add docs/Listado_I_interactivo.html: git add docs/Listado_I_interactivo.html
+[2025-09-24 20:43:32] git add docs/Listado_J_interactivo.html: git add docs/Listado_J_interactivo.html
+[2025-09-24 20:43:32] git add docs/dupes_confirmed.csv: git add docs/dupes_confirmed.csv
+[2025-09-24 20:43:32] git add Listado_Duplicados_interactivo.html: git add Listado_Duplicados_interactivo.html
+[2025-09-24 20:43:32] git add informe_cronologico.html: git add informe_cronologico.html
+[2025-09-24 20:43:32] git commit: git commit -m chore(docs): refresh hij report
+[detached HEAD c0827f7] chore(docs): refresh hij report
+ 2 files changed, 368 insertions(+), 368 deletions(-)
+[2025-09-24 20:43:32] git push: git push
+fatal: You are not currently on a branch.
+To push the history leading to the current (detached HEAD)
+state now, use
+
+    git push origin HEAD:<name-of-remote-branch>
