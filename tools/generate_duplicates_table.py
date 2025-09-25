@@ -264,6 +264,10 @@ def build_html(payload: Dict[str, object]) -> str:
     }
     for key, value in replacements.items():
         html = html.replace(key, value)
+    # The HTML template keeps double braces so that Python's formatter does not
+    # treat them as placeholders. Once the real values have been injected we
+    # normalise them back to single braces for valid CSS/JS output.
+    html = html.replace("{{", "{").replace("}}", "}")
     return html
 
 
