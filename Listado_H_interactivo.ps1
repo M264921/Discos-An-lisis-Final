@@ -75,6 +75,18 @@ function Html-Escape { param([string]$s)
     return $t
 }
 
+function Get-FileUri {
+    param([string]$FullPath)
+
+    if (-not $FullPath) { return "" }
+
+    try {
+        return ([System.Uri]$FullPath).AbsoluteUri
+    } catch {
+        return ""
+    }
+}
+
 function Build-TreeHtml {
     param(
         [string]$Path,
@@ -124,7 +136,13 @@ function Build-TreeHtml {
         $size = Format-Size ([Int64]$f.Length)
         $name = Html-Escape $f.Name
         $full = Html-Escape $f.FullName
-        $null = $sb.AppendLine("<li class='file' data-name='$name' title='$full'><span class='ico'>$icon</span> <span class='nm'>$name</span> <span class='sz'>$size</span></li>")
+        $uri = Html-Escape (Get-FileUri -FullPath $f.FullName)
+        if ($uri) {
+            $label = "<a class='nm' href='$uri' target='_blank' rel='noopener'>$name</a>"
+        } else {
+            $label = "<span class='nm'>$name</span>"
+        }
+        $null = $sb.AppendLine("<li class='file' data-name='$name' title='$full'><span class='ico'>$icon</span> $label <span class='sz'>$size</span></li>")
     }
 
     $null = $sb.AppendLine("</ul>")
@@ -168,6 +186,9 @@ li.dir > details > summary { cursor: pointer; }
 li.dir.empty summary { color:#9ca3af; }
 .sz { color:#6b7280; margin-left:8px; font-variant-numeric: tabular-nums; }
 .ico { width: 1.4em; display:inline-block; text-align:center; }
+a.nm { color:#2563eb; text-decoration:none; }
+a.nm:visited { color:#1d4ed8; }
+a.nm:hover { text-decoration:underline; }
 footer { margin-top: 16px; color:#6b7280; font-size: 12px; }
 .error { color:#b91c1c; }
 .hidden { display:none !important; }
