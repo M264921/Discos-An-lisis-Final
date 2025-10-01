@@ -481,10 +481,12 @@ footer {
       groupWrapper.entries.forEach((entry) => {
         visibleEntries += 1;
         visibleBytes += entry.bytes || 0;
+        codex/add-download-csv-button-functionality-erlf3j
         const openAttr = entry.openUri ? escapeAttribute(entry.openUri) : '';
         const pathContent = entry.openUri
           ? `<a href="${openAttr}" target="_blank" rel="noopener">${escapeHtml(entry.path)}</a>`
           : escapeHtml(entry.path);
+        main
         rendered.push(`
           <tr class="entry-row" data-group="${info.group}">
             <td>${info.group}</td>
