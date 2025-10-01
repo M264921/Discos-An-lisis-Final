@@ -18,7 +18,7 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_CSV = ROOT / "dupes_confirmed.csv"
-TARGET_HTML = ROOT / "Listado_Duplicados_interactivo.html"
+TARGET_HTML = ROOT / "docs" / "Listado_Duplicados_interactivo.html"
 
 VIDEO_EXT = {
     ".mp4", ".m2ts", ".avi", ".mov", ".mpg", ".mpeg", ".mts", ".wmv",

@@ -19,7 +19,7 @@ por archivo y genera los ficheros clave del proyecto:
 - inventory_by_folder.csv
 - dupes_confirmed.csv
 - Listado_*.html interactivos
-- Listado_Duplicados_interactivo.html (vía generate_duplicates_table.py)
+- docs/Listado_Duplicados_interactivo.html (vía generate_duplicates_table.py)
 
 Además guarda un log detallado bajo logs_YYYYMMDD_HHMMSS\rebuild.log para
 trazabilidad.
@@ -37,7 +37,7 @@ Ruta explícita a python.exe (si no está en PATH o hay varias versiones).
 Evita reconstruir los listados Listado_*.html por disco.
 
 .PARAMETER SkipDuplicatesHtml
-Salta la generación de Listado_Duplicados_interactivo.html (solo deja el CSV).
+Salta la generación de docs/Listado_Duplicados_interactivo.html (solo deja el CSV).
 
 .EXAMPLE
 pwsh ./tools/Rebuild-HIJ-Inventory.ps1
@@ -261,7 +261,7 @@ if (-not $SkipDuplicatesHtml.IsPresent) {
     }
     $pyScript = Join-Path $scriptRoot 'generate_duplicates_table.py'
     Invoke-External -FilePath $PythonPath -Arguments @($pyScript) -Description 'Generando Listado_Duplicados_interactivo.html'
-    $dupesHtml = Join-Path $RepoRoot 'Listado_Duplicados_interactivo.html'
+    $dupesHtml = Join-Path $RepoRoot 'docs/Listado_Duplicados_interactivo.html'
     Write-Log -Message "HTML duplicados: $dupesHtml" -Color Gray
 }
 

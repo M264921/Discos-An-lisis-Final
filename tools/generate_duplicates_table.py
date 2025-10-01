@@ -15,7 +15,7 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "dupes_confirmed.csv"
-DEFAULT_TARGET = ROOT / "Listado_Duplicados_interactivo.html"
+DEFAULT_TARGET = ROOT / "docs" / "Listado_Duplicados_interactivo.html"
 
 VIDEO_EXT = {
     ".mp4",
@@ -106,7 +106,7 @@ def parse_args() -> argparse.Namespace:
         "--target",
         type=Path,
         default=DEFAULT_TARGET,
-        help="HTML de salida (por defecto Listado_Duplicados_interactivo.html)",
+        help="HTML de salida (por defecto docs/Listado_Duplicados_interactivo.html)",
     )
     parser.add_argument(
         "--quiet",
