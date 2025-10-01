@@ -15,7 +15,7 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "dupes_confirmed.csv"
-DEFAULT_TARGET = ROOT / "Listado_Duplicados_interactivo.html"
+DEFAULT_TARGET = ROOT / "docs" / "Listado_Duplicados_interactivo.html"
 
 VIDEO_EXT = {
     ".mp4",
@@ -106,7 +106,7 @@ def parse_args() -> argparse.Namespace:
         "--target",
         type=Path,
         default=DEFAULT_TARGET,
-        help="HTML de salida (por defecto Listado_Duplicados_interactivo.html)",
+        help="HTML de salida (por defecto docs/Listado_Duplicados_interactivo.html)",
     )
     parser.add_argument(
         "--quiet",
@@ -448,6 +448,14 @@ td.path {{
   font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
   font-size: 12px;
 }}
+td.path a {{
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}}
+td.path a:hover {{
+  text-decoration-style: solid;
+}}
 td.actions {{
   white-space: nowrap;
   display: flex;
@@ -531,15 +539,16 @@ footer {{
     <span class="filter-chip" data-type="otro">Otros</span>
   </div>
   <label class="toggle"><input type="checkbox" id="multi" /> Solo multi-unidad</label>
+  <button id="download" class="filter-chip">Descargar CSV</button>
   <button id="reset" class="filter-chip">Limpiar filtros</button>
 </div>
 <div class="legend">
   <h2>Cómo leer las rutas</h2>
   <ul>
-    <li><strong>H:\\_quarantine_from_HIJ\\*</strong> — cuarentena común antes de decidir el destino final.</li>
-    <li><strong>H:\\offload\\...</strong> — volcados rápidos para liberar espacio sin perder respaldo.</li>
+    <li><strong>H:\_quarantine_from_HIJ\*</strong> — cuarentena común antes de decidir el destino final.</li>
+    <li><strong>H:\offload\...</strong> — volcados rápidos para liberar espacio sin perder respaldo.</li>
     <li><strong>_quarantine_from_H / _quarantine_from_I</strong> — indican la unidad de origen del fichero.</li>
-    <li><code>\\migrated</code> — lotes ya revisados listos para archivar o compartir.</li>
+    <li><code>\migrated</code> — lotes ya revisados listos para archivar o compartir.</li>
     <li><code>media_final</code> — biblioteca curada; toca moverla sólo tras validarlo con la familia.</li>
   </ul>
 </div>
@@ -586,6 +595,7 @@ footer {{
   let multiOnly = false;
   const columnFilters = {{ sha:'', role:'', type:'', name:'', path:'', drive:'', size:'', last:'' }};
   const sortConfig = {{ field: null, direction: 'asc' }};
+  let lastFilteredGroups = [];
 
   const searchInput = document.getElementById('search');
   const chips = document.querySelectorAll('.filter-chip[data-drive], .filter-chip[data-type]');
@@ -596,11 +606,25 @@ footer {{
   const statSize = document.getElementById('stat-size');
   const headers = document.querySelectorAll('th[data-sort]');
   const columnInputs = document.querySelectorAll('tr.column-filters input[data-filter]');
+  const downloadBtn = document.getElementById('download');
 
   document.getElementById('stat-groups').textContent = groups.length.toLocaleString('es-ES');
 
   function escapeHtml(value) {{
     return value.replace(/[&<>"']/g, (char) => {{
+      switch(char) {{
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return char;
+      }}
+    }});
+  }}
+
+  function escapeAttribute(value) {{
+    return (value || '').toString().replace(/[&<>"']/g, (char) => {{
       switch(char) {{
         case '&': return '&amp;';
         case '<': return '&lt;';
@@ -618,8 +642,8 @@ footer {{
     let amount = value;
     for(const unit of units) {{
       if(amount < 1024 || unit === units[units.length - 1]) {{
-        if(unit === 'B') return `${Math.round(amount)} ${unit}`;
-        return new Intl.NumberFormat('es-ES', {{ maximumFractionDigits: 1 }}).format(amount) + ` ${unit}`;
+        if(unit === 'B') return `${{Math.round(amount)}} ${{unit}}`;
+        return new Intl.NumberFormat('es-ES', {{ maximumFractionDigits: 1 }}).format(amount) + ` ${{unit}}`;
       }}
       amount /= 1024;
     }}
@@ -627,6 +651,12 @@ footer {{
 
   function normalise(value) {{
     return (value || '').toString().toLowerCase();
+  }}
+
+  function csvCell(value) {{
+    const string = value == null ? '' : value.toString();
+    const escaped = string.replace(/"/g, '""');
+    return `"${{escaped}}"`;
   }}
 
   function getEntryField(entry, field) {{
@@ -683,7 +713,7 @@ footer {{
     if(columnFilters.size && !normalise(entry.sizeLabel).includes(columnFilters.size)) return false;
     if(columnFilters.last && !normalise(entry.lastWrite).includes(columnFilters.last)) return false;
     if(searchTerm) {{
-      const blob = `${entry.name} ${entry.path} ${entry.sha}`.toLowerCase();
+      const blob = `${{entry.name}} ${{entry.path}} ${{entry.sha}}`.toLowerCase();
       return blob.includes(searchTerm);
     }}
     return true;
@@ -701,40 +731,47 @@ footer {{
 
     filteredGroups.sort(compareGroups);
 
-    filteredGroups.forEach((groupWrapper) => {{
-      const info = groupWrapper.groupInfo;
-      rendered.push(`
-        <tr class="group-row" data-group="${info.group}" data-open="true">
-          <td>${info.group}</td>
-          <td colspan="9">
-            <span class="badge${info.multiDrive ? ' multi' : ''}">${info.count} copia(s) · ${escapeHtml(info.totalLabel)}</span>
-            <span class="badge">Unidades: ${info.drives.join(', ')}</span>
-            <span class="badge">SHA: ${escapeHtml(info.sha)}</span>
-          </td>
-        </tr>`);
+    const snapshot = filteredGroups.map((groupWrapper) => {{
       const sortedEntries = [...groupWrapper.entries];
       if(sortConfig.field && sortConfig.field !== 'sha') {{
         const factor = sortConfig.direction === 'desc' ? -1 : 1;
         sortedEntries.sort((a, b) => compareEntries(a, b, sortConfig.field) * factor);
       }}
-      sortedEntries.forEach((entry) => {{
+      return {{ groupInfo: groupWrapper.groupInfo, entries: sortedEntries }};
+    }});
+
+    snapshot.forEach((groupWrapper) => {{
+      const info = groupWrapper.groupInfo;
+      rendered.push(`
+        <tr class="group-row" data-group="${{info.group}}" data-open="true">
+          <td>${{info.group}}</td>
+          <td colspan="9">
+            <span class="badge${{info.multiDrive ? ' multi' : ''}}">${{info.count}} copia(s) · ${{escapeHtml(info.totalLabel)}}</span>
+            <span class="badge">Unidades: ${{info.drives.join(', ')}}</span>
+            <span class="badge">SHA: ${{escapeHtml(info.sha)}}</span>
+          </td>
+        </tr>`);
+      groupWrapper.entries.forEach((entry) => {{
         visibleEntries += 1;
         visibleBytes += entry.bytes || 0;
-        const disabled = entry.openUri ? '' : ' aria-disabled="true"';
+        const openAttr = entry.openUri ? escapeAttribute(entry.openUri) : '';
+        const pathContent = entry.openUri
+          ? `<a href="${{openAttr}}" target="_blank" rel="noopener">${{escapeHtml(entry.path)}}</a>`
+          : escapeHtml(entry.path);
         rendered.push(`
-          <tr class="entry-row" data-group="${info.group}">
-            <td>${info.group}</td>
-            <td>${escapeHtml(entry.sha)}</td>
-            <td>${entry.role}</td>
-            <td><span class="icon">${entry.icon}</span> ${entry.category}</td>
-            <td>${escapeHtml(entry.name)}</td>
-            <td class="path">${escapeHtml(entry.path)}</td>
-            <td>${entry.drive}</td>
-            <td>${escapeHtml(entry.sizeLabel)}</td>
-            <td>${escapeHtml(entry.lastWrite || '')}</td>
+          <tr class="entry-row" data-group="${{info.group}}">
+            <td>${{info.group}}</td>
+            <td>${{escapeHtml(entry.sha)}}</td>
+            <td>${{entry.role}}</td>
+            <td><span class="icon">${{entry.icon}}</span> ${{entry.category}}</td>
+            <td>${{escapeHtml(entry.name)}}</td>
+            <td class="path">${{pathContent}}</td>
+            <td>${{entry.drive}}</td>
+            <td>${{escapeHtml(entry.sizeLabel)}}</td>
+            <td>${{escapeHtml(entry.lastWrite || '')}}</td>
             <td class="actions">
-              ${entry.openUri ? `<a href="${entry.openUri}" target="_blank" rel="noopener">Abrir</a>` : '<span style="opacity:.5">Sin acceso</span>'}
-              <button type="button" data-copy="${escapeHtml(entry.path)}">Copiar ruta</button>
+              ${{entry.openUri ? `<a href="${{openAttr}}" target="_blank" rel="noopener">Abrir</a>` : '<span style="opacity:.5">Sin acceso</span>'}}
+              <button type="button" data-copy="${{escapeHtml(entry.path)}}">Copiar ruta</button>
             </td>
           </tr>`);
       }});
@@ -743,6 +780,7 @@ footer {{
     tbody.innerHTML = rendered.join('');
     statVisible.textContent = visibleEntries.toLocaleString('es-ES');
     statSize.textContent = formatBytes(visibleBytes);
+    lastFilteredGroups = snapshot;
   }}
 
   tbody.addEventListener('click', (event) => {{
@@ -762,7 +800,7 @@ footer {{
     if(groupRow) {{
       const isOpen = groupRow.dataset.open === 'true';
       groupRow.dataset.open = (!isOpen).toString();
-      tbody.querySelectorAll(`tr.entry-row[data-group="${groupRow.dataset.group}"]`).forEach((row) => {{
+      tbody.querySelectorAll(`tr.entry-row[data-group="${{groupRow.dataset.group}}"]`).forEach((row) => {{
         row.style.display = isOpen ? 'none' : '';
       }});
     }}
@@ -815,6 +853,62 @@ footer {{
     columnInputs.forEach((input) => input.value = '');
     render();
   }});
+
+  if(downloadBtn) {{
+    downloadBtn.addEventListener('click', () => {{
+      if(downloadBtn.disabled) return;
+      const originalText = downloadBtn.textContent;
+      const hasRows = lastFilteredGroups.some((group) => group.entries.length > 0);
+      if(!hasRows) {{
+        downloadBtn.textContent = 'Sin resultados visibles';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+        return;
+      }}
+
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Generando CSV...';
+
+      try {{
+        const headers = ['Grupo', 'SHA256', 'Rol', 'Tipo', 'Nombre', 'Ubicación', 'Unidad', 'Tamaño', 'Modificado'];
+        const rows = [];
+        lastFilteredGroups.forEach((groupWrapper) => {{
+          groupWrapper.entries.forEach((entry) => {{
+            rows.push([
+              groupWrapper.groupInfo.group,
+              entry.sha,
+              entry.role,
+              entry.category,
+              entry.name,
+              entry.path,
+              entry.drive,
+              entry.sizeLabel,
+              entry.lastWrite || ''
+            ]);
+          }});
+        }});
+        const lines = [headers, ...rows].map((row) => row.map(csvCell).join(';'));
+        const csvContent = lines.join('\r\n');
+        const blob = new Blob([`\uFEFF${{csvContent}}`], {{ type: 'text/csv;charset=utf-8;' }});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const timestamp = new Date().toISOString().replace(/[:T]/g, '-').split('.')[0];
+        link.download = `duplicados-filtrados-${{timestamp}}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        downloadBtn.textContent = 'CSV descargado ✓';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+      }} catch (error) {{
+        console.error(error);
+        downloadBtn.textContent = 'Error al generar';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+      }} finally {{
+        downloadBtn.disabled = false;
+      }}
+    }});
+  }}
 
   headers.forEach((header) => {{
     header.addEventListener('click', () => {{

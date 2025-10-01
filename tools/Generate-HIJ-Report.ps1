@@ -68,7 +68,6 @@ try {
 
     $artifacts = @(
         @{ Source = 'informe_cronologico.html'; Target = 'index.html' },
-        @{ Source = 'Listado_Duplicados_interactivo.html'; Target = 'Listado_Duplicados_interactivo.html' },
         @{ Source = 'Listado_H_interactivo.html'; Target = 'Listado_H_interactivo.html' },
         @{ Source = 'Listado_I_interactivo.html'; Target = 'Listado_I_interactivo.html' },
         @{ Source = 'Listado_J_interactivo.html'; Target = 'Listado_J_interactivo.html' },
@@ -99,7 +98,6 @@ try {
             'docs/Listado_I_interactivo.html',
             'docs/Listado_J_interactivo.html',
             'docs/dupes_confirmed.csv',
-            'Listado_Duplicados_interactivo.html',
             'informe_cronologico.html'
         )
         foreach ($path in $pathsToStage) {
