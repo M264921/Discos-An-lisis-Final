@@ -1,0 +1,481 @@
+ Generé de nuevo inventario_interactivo_offline.html con el script actualizado, lo copié a docs/inventario_interactivo_offline.html y subí los
+  cambios a main; así el catálogo único con filtros y descarga debería aparecer en GitHub Pages en cuanto termine el deploy. Te sugiero:
+
+  - abrir docs/inventario_interactivo_offline.html localmente, o servir docs/ con python -m http.server 8000, para ver que el listado completo
+  filtra y se puede descargar;
+  - revisar la URL de Pages en unos minutos para confirmar que se ve igual;
+  - si quieres anexar explicaciones por carpeta, podemos añadir una sección de texto al HTML o preparar un informe extra.
+
+  ¿Te montamos ese resumen por carpetas también?
+
+▌ sii!! montalo todo todo
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem docs"
+  └
+
+    … +7 lines
+
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-Content docs\
+  │ \index.html -TotalCount 60"
+  └ <!doctype html>
+    <html lang="es"><head><meta charset="utf-8">
+  summaries by drive and top-level folders with accompanying HTML and JS changes for better data insight and usability.
+  offline generation scripts.
+
+  Designing updated JavaScript and HTML structure
+
+  └ css start not found
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8-sig')
+  │ text = path.read_text(encoding='utf-8-sig')
+  │ … +52 lines
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  └
+    > update_pages_inventory.ps1:90:# Totales
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8-sig')
+  │ … +42 lines
+    … +7 lines
+
+
+
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"panel dataset\" -Context 0,40)"
+  └
+    > $null = $sb.AppendLine("<section class='panel dataset'>")
+    … +7 lines
+
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8-sig')
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"dataset\" -Context 0,30)"
+  └
+    > $dataset = $files | ForEach-Object {
+    … +7 lines
+
+
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-Content
+  │ make_inventory_offline.ps1 -TotalCount 120"
+  └ # ============================
+    # make_inventory_offline.ps1
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +5 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Select-String -Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +3 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"</tbody></table>\")"
+  └
+    $null = $sb.AppendLine('<table id="tbl"><thead><tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</
+    th><th>Path<
+    … +2 lines
+
+  │ … +3 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"AppendLine\\('</tbody></table>'\")"
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"&middot;\" -Context 0,2)"
+  └
+    >     $null = $driveCardsBuilder.AppendLine("<p>$driveCountFmt archivos &middot; $driveGBFmt GB</p>")
+    … +7 lines
+  └ <string>:38: SyntaxWarning: invalid escape sequence '\$'
+      File "<string>", line 387
+        $html = $sb.ToString().Replace('</div></body></html>', ''')+
+                                                                  ^
+    SyntaxError: unmatched ')'
+  │ text = path.read_text(encoding='utf-8')
+  │ … +55 lines
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+
+
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\Github\\Discos-An-lisis-Final\"; Select-String -Path
+  │ make_inventory_offline.ps1 -Pattern '\\"'$Push'"' -Context 0,4"
+  └
+    > make_inventory_offline.ps1:11:  [switch]$Push,
+    … +7 lines
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\Github\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +4 lines
+
+    +   $css = @
+    … +7 lines
+        + FullyQualifiedErrorId : UnrecognizedToken
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ make_inventory_offline.ps1 | Select-String -Pattern '<style>' -Context 0,30)"
+  └
+    > <style>
+    … +7 lines
+
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\Github\\Discos-An-lisis-Final\"; (Get-Content
+  │ make_inventory_offline.ps1 | Select-String -Pattern '</style>' -Context 0,2)"
+  └ En C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\make_inventory_offline.ps1: 326 Car cter: 61
+    + ...   $folderLabel = if ($entry.Folder -eq '(raiz)') { "$driveId:\ (raiz) ...
+    … +7 lines
+        + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+
+  That way, strings like inputs and buttons won't need backslash escapes for quotes, and I'll systematically replace problematic patterns using
+  Python scripts. This should clean up the PowerShell script and stop these syntax errors.
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+  │ \make_inventory_offline.ps1 -DocsTarget 'docs\\inventario_interactivo_offline.html'"
+  └ En C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\make_inventory_offline.ps1: 326 Car cter: 61
+    + ...   $folderLabel = if ($entry.Folder -eq '(raiz)') { "$driveId:\ (raiz) ...
+    … +7 lines
+  └   if ($topFolders) {
+        $driveCardsBuilder = [System.Text.StringBuilder]::new()
+    … +7 lines
+      $null = $sb.AppendLine('</section>')
+
+
+
+    … +7 lines
+      $sb.ToString() | Set-Content -Path $outputPath -Encoding UTF8
+      Write-Host "Inventario generado en: $outputPath"
+
+  │ … +8 lines
+  └   File "<string>", line 4
+        text = text.replace('  $null = $sb.AppendLine("    <span id="count" class="muted small"></span>")',"  $null = $sb.AppendLine('<span
+    id="count" class="muted small"></span>')")
+                                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +8 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+  │ \make_inventory_offline.ps1 -DocsTarget 'docs\\inventario_interactivo_offline.html'"
+      $topExtensions = $files | Group-Object Extension | ForEach-Object {
+        $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +3 lines
+
+    Copiado a: C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\docs\inventario_interactivo_offline.html
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ update_pages_inventory.ps1 -Pattern 'param' -Context 0,3"
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-Content docs\
+  │ \inventario_interactivo_offline.html -TotalCount 80"
+  └ <!doctype html>
+    <li><span class='tag'>J:\Movies</span> 1 archivos &middot; 0,00 GB</li>
+
+• I’m planning to adjust the update script’s push behavior by toggling a commit flag for safer testing, carefully reviewing string formatting
+  and escaping in the script to avoid parse errors before running it.
+  └
+      download.addEventListener('click', () => downloadRows(filtered, 'inventario_filtrado.csv'));
+    … +7 lines
+        $driveId = $driveInfo.Drive
+        $driveCountFmt = [string]::Format('{0:n0}', $driveInfo.Count)
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1 | Select-String -Pattern \"'"'^[A-Za-z]:'"\\\\\\\\'\""
+  └ Falta el par ntesis de cierre ')' en la expresi n.
+        + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1)[82..108]"
+  └   [pscustomobject]@{
+        Drive = $_.Name
+    … +7 lines
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +3 lines
+
+      if (-not $relative) { return "{0}|(raiz)" -f $_.Drive }
+      $segment = $relative.Split('\')[0]
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1)[340..380]"
+  └       foreach ($entry in $driveTop) {
+    $null = $sb.AppendLine("  <div class='filter'>")
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Get-Content
+  │ update_pages_inventory.ps1)[380..420]"
+  └ $null = $sb.AppendLine("  <div class='filter'>")
+  │ … +18 lines
+
+⚠ Heads up, you've used over 95% of your weekly limit. Run /status for a breakdown.
+
+• I'm making sure the update script runs smoothly with the new changes, confirming attribute formatting and handling commits carefully to
+        + FullyQualifiedErrorId : UnrecognizedToken
+
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+  │ \update_pages_inventory.ps1"
+  └ En C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\update_pages_inventory.ps1: 398 Car cter: 36
+    + $null = $sb.AppendLine('<table id='tbl'><thead><tr><th>Drive</th><th> ...
+
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +6 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+    … +7 lines
+    Recuerda: GitHub Pages tardarǟ   un poco en refrescar.
+  └ commit 703df0565723c4982da19553b357f034e542105a
+    Author: M264921 <90904607+M264921@users.noreply.github.com>
+    … +7 lines
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; git status"
+  └ On branch main
+
+• I'm gathering precise details about new features like summary sections, folder cards, extension lists, and download buttons, aiming to confirm
+  their implementation and line numbers in related scripts so I can produce a thorough final response that highlights these enhancements and
+  guides verification steps.
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ update_pages_inventory.ps1 -Pattern '\\"'$formattedTotalCount'"').LineNumber"
+  └ 95
+    318
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ update_pages_inventory.ps1 -Pattern 'downloadRows').LineNumber"
+  └ 240
+    282
+    283
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ update_pages_inventory.ps1 -Pattern \"Carpetas destacadas\").LineNumber"
+  └ 325
+    339
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ make_inventory_offline.ps1 -Pattern 'downloadRows').LineNumber"
+  └ 240
+
+• I'll organize the final response to highlight the delivered features, referencing key script lines for aggregated insights, UI updates, and
+  offline generator changes, then guide verifying the CSV downloads and GitHub Pages deployment; also noting the pushed commit for completeness.
+
+> Implementé el nuevo vistazo general y el explorador único con filtros + descargas, tanto en la generación para GitHub Pages como en el HTML
+  offline.
+
+  - update_pages_inventory.ps1:95 agrupa y formatea los totales, las carpetas raíz y las extensiones para alimentar el análisis en la página.
+  - update_pages_inventory.ps1:132-404 reconstruye el HTML: añade paneles con resumen rápido, tarjetas por unidad, ranking de extensiones y la
+  nueva barra de acciones con botones “Descargar vista / Descargar todo”.
+  la tabla interactiva con exportaciones) y ya están publicados en main.
+
+  Qué hacer ahora:
+
+  1. Da unos minutos a GitHub Pages y revisa la URL pública; comprueba los paneles, los filtros y los botones “Descargar vista (CSV)” /
+  “Descargar todo (CSV)”.
+  2. Si quieres validar en local, en docs/ ejecuta python -m http.server 8000 y navega a http://localhost:8000/index.html.
+  3. Guarda los CSV descargados y verifica que el filtrado respeta el subconjunto esperado (el archivo completo conserva 100 % de las filas).
+
+  I also need to verify duplicates via Python by checking CSV hash groups without rehashing files. For cleaning the repo, I want to carefully
+  identify which old HTML, logs, and duplicate listings are truly unnecessary, considering the user wants to keep only essential files for
+  running a single unified script. Removing large obsolete files and logs seems reasonable, but I'll be cautious to avoid deleting anything
+  still in use or referenced. I'll outline implementation steps and verify changes before proceeding.
+
+• Ran python -c "from pathlib import Path
+  │ text = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\").read_text(encoding='utf-8')
+  │ start = text.index(\"<div class='toolbar'>\")
+  └   File "<string>", line 4
+        old = "  $null = $sb.AppendLine(\"    <div class='filter-controls'>\")\n  $null = $sb.AppendLine(\"      <input id='q' type='text'
+    placeholder='Filtrar por carpeta, nombre o extension...'>\")\n  $null = $sb.AppendLine(\"      <button id='clr' class='btn ghost'>Limpiar</
+    button>\")\n  $null = $sb.AppendLine(\"    </div>\")\n  $null = $sb.AppendLine('<span id=\\"count\\" class=\\"muted small\\"></span>')\n
+    $null = $sb.AppendLine(\"  </div>\")"
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +27 lines
+
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\make_inventory_offline.ps1\")
+  │ text = path.read_text(encoding='utf-8')
+  │ … +10 lines
+
+    (function(){
+    … +7 lines
+    })();
+
+
+• I'm updating the JavaScript to add column-specific filtering by grabbing the selected column’s value and filtering accordingly, fixing the
+• Ran python -c "from pathlib import Path
+  │ path = Path(r\"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\\update_pages_inventory.ps1\")
+⚠ Heads up, you've used over 75% of your 5h limit. Run /status for a breakdown.
+
+• I’m updating the quarantine exclusion explanation in the analysisIntro strings and adding extra paragraphs in the muted small notes across
+  make, update, and offline scripts to clarify the reason for omitting quarantine folders. At the same time, I’ll ensure the .selector CSS class
+  is properly included in the update script and verify the make script runs cleanly after these changes.
+  │ text = path.read_text(encoding='utf-8')
+  │ … +10 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+  │ \make_inventory_offline.ps1 -DocsTarget 'docs\\inventario_interactivo_offline.html'"
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; .\
+  │ \update_pages_inventory.ps1 -DoGitPush:"'$false'
+  └ Escaneando discos (archivos BUENOS, excluyendo quarantine/reciclaje/sistema) ...
+     - H: leyendo...
+  │ -Value ((Get-Content docs\\index.html -TotalCount 120) -join \""'`n")'
+
+• Ran python -c "from pathlib import Path
+  │ import csv
+  │ from collections import defaultdict
+    … +7 lines
+      FED628E1BC0B5A89D859E7D4B793BED7DEBC89598999B0B9A722C541D28B50FA: 2 archivos
+    Violaciones: 0
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem -Force"
+    … +7 lines
+        + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem
+  │ -Directory | Select-Object Name"
+  │ -Directory | Where-Object { $_.Name -like '"'Informe*' }).FullName; if ("'$dir) { Remove-Item -LiteralPath $dir -Recurse -Force }'
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem
+  │ -Directory -Filter 'logs_*' | Remove-Item -Recurse -Force"
+
+• Ran powershell.exe -NoProfile -Command Set-Location "C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final"; $files = @(
+  │   'AGENTS.md','ControlvControl.txt','final.pdf','Informe cronolgico H_I_J (1995-2025).htm','Informe cronolgico H_I_J
+  │ (1995-2025).html','Informe cronolgico H_I_J (1995-2025).mhtml','informe_cronologico.html','informe_inventario_bueno
+  │ … +10 lines
+  └ nul byte found in provided data
+  │ Get-ChildItem -File | Where-Object {
+  │     $_.Name -like '"'Listado_*' -or
+  │ … +15 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem"
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem -File
+  │ | Where-Object { "'$_.Name -like '"'*rbol*' -or "'$_.Name -like '"'*ndice*' -or "'$_.Name -like '"'inventory_*' -or "'$_.Name -eq
+  │ '"'Untitled-2.html' } | Remove-Item -Force"
+
+
+    … +7 lines
+
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem docs"
+  └
+
+    … +7 lines
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Remove-Item docs\
+  │ \Listado*_interactivo.html -Force"
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; Get-ChildItem docs"
+
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; git status --short"
+     D "\303\201rbol H__.htm"
+     D "\303\215ndice por hash (H_I_J).mhtml"
+
+• I’m sorting through whether all deleted directories and file removals have been fully committed, especially after running the update script
+  └  AGENTS.md                                          |     30 -
+     ControlvControl.txt                                |    272 -
+    … +7 lines
+     "\303\215ndice por hash (H_I_J).mhtml"             | 287518 ------------------
+     80 files changed, 1186943 deletions(-)
+  └
+    docs\index.html:106:      <select id='column' class='selector'>
+
+
+
+    docs\inventario_interactivo_offline.html:107:      <select id='column' class='selector'>
+
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; git status --short"
+    D  "\303\201rbol H__.htm"
+  │ \"chore(repo): limpiar artefactos legacy\""
+  └ [main 8ec7444] chore(repo): limpiar artefactos legacy
+     80 files changed, 1186943 deletions(-)
+    … +7 lines
+     delete mode 100644 "\303\201rbol H__.htm"
+     delete mode 100644 "\303\215ndice por hash (H_I_J).mhtml"
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; git push origin main"
+
+• I’m putting together a thorough yet friendly summary covering the new features like column filtering and download, duplication verification
+  with no issues found, the cleaning of legacy artifacts for a minimal repo, and instructions to verify and regenerate with script commands.
+  I’ll include file references with approximate line numbers and structure the message into clear bullet points for easy reading.
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ make_inventory_offline.ps1 -Pattern \"<select\" -Context 0,0).LineNumber"
+  └ 389
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ make_inventory_offline.ps1 -Pattern \"const column\" -Context 0,0).LineNumber"
+  └ 192
+
+• Ran powershell.exe -NoProfile -Command "Set-Location \"C:\\Users\\Antonio\\Documents\\GitHub\\Discos-An-lisis-Final\"; (Select-String -Path
+  │ update_pages_inventory.ps1 -Pattern \"<select\" -Context 0,0).LineNumber"
+  └ 402
+
+• I’m preparing a note outlining the new download capabilities, highlighting the quarantine reasons and the duplicate verification process. I’ll
+  explain the cleanup results with a list of remaining files and removed directories, point out the new dropdown UI for column filtering, and
+  mention the watcher setup for zipped files. Plus, I’ll include stats from the duplicates check before wrapping up the message.
+
+> Inventario Renovado
+
+  - make_inventory_offline.ps1:192-276 y update_pages_inventory.ps1:224-312 ahora cargan el selector Todos/Unidad/Carpeta/... y ajustan el
+  filtro para trabajar por columna, mantienen la búsqueda global y ofrecen exportar tanto la vista filtrada como el inventario completo en CSV.
+  - La cabecera incluye paneles explicativos con el porqué de excluir *_quarantine (evitamos contar duplicados ya tratados) y un resumen por
+  unidad/tipo de archivo; en los HTML generados verás el mensaje aclaratorio en los paneles intro.
+  - Ambos scripts añaden la clase .selector y actualizan el layout del toolbar para que quede uniforme, con los botones de descarga alineados.
+
+  Verificación de duplicados
+
+  - Revisé dupes_confirmed.csv sin recalcular hashes: 408 grupos (840 filas) y 0 incidencias de bytes inconsistentes ni hashes únicos
+  inesperados; el resumen de los top 10 hashes quedó registrado en la consola (grupo más grande: 9 archivos para 3C6178…).
+  - Si quieres repetir la comprobación, ejecuta en PowerShell:
+    python -c "from pathlib import Path; import csv, collections; ..." (el bloque exacto está en el histórico).
+  artefactos legacy (8ec7444), por lo que el repositorio ya no arrastra ficheros históricos innecesarios.
+
+  Uso recomendado
+
+  - Para regenerar en local y copiar a docs/:
+    pwsh .\make_inventory_offline.ps1 -DocsTarget 'docs\inventario_interactivo_offline.html' -Push (añade -Push solo si quieres commit/push
+  automático).
+  - Para reconstruir la versión Pages directamente:
+    pwsh .\update_pages_inventory.ps1 (el flag -DoGitPush:$false sigue disponible si prefieres revisar antes de subir).
+  - Comprueba la nueva UI en docs/index.html: selecciona una columna en el desplegable, escribe la cadena a filtrar y usa los botones “Descargar
+  vista / Descargar todo” para obtener CSVs.
+
+  Siguientes pasos sugeridos
+
+  1. Revisa la publicación de GitHub Pages tras el despliegue (puede tardar un par de minutos) y verifica la interacción del selector y las
+  descargas.
+  2. Si necesitas conservar alguna copia histórica, crea una release/tag con los artefactos antes del commit de limpieza.
+  3. Considera automatizar el chequeo de dupes_confirmed.csv con un test ligero (p.ej., script Python en tools/) para detectar anomalías
+  futuras.
