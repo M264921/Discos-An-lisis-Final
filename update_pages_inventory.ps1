@@ -156,6 +156,8 @@ $css = @"
   .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
   .actions{display:flex;flex-wrap:wrap;gap:8px}
   .selector{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px}
+  .file-link{color:#38bdf8;text-decoration:none}
+  .file-link:hover{text-decoration:underline}
   .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
   .btn:hover{background:#1d283a}
   .btn.secondary{background:#13213a;border-color:#233554}
@@ -210,15 +212,36 @@ $js = @"
     return (value || '').replace('T',' ').slice(0,19);
   }
 
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[ch] ?? ch);
+  }
+
   function buildRow(row){
-    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
-    return '<td>'+ (row.Drive || '') +'</td>'+
-           '<td>'+ (row.Folder || '') +'</td>'+
-           '<td>'+ (row.Name || '') +'</td>'+
-           '<td>'+ (row.Ext || '') +'</td>'+
-           '<td>'+ (row.MB ?? 0).toFixed(2) +'</td>'+
+    const rawPath = row.FullPath || '';
+    const href = 'file:///' + rawPath.split('\').join('/');
+    const size = Number(row.MB ?? 0);
+    const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+    const safeDrive = escapeHtml(row.Drive || '');
+    const safeFolder = escapeHtml(row.Folder || '');
+    const safeName = escapeHtml(row.Name || '');
+    const safeExt = escapeHtml(row.Ext || '');
+    const safePath = escapeHtml(rawPath);
+    const safeHref = escapeHtml(href);
+    const nameLabel = safeName || '(sin nombre)';
+    const pathLabel = safePath || '(sin ruta)';
+    return '<td>'+ safeDrive +'</td>'+
+           '<td>'+ safeFolder +'</td>'+
+           '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
+           '<td>'+ safeExt +'</td>'+
+           '<td>'+ sizeCell +'</td>'+
            '<td>'+ fmtDate(row.LastWrite) +'</td>'+
-           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+           '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
   }
 
   function render(){
@@ -267,17 +290,20 @@ $js = @"
       return;
     }
     const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
-    const lines = rows.map(row => [
-      row.Drive,
-      row.Folder,
-      row.Name,
-      row.Ext,
-      (row.MB ?? 0).toFixed(2),
-      fmtDate(row.LastWrite),
-      row.FullPath
-    ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(','));
+    const lines = rows.map(row => {
+      const size = Number(row.MB ?? 0);
+      const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+      return [
+        row.Drive,
+        row.Folder,
+        row.Name,
+        row.Ext,
+        sizeCell,
+        fmtDate(row.LastWrite),
+        row.FullPath
+      ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
+    });
     const csv = [header.join(','), ...lines].join('
-
 ');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -307,7 +333,6 @@ $js = @"
 
   render();
 })();
-</script>
 </script>
 "@
 # Datos en JSON (segmentados si hace falta por tamaÃ±o)
