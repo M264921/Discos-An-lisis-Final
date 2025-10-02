@@ -1,4 +1,4 @@
-﻿# ============================ INVENTARIO + GH PAGES ============================
+# ============================ INVENTARIO + GH PAGES ============================
 # Recorre H:, I:, J:, genera inventario offline (1 solo HTML, sin CDN) y lo
 # publica en docs\index.html. Opcionalmente hace git add/commit/push.
 # Probado en Windows PowerShell y PowerShell 7.
@@ -46,14 +46,18 @@ if (-not (Test-Path $DocsPath)) { New-Item -ItemType Directory -Force -Path $Doc
 # Escaneo (inventario "bueno")
 Write-Host "Escaneando discos (archivos BUENOS, excluyendo quarantine/reciclaje/sistema) ..."
 $files = @()
-foreach($d in $Drives){
+foreach ($d in $Drives) {
   $root = "$($d):\"
-  if (-not (Test-Path $root)) { Write-Host " - $($d): no existe, se omite."; continue }
+  if (-not (Test-Path $root)) {
+    Write-Host " - $($d): no existe, se omite."
+    continue
+  }
+
   Write-Host " - $($d): leyendo..."
   $items = Get-ChildItem $root -Recurse -Force -File -ErrorAction SilentlyContinue |
            Where-Object { $_.FullName -notmatch $ExcludeRx }
 
-  foreach($f in $items){
+  foreach ($f in $items) {
     $files += [pscustomobject]@{
       Drive     = $d
       Folder    = $f.DirectoryName
@@ -65,6 +69,7 @@ foreach($d in $Drives){
       FullPath  = $f.FullName
     }
   }
+
   "{0}: {1:n0} archivos buenos" -f $d, $items.Count | Write-Host
 }
 
@@ -270,6 +275,7 @@ if ($DoGitPush) {
 
 Write-Host "OK. Abre docs\index.html localmente o espera a que Pages lo publique."
 # =============================================================================
+
 
 
 
