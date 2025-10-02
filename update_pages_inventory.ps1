@@ -156,6 +156,8 @@ $css = @"
   .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
   .actions{display:flex;flex-wrap:wrap;gap:8px}
   .selector{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px}
+  .file-link{color:#38bdf8;text-decoration:none}
+  .file-link:hover{text-decoration:underline}
   .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
   .btn:hover{background:#1d283a}
   .btn.secondary{background:#13213a;border-color:#233554}
@@ -170,6 +172,11 @@ $css = @"
   tbody tr:hover{outline:1px solid var(--accent)}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
 </style>
 "@
 $js = @"
@@ -205,15 +212,36 @@ $js = @"
     return (value || '').replace('T',' ').slice(0,19);
   }
 
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[ch] ?? ch);
+  }
+
   function buildRow(row){
-    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
-    return '<td>'+ (row.Drive || '') +'</td>'+
-           '<td>'+ (row.Folder || '') +'</td>'+
-           '<td>'+ (row.Name || '') +'</td>'+
-           '<td>'+ (row.Ext || '') +'</td>'+
-           '<td>'+ (row.MB ?? 0).toFixed(2) +'</td>'+
+    const rawPath = row.FullPath || '';
+    const href = 'file:///' + rawPath.split('\').join('/');
+    const size = Number(row.MB ?? 0);
+    const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+    const safeDrive = escapeHtml(row.Drive || '');
+    const safeFolder = escapeHtml(row.Folder || '');
+    const safeName = escapeHtml(row.Name || '');
+    const safeExt = escapeHtml(row.Ext || '');
+    const safePath = escapeHtml(rawPath);
+    const safeHref = escapeHtml(href);
+    const nameLabel = safeName || '(sin nombre)';
+    const pathLabel = safePath || '(sin ruta)';
+    return '<td>'+ safeDrive +'</td>'+
+           '<td>'+ safeFolder +'</td>'+
+           '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
+           '<td>'+ safeExt +'</td>'+
+           '<td>'+ sizeCell +'</td>'+
            '<td>'+ fmtDate(row.LastWrite) +'</td>'+
-           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+           '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
   }
 
   function render(){
@@ -262,17 +290,20 @@ $js = @"
       return;
     }
     const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
-    const lines = rows.map(row => [
-      row.Drive,
-      row.Folder,
-      row.Name,
-      row.Ext,
-      (row.MB ?? 0).toFixed(2),
-      fmtDate(row.LastWrite),
-      row.FullPath
-    ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(','));
+    const lines = rows.map(row => {
+      const size = Number(row.MB ?? 0);
+      const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+      return [
+        row.Drive,
+        row.Folder,
+        row.Name,
+        row.Ext,
+        sizeCell,
+        fmtDate(row.LastWrite),
+        row.FullPath
+      ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
+    });
     const csv = [header.join(','), ...lines].join('
-
 ');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -302,7 +333,6 @@ $js = @"
 
   render();
 })();
-</script>
 </script>
 "@
 # Datos en JSON (segmentados si hace falta por tamaÃ±o)
@@ -391,6 +421,33 @@ if ($topExtensions) {
     $null = $sb.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
   }
   $null = $sb.AppendLine('</ul>')
+  $null = $sb.AppendLine('</section>')
+}
+
+$folderRanking = @()
+if ($topFolders) {
+  $folderRanking = @($topFolders | Where-Object { $_.GB -gt 0.05 } | Sort-Object GB -Descending)
+  if (-not $folderRanking.Count) {
+    $folderRanking = @($topFolders | Sort-Object GB -Descending | Select-Object -First 12)
+  } else {
+    $folderRanking = @($folderRanking | Select-Object -First 12)
+  }
+}
+
+if ($folderRanking.Count) {
+  $null = $sb.AppendLine("<section class='panel'>")
+  $null = $sb.AppendLine("<h2>Resumen por carpeta principal</h2>")
+  $null = $sb.AppendLine("<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>")
+  $null = $sb.AppendLine("<table class='summary-table'>")
+  $null = $sb.AppendLine("<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>")
+  foreach ($entry in $folderRanking) {
+    $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raíz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
+    $safeLabel = HtmlEnc($folderLabel)
+    $countFmt = [string]::Format('{0:n0}', $entry.Count)
+    $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+    $null = $sb.AppendLine("<tr><td>$($entry.Drive)</td><td>$safeLabel</td><td class='nowrap'>$countFmt</td><td class='nowrap'>$gbFmt GB</td></tr>")
+  }
+  $null = $sb.AppendLine('</tbody></table>')
   $null = $sb.AppendLine('</section>')
 }
 $null = $sb.AppendLine("<section class='panel dataset'>")

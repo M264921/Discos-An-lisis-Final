@@ -27,6 +27,8 @@
   .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
   .actions{display:flex;flex-wrap:wrap;gap:8px}
   .selector{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px}
+  .file-link{color:#38bdf8;text-decoration:none}
+  .file-link:hover{text-decoration:underline}
   .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
   .btn:hover{background:#1d283a}
   .btn.secondary{background:#13213a;border-color:#233554}
@@ -41,6 +43,11 @@
   tbody tr:hover{outline:1px solid var(--accent)}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
 </style>
 </head><body><div class="wrap">
 <h1>Inventario H/I/J (offline)</h1>
@@ -96,6 +103,21 @@
 <li><span class='tag'>.DB</span> 186 archivos &middot; 0,03 GB</li>
 <li><span class='tag'>.CSV</span> 5 archivos &middot; 0,01 GB</li>
 </ul>
+</section>
+<section class='panel'>
+<h2>Resumen por carpeta principal</h2>
+<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>
+<table class='summary-table'>
+<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>
+<tr><td>I</td><td>I:\PELICULAS</td><td class='nowrap'>242</td><td class='nowrap'>954,05 GB</td></tr>
+<tr><td>I</td><td>I:\VIDEOS CIENCIA Y TECNOLOGIA</td><td class='nowrap'>387</td><td class='nowrap'>668,91 GB</td></tr>
+<tr><td>H</td><td>H:\Media_Final</td><td class='nowrap'>193</td><td class='nowrap'>350,41 GB</td></tr>
+<tr><td>I</td><td>I:\FAMILIA</td><td class='nowrap'>48</td><td class='nowrap'>97,41 GB</td></tr>
+<tr><td>J</td><td>J:\VIDEO</td><td class='nowrap'>76</td><td class='nowrap'>55,95 GB</td></tr>
+<tr><td>I</td><td>I:\</td><td class='nowrap'>1</td><td class='nowrap'>31,88 GB</td></tr>
+<tr><td>I</td><td>I:\media_final</td><td class='nowrap'>1</td><td class='nowrap'>1,40 GB</td></tr>
+<tr><td>H</td><td>H:\VIDEOS FAMILIA</td><td class='nowrap'>4</td><td class='nowrap'>0,20 GB</td></tr>
+</tbody></table>
 </section>
 <section class='panel dataset'>
 <h2>Explorador interactivo</h2>
@@ -165,15 +187,36 @@
     return (value || '').replace('T',' ').slice(0,19);
   }
 
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[ch] ?? ch);
+  }
+
   function buildRow(row){
-    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
-    return '<td>'+ (row.Drive || '') +'</td>'+
-           '<td>'+ (row.Folder || '') +'</td>'+
-           '<td>'+ (row.Name || '') +'</td>'+
-           '<td>'+ (row.Ext || '') +'</td>'+
-           '<td>'+ (row.MB ?? 0).toFixed(2) +'</td>'+
+    const rawPath = row.FullPath || '';
+    const href = 'file:///' + rawPath.split('\').join('/');
+    const size = Number(row.MB ?? 0);
+    const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+    const safeDrive = escapeHtml(row.Drive || '');
+    const safeFolder = escapeHtml(row.Folder || '');
+    const safeName = escapeHtml(row.Name || '');
+    const safeExt = escapeHtml(row.Ext || '');
+    const safePath = escapeHtml(rawPath);
+    const safeHref = escapeHtml(href);
+    const nameLabel = safeName || '(sin nombre)';
+    const pathLabel = safePath || '(sin ruta)';
+    return '<td>'+ safeDrive +'</td>'+
+           '<td>'+ safeFolder +'</td>'+
+           '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
+           '<td>'+ safeExt +'</td>'+
+           '<td>'+ sizeCell +'</td>'+
            '<td>'+ fmtDate(row.LastWrite) +'</td>'+
-           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+           '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
   }
 
   function render(){
@@ -222,17 +265,20 @@
       return;
     }
     const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
-    const lines = rows.map(row => [
-      row.Drive,
-      row.Folder,
-      row.Name,
-      row.Ext,
-      (row.MB ?? 0).toFixed(2),
-      fmtDate(row.LastWrite),
-      row.FullPath
-    ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(','));
+    const lines = rows.map(row => {
+      const size = Number(row.MB ?? 0);
+      const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+      return [
+        row.Drive,
+        row.Folder,
+        row.Name,
+        row.Ext,
+        sizeCell,
+        fmtDate(row.LastWrite),
+        row.FullPath
+      ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
+    });
     const csv = [header.join(','), ...lines].join('
-
 ');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -262,7 +308,6 @@
 
   render();
 })();
-</script>
 </script>
 </div></body></html>
 
