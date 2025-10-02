@@ -91,6 +91,40 @@ $summary = $files | Group-Object Drive | ForEach-Object {
 $totalCount = $files.Count
 $totalGB    = [math]::Round((($files | Measure-Object Bytes -Sum).Sum)/1GB, 2)
 
+
+$formattedTotalCount = [string]::Format('{0:n0}', $totalCount)
+$formattedTotalGB = [string]::Format('{0:n2}', $totalGB)
+
+$topFolderGroups = $files | Group-Object {
+  $relative = ($_.FullPath -replace '^[A-Za-z]:\\', '')
+  if (-not $relative) { return "{0}|(raiz)" -f $_.Drive }
+  $segment = $relative.Split('\')[0]
+  if (-not $segment) { return "{0}|(raiz)" -f $_.Drive }
+  return "{0}|{1}" -f $_.Drive, $segment
+}
+
+$topFolders = $topFolderGroups | ForEach-Object {
+  $parts = $_.Name.Split('|', 2)
+  $driveId = $parts[0]
+  $folderId = if ($parts.Count -gt 1) { $parts[1] } else { '(raiz)' }
+  $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
+  [pscustomobject]@{
+    Drive = $driveId
+    Folder = $folderId
+    Count = $_.Count
+    GB    = [math]::Round($sumBytes/1GB, 2)
+  }
+}
+
+$topExtensions = $files | Group-Object Ext | ForEach-Object {
+  $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
+  [pscustomobject]@{
+    Ext   = $_.Name
+    Count = $_.Count
+    GB    = [math]::Round($sumBytes/1GB, 2)
+  }
+} | Sort-Object GB -Descending | Select-Object -First 8
+
 # ============================== HTML OFFLINE ===============================
 # Todo inline (CSS/JS) para funcionar sin Internet.
 $fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
@@ -100,95 +134,158 @@ $css = @"
 <style>
   :root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --chip:#1f2937; --accent:#22d3ee; }
   *{box-sizing:border-box}
-  body{margin:16px;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
-  h1{margin:0 0 6px 0;font-size:20px}
+  body{margin:16px;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Arial}
+  h1{margin:0 0 10px;font-size:22px}
+  h2{margin:0 0 12px;font-size:18px;color:#e2e8f0}
   .muted{color:var(--muted)}
   .wrap{max-width:1200px;margin:0 auto}
-  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}
-  .pill{background:var(--chip);padding:6px 10px;border-radius:999px;border:1px solid #374151}
+  .bar{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+  .pill{background:var(--chip);padding:6px 12px;border-radius:999px;border:1px solid #1f2937}
   .pill b{color:#fff}
-  .kbd{font-family:Consolas,monospace;background:#0b1220;border:1px solid #1f2937;padding:2px 6px;border-radius:6px}
-  input[type="text"]{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px;min-width:260px}
-  table{width:100%;border-collapse:separate;border-spacing:0 6px}
-  thead th{font-weight:600;color:#cbd5e1;text-align:left;padding:8px}
-  tbody tr{background:var(--panel);border:1px solid #1f2937}
+  .panel{background:rgba(15,23,42,0.35);border:1px solid #1f2937;border-radius:16px;padding:18px;margin:18px 0}
+  .panel p{margin:0 0 12px}
+  .cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:14px}
+  .card h3{margin:0 0 6px;font-size:16px;color:#e2e8f0}
+  .insights{list-style:none;margin:8px 0 0;padding:0;font-size:13px;color:#cbd5e1}
+  .insights li{margin:4px 0;line-height:1.4}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:#1f2937;border:1px solid #334155;border-radius:999px;padding:3px 10px;font-size:12px;color:#e2e8f0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin:12px 0}
+  .filter{display:flex;flex-direction:column;gap:6px;min-width:260px}
+  .filter-controls{display:flex;gap:8px;align-items:center}
+  .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
+  .btn:hover{background:#1d283a}
+  .btn.secondary{background:#13213a;border-color:#233554}
+  .btn.secondary:hover{background:#1f2f4c}
+  .btn.ghost{background:transparent;border-color:#334155}
+  .btn.ghost:hover{background:#1d283a}
+  .pager{display:flex;gap:10px;align-items:center;margin:12px 0 18px}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:13px}
+  thead th{color:#cbd5e1;text-align:left;padding:8px;background:#0f172a;border:1px solid #1f2937;border-bottom:0}
+  tbody tr{background:#111f37;border:1px solid #1f2937}
   tbody td{padding:8px;vertical-align:top}
   tbody tr:hover{outline:1px solid var(--accent)}
-  .path{font-family:Consolas,monospace}
-  .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px;cursor:pointer}
-  .btn:disabled{opacity:.5;cursor:default}
-  .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
-  .nowrap{white-space:nowrap}
-  .grid-2{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
-  .narrow{max-width:300px}
-  a{color:#93c5fd;text-decoration:none}
-  a:hover{text-decoration:underline}
-  .copyok{color:#22c55e;margin-left:8px}
+  td.path{font-family:Consolas,Monaco,monospace}
+  .small{font-size:12px}
 </style>
 "@
-
 $js = @"
 <script>
-// ==== tabla simple sin dependencias ====
 (function(){
-  const rows = [];
-  // dataset llega desde window.__DATA__ inyectado abajo
+  const data = window.__DATA__ || [];
+  const PAGE = 200;
+  let page = 0;
+  let filtered = data.slice();
 
-  let data = window.__DATA__ || [];
-  const PAGE=200;
-  let page=0, filtered=data;
+  const tbody = document.querySelector('#tbl tbody');
+  const input = document.getElementById('q');
+  const clear = document.getElementById('clr');
+  const stats = document.getElementById('count');
+  const info = document.getElementById('info');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const download = document.getElementById('download');
+  const downloadAll = document.getElementById('download-all');
 
-  const elTbl = document.getElementById('tbl-body');
-  const elInfo= document.getElementById('info');
-  const q     = document.getElementById('q');
-  const prev  = document.getElementById('prev');
-  const next  = document.getElementById('next');
-
-  function fmtDate(s){
-    return s.replace('T',' ').slice(0,19);
+  function fmtDate(value){
+    return (value || '').replace('T',' ').slice(0,19);
   }
+
+  function buildRow(row){
+    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
+    return '<td>'+row.Drive+'</td>'+
+           '<td>'+row.Folder+'</td>'+
+           '<td>'+row.Name+'</td>'+
+           '<td>'+row.Ext+'</td>'+
+           '<td>'+row.MB.toFixed(2)+'</td>'+
+           '<td>'+fmtDate(row.LastWrite)+'</td>'+
+           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+  }
+
   function render(){
-    elTbl.innerHTML = '';
-    const start = page*PAGE;
-    const pageRows = filtered.slice(start, start+PAGE);
-    for(const r of pageRows){
+    tbody.innerHTML = '';
+    const start = page * PAGE;
+    const slice = filtered.slice(start, start + PAGE);
+    for(const row of slice){
       const tr = document.createElement('tr');
-      const link = 'file:///'+ r.FullPath.replaceAll('\\','/');
-      tr.innerHTML = '<td>'+r.Drive+'</td>'+
-                     '<td>'+r.Folder+'</td>'+
-                     '<td>'+r.Name+'</td>'+
-                     '<td>'+r.Ext+'</td>'+
-                     '<td class="nowrap">'+r.MB.toFixed(2)+'</td>'+
-                     '<td class="nowrap">'+fmtDate(r.LastWrite)+'</td>'+
-                     '<td class="path"><a href="'+link+'">Abrir</a></td>';
-      elTbl.appendChild(tr);
+      tr.innerHTML = buildRow(row);
+      tbody.appendChild(tr);
     }
-    const pages = Math.max(1, Math.ceil(filtered.length/PAGE));
-    elInfo.textContent = (filtered.length.toLocaleString())+' archivos â€” pÃ¡gina '+(page+1)+' / '+pages;
-    prev.disabled = (page<=0);
-    next.disabled = (page>=pages-1);
+    const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+    info.textContent = 'Pagina '+(page + 1)+' de '+pages;
+    stats.textContent = filtered.length.toLocaleString()+' de '+data.length.toLocaleString()+' archivos visibles';
+    prev.disabled = page <= 0;
+    next.disabled = page >= pages - 1;
   }
 
-  function doFilter(){
-    const t = q.value.trim().toLowerCase();
-    if(!t){ filtered = data; page=0; render(); return; }
-    const parts = t.split(/\s+/).filter(Boolean);
-    filtered = data.filter(r=>{
-      const hay = (r.FullPathLower||'')+' '+(r.Ext||'')+' '+(r.Name||'');
-      return parts.every(p=> hay.includes(p));
+  function apply(){
+    const raw = (input.value || '').trim().toLowerCase();
+    if(!raw){
+      filtered = data.slice();
+      page = 0;
+      render();
+      return;
+    }
+    const terms = raw.split(/\s+/).filter(Boolean);
+    filtered = data.filter(row => {
+      const hay = (row.FullPathLower || '')+' '+(row.Ext || '')+' '+(row.Name || '');
+      return terms.every(term => hay.includes(term));
     });
-    page=0; render();
+    page = 0;
+    render();
   }
 
-  q.addEventListener('input', function(){ window.requestAnimationFrame(doFilter); });
-  prev.addEventListener('click', ()=>{ if(page>0){ page--; render(); }});
-  next.addEventListener('click', ()=>{ const pages = Math.ceil(filtered.length/PAGE); if(page<pages-1){ page++; render(); }});
+  function downloadRows(rows, filename){
+    if(!rows.length){
+      alert('No hay filas para descargar con el filtro actual.');
+      return;
+    }
+    const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
+    const lines = rows.map(row => [
+      row.Drive,
+      row.Folder,
+      row.Name,
+      row.Ext,
+      row.MB.toFixed(2),
+      fmtDate(row.LastWrite),
+      row.FullPath
+    ].map(value => '"'+String(value ?? '').replace(/"/g,'""')+'"').join(','));
+    const csv = [header.join(','), ...lines].join('
 
-  render();
+');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  input.addEventListener('input', () => window.requestAnimationFrame(apply));
+  if(clear){
+    clear.addEventListener('click', () => {
+      input.value = '';
+      apply();
+    });
+  }
+  prev.addEventListener('click', () => { if(page > 0){ page--; render(); } });
+  next.addEventListener('click', () => {
+    const pages = Math.ceil(filtered.length / PAGE);
+    if(page < pages - 1){ page++; render(); }
+  });
+
+  download.addEventListener('click', () => downloadRows(filtered, 'inventario_filtrado.csv'));
+  downloadAll.addEventListener('click', () => downloadRows(data, 'inventario_completo.csv'));
+
+  apply();
 })();
 </script>
 "@
-
 # Datos en JSON (segmentados si hace falta por tamaÃ±o)
 # Compactamos campos y aÃ±adimos derivados para filtro rÃ¡pido
 $dataset = $files | ForEach-Object {
@@ -218,15 +315,88 @@ $null = $sb.AppendLine("<h1>$PageTitle</h1>")
 $chips = ($summary | ForEach-Object { "<span class='pill nowrap'><b>$($_.Drive):</b> $([string]::Format('{0:n0}', $_.Count)) archivos - $([string]::Format('{0:n2}', $_.GB)) GB</span>" }) -join " "
 $chips += " <span class='pill nowrap'><b>TOTAL</b>: $([string]::Format('{0:n0}', $totalCount)) archivos - $([string]::Format('{0:n2}', $totalGB)) GB</span>"
 $null = $sb.AppendLine("<div class='bar'>$chips</div>")
-$null = $sb.AppendLine("<div class='muted'>Generado: $(HtmlEnc $fecha). Se excluyen <code>_quarantine*</code>, <code>System Volume Information</code>, <code>$Recycle.Bin</code> y <code>FOUND.###</code>.</div>")
-$null = $sb.AppendLine('<div class="grid-2">')
-$null = $sb.AppendLine('<input id="q" type="text" placeholder="Filtrar (FullPath, nombre, extensiÃ³n)...">')
-$null = $sb.AppendLine('<div class="pager"><button id="prev" class="btn">&larr; Prev</button><span id="info" class="small muted"></span><button id="next" class="btn">Next &rarr;</button></div>')
+$analysisIntro = "Se han catalogado $formattedTotalCount archivos (~$formattedTotalGB GB). Usa el resumen para priorizar limpieza y identifica carpetas voluminosas con la tabla interactiva."
+$null = $sb.AppendLine("<section class='panel intro'>")
+$null = $sb.AppendLine("<h2>Resumen rapido</h2>")
+$null = $sb.AppendLine("<p>$(HtmlEnc $analysisIntro)</p>")
+$null = $sb.AppendLine("<p class='muted small'>Se excluyen <code>_quarantine*</code>, <code>System Volume Information</code>, <code>$Recycle.Bin</code> y <code>FOUND.###</code>.</p>")
+$null = $sb.AppendLine('</section>')
+$null = $sb.AppendLine("<section class='panel'>")
+$null = $sb.AppendLine("<h2>Carpetas destacadas por unidad</h2>")
+$null = $sb.AppendLine("<p>Los conjuntos que concentran mas espacio ayudan a priorizar el ordenado.</p>")
+if ($topFolders) {
+  $driveCardsBuilder = [System.Text.StringBuilder]::new()
+  foreach ($driveInfo in $summary) {
+    $driveId = $driveInfo.Drive
+    $driveCountFmt = [string]::Format('{0:n0}', $driveInfo.Count)
+    $driveGBFmt = [string]::Format('{0:n2}', $driveInfo.GB)
+    $null = $driveCardsBuilder.AppendLine("<article class='card'>")
+    $null = $driveCardsBuilder.AppendLine("<h3>Unidad $driveId</h3>")
+    $null = $driveCardsBuilder.AppendLine("<p>$driveCountFmt archivos &middot; $driveGBFmt GB</p>")
+    $null = $driveCardsBuilder.AppendLine("<ul class='insights'>")
+    $driveTop = $topFolders | Where-Object { $_.Drive -eq $driveId } | Sort-Object GB -Descending | Select-Object -First 3
+    if (-not $driveTop) {
+      $null = $driveCardsBuilder.AppendLine("<li>Sin carpetas destacadas</li>")
+    } else {
+      foreach ($entry in $driveTop) {
+        $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\ (raiz)' -f $driveId } else { '{0}:\{1}' -f $driveId, $entry.Folder }
+        $safeLabel = HtmlEnc($folderLabel)
+        $countFmt = [string]::Format('{0:n0}', $entry.Count)
+        $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+        $null = $driveCardsBuilder.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+      }
+    }
+    $null = $driveCardsBuilder.AppendLine('</ul>')
+    $null = $driveCardsBuilder.AppendLine('</article>')
+  }
+  $driveCardsHtml = $driveCardsBuilder.ToString().Trim()
+  if ($driveCardsHtml) {
+    $null = $sb.AppendLine("<div class='cards'>")
+    $null = $sb.AppendLine($driveCardsHtml)
+    $null = $sb.AppendLine('</div>')
+  }
+} else {
+  $null = $sb.AppendLine("<p class='muted'>No hay carpetas con datos suficientes.</p>")
+}
+$null = $sb.AppendLine('</section>')
+if ($topExtensions) {
+  $null = $sb.AppendLine("<section class='panel'>")
+  $null = $sb.AppendLine("<h2>Tipos de archivo predominantes</h2>")
+  $null = $sb.AppendLine("<p>Los formatos con mayor peso acumulado pueden indicar oportunidades de depuracion o migracion.</p>")
+  $null = $sb.AppendLine("<ul class='insights'>")
+  foreach ($extStat in $topExtensions) {
+    $label = if ($extStat.Ext -eq '(sin)') { 'Sin extension' } else { ($extStat.Ext).ToUpper() }
+    $safeLabel = HtmlEnc($label)
+    $countFmt = [string]::Format('{0:n0}', $extStat.Count)
+    $gbFmt = [string]::Format('{0:n2}', $extStat.GB)
+    $null = $sb.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+  }
+  $null = $sb.AppendLine('</ul>')
+  $null = $sb.AppendLine('</section>')
+}
+$null = $sb.AppendLine("<section class='panel dataset'>")
+$null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
+$null = $sb.AppendLine("<p>Filtra por cualquier fragmento y exporta la vista actual o el inventario completo en CSV.</p>")
+$null = $sb.AppendLine("<div class='toolbar'>")
+$null = $sb.AppendLine("  <div class='filter'>")
+$null = $sb.AppendLine("    <div class='filter-controls'>")
+$null = $sb.AppendLine("      <input id='q' type='text' placeholder='Filtrar por carpeta, nombre o extension...'>")
+$null = $sb.AppendLine("      <button id='clr' class='btn ghost'>Limpiar</button>")
+$null = $sb.AppendLine("    </div>")
+$null = $sb.AppendLine("    <span id='count' class='muted small'></span>")
+$null = $sb.AppendLine("  </div>")
+$null = $sb.AppendLine("  <div class='actions'>")
+$null = $sb.AppendLine("    <button id='download' class='btn secondary'>Descargar vista (CSV)</button>")
+$null = $sb.AppendLine("    <button id='download-all' class='btn secondary ghost'>Descargar todo (CSV)</button>")
+$null = $sb.AppendLine("  </div>")
 $null = $sb.AppendLine('</div>')
-$null = $sb.AppendLine('<table><thead><tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr></thead><tbody id="tbl-body">')
-
-# Cierra tabla; dataset y JS
-$null = $sb.AppendLine('</tbody></table>')
+$null = $sb.AppendLine("<div class='pager'>")
+$null = $sb.AppendLine("  <button id='prev' class='btn'>&larr; Prev</button>")
+$null = $sb.AppendLine("  <span id='info' class='muted small'></span>")
+$null = $sb.AppendLine("  <button id='next' class='btn'>Next &rarr;</button>")
+$null = $sb.AppendLine('</div>')
+$null = $sb.AppendLine("<table id='tbl'><thead><tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr></thead><tbody></tbody></table>")
+$null = $sb.AppendLine('</section>')
 
 # Inyecta DATA como JSON
 # Nota: ConvertTo-Json por defecto limita profundidad; aquÃ­ no hay anidaciÃ³n compleja.

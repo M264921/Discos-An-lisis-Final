@@ -82,156 +82,319 @@ try {
   $totalGB    = ($summary | Measure-Object GB -Sum).Sum
   if (-not $totalGB) { $totalGB = 0 }
 
-  $head = @"
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>Inventario Offline H/I/J</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  :root{ --fg:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#fff; --chip:#f3f4f6; }
-  body{ font-family: Segoe UI, Arial, sans-serif; color:var(--fg); background:var(--bg); margin:20px; }
-  h1,h2{ margin:0 0 8px 0; }
-  .muted{ color:var(--muted); font-size:12px; margin:6px 0 16px; }
-  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 16px; }
-  .pill{ background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:4px 10px; }
-  .nowrap{ white-space:nowrap; }
-  table{ width:100%; border-collapse:collapse; font-size:13px; }
-  th,td{ border:1px solid var(--line); padding:6px 8px; vertical-align:top; }
-  th{ background:#f9fafb; cursor:pointer; user-select:none; }
-  code{ font-family: Consolas, Monaco, monospace; background:#f9fafb; padding:1px 3px; border-radius:4px; }
-  .right{ text-align:right; }
-  .path{ max-width:520px; }
-  .sticky{ position:sticky; top:0; background:#f9fafb; z-index:1; }
-  .controls{ display:flex; gap:8px; align-items:center; margin:12px 0; }
-  input[type="text"]{ width:340px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; }
-  .btn{ padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; }
-  .btn:hover{ background:#f3f4f6; }
-  .small{ font-size:12px; }
-</style>
-</head>
-<body>
-"@
-
-  $intro = @"
-<h1>Inventario H / I / J (offline)</h1>
-<div class="muted">
-Generado: $fecha. Sin dependencias externas (funciona con o sin Internet).<br>
-Nota: el enlace a archivo real solo abre en local (file://), no desde GitHub Pages.
-</div>
-"@
-
-  $chipParts = foreach ($item in $summary) {
-    $formattedCount = [string]::Format('{0:n0}', $item.Count)
-    $formattedGB = [string]::Format('{0:n2}', $item.GB)
-    "<span class='pill nowrap'><b>$($item.Drive):</b> $formattedCount archivos - $formattedGB GB</span>"
-  }
-
+  
   $formattedTotalCount = [string]::Format('{0:n0}', $totalCount)
   $formattedTotalGB = [string]::Format('{0:n2}', $totalGB)
-  $chips = '<div class="chips">'
-  if ($chipParts) {
-    $chips += ($chipParts -join ' ') + ' '
-  }
-  $chips += "<span class='pill nowrap'><b>TOTAL:</b> $formattedTotalCount archivos - $formattedTotalGB GB</span></div>"
 
-  $controls = @"
-<div class="controls">
-  <input id="q" type="text" placeholder="Filtrar por nombre o carpeta...">
-  <button id="clr" class="btn">Limpiar</button>
-  <span id="count" class="small muted"></span>
-</div>
-"@
-
-  $tableHead = @"
-<table id="tbl">
-  <thead>
-    <tr>
-      <th class="sticky">Drive</th>
-      <th class="sticky">Folder</th>
-      <th class="sticky">Name</th>
-      <th class="sticky">Ext</th>
-      <th class="sticky right">MB</th>
-      <th class="sticky">LastWrite</th>
-      <th class="sticky path">Path</th>
-    </tr>
-  </thead>
-  <tbody>
-"@
-
-  $rows = New-Object System.Text.StringBuilder
-  foreach ($row in $files) {
-    $drive  = HtmlEnc($row.Drive)
-    $folder = HtmlEnc($row.Folder)
-    $name   = HtmlEnc($row.Name)
-    $ext    = HtmlEnc($row.Extension)
-    $mb     = [string]::Format('{0:n2}', $row.MB)
-    $dtISO  = Get-Date $row.LastWrite -Format 'yyyy-MM-dd HH:mm:ss'
-    $path   = HtmlEnc($row.FullPath)
-    $href   = 'file:///' + ($row.FullPath -replace '\\','/')
-
-    $null = $rows.AppendLine('<tr>'+
-      '<td>'+ $drive +'</td>'+
-      '<td>'+ $folder +'</td>'+
-      '<td>'+ $name +'</td>'+
-      '<td>'+ $ext +'</td>'+
-      '<td class="right">'+ $mb +'</td>'+
-      '<td>'+ $dtISO +'</td>'+
-      '<td class="path"><code>'+ $path +'</code> &nbsp; <a href="'+ $href +'" target="_blank" rel="noopener">Abrir</a></td>'+
-    '</tr>')
+  $topFolderGroups = $files | Group-Object {
+    $relative = ($_.FullPath -replace '^[A-Za-z]:\\', '')
+    if (-not $relative) { return "{0}|(raiz)" -f $_.Drive }
+    $segment = $relative.Split('\')[0]
+    if (-not $segment) { return "{0}|(raiz)" -f $_.Drive }
+    return "{0}|{1}" -f $_.Drive, $segment
   }
 
-  $tableTail = @"
-  </tbody>
-</table>
+  $topFolders = $topFolderGroups | ForEach-Object {
+    $parts = $_.Name.Split('|', 2)
+    $driveId = $parts[0]
+    $folderId = if ($parts.Count -gt 1) { $parts[1] } else { '(raiz)' }
+    $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+    [pscustomobject]@{
+      Drive = $driveId
+      Folder = $folderId
+      Count = $_.Count
+      GB    = [math]::Round($sumBytes/1GB, 2)
+    }
+  }
+
+  $topExtensions = $files | Group-Object Extension | ForEach-Object {
+    $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+    [pscustomobject]@{
+      Ext   = $_.Name
+      Count = $_.Count
+      GB    = [math]::Round($sumBytes/1GB, 2)
+    }
+  } | Sort-Object GB -Descending | Select-Object -First 8
+
+  $dataset = $files | ForEach-Object {
+    [pscustomobject]@{
+      Drive        = $_.Drive
+      Folder       = $_.Folder
+      Name         = $_.Name
+      Ext          = $_.Extension
+      MB           = $_.MB
+      LastWrite    = ($_.LastWrite.ToString('yyyy-MM-ddTHH:mm:ss'))
+      FullPath     = $_.FullPath
+      FullPathLower= $_.FullPath.ToLower()
+    }
+  }
+
+  $css = @"
+<style>
+  :root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --chip:#1f2937; --accent:#22d3ee; }
+  *{box-sizing:border-box}
+  body{margin:16px;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Arial}
+  h1{margin:0 0 10px;font-size:22px}
+  h2{margin:0 0 12px;font-size:18px;color:#e2e8f0}
+  .muted{color:var(--muted)}
+  .wrap{max-width:1200px;margin:0 auto}
+  .bar{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+  .pill{background:var(--chip);padding:6px 12px;border-radius:999px;border:1px solid #1f2937}
+  .pill b{color:#fff}
+  .panel{background:rgba(15,23,42,0.35);border:1px solid #1f2937;border-radius:16px;padding:18px;margin:18px 0}
+  .panel p{margin:0 0 12px}
+  .cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:14px}
+  .card h3{margin:0 0 6px;font-size:16px;color:#e2e8f0}
+  .insights{list-style:none;margin:8px 0 0;padding:0;font-size:13px;color:#cbd5e1}
+  .insights li{margin:4px 0;line-height:1.4}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:#1f2937;border:1px solid #334155;border-radius:999px;padding:3px 10px;font-size:12px;color:#e2e8f0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin:12px 0}
+  .filter{display:flex;flex-direction:column;gap:6px;min-width:260px}
+  .filter-controls{display:flex;gap:8px;align-items:center}
+  .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
+  .btn:hover{background:#1d283a}
+  .btn.secondary{background:#13213a;border-color:#233554}
+  .btn.secondary:hover{background:#1f2f4c}
+  .btn.ghost{background:transparent;border-color:#334155}
+  .btn.ghost:hover{background:#1d283a}
+  .pager{display:flex;gap:10px;align-items:center;margin:12px 0 18px}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:13px}
+  thead th{color:#cbd5e1;text-align:left;padding:8px;background:#0f172a;border:1px solid #1f2937;border-bottom:0}
+  tbody tr{background:#111f37;border:1px solid #1f2937}
+  tbody td{padding:8px;vertical-align:top}
+  tbody tr:hover{outline:1px solid var(--accent)}
+  td.path{font-family:Consolas,Monaco,monospace}
+  .small{font-size:12px}
+</style>
+"@
+
+  $js = @"
 <script>
 (function(){
+  const data = window.__DATA__ || [];
+  const PAGE = 200;
+  let page = 0;
+  let filtered = data.slice();
+
   const tbody = document.querySelector('#tbl tbody');
-  const heads = document.querySelectorAll('#tbl thead th');
-  heads.forEach((th, idx) => {
-    th.addEventListener('click', () => {
-      const asc = !(th.dataset.asc === 'true');
-      heads.forEach(h=>{ if(h!==th) h.removeAttribute('data-asc'); });
-      th.dataset.asc = asc ? 'true' : 'false';
-      const rows = Array.from(tbody.rows);
-      rows.sort((a,b)=>{
-        const A = a.cells[idx].innerText.trim();
-        const B = b.cells[idx].innerText.trim();
-        return A.localeCompare(B, undefined, {numeric:true}) * (asc?1:-1);
-      });
-      rows.forEach(r => tbody.appendChild(r));
+  const input = document.getElementById('q');
+  const clear = document.getElementById('clr');
+  const stats = document.getElementById('count');
+  const info = document.getElementById('info');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const download = document.getElementById('download');
+  const downloadAll = document.getElementById('download-all');
+
+  function fmtDate(value){
+    return (value || '').replace('T',' ').slice(0,19);
+  }
+
+  function buildRow(row){
+    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
+    return '<td>'+row.Drive+'</td>'+
+           '<td>'+row.Folder+'</td>'+
+           '<td>'+row.Name+'</td>'+
+           '<td>'+row.Ext+'</td>'+
+           '<td>'+row.MB.toFixed(2)+'</td>'+
+           '<td>'+fmtDate(row.LastWrite)+'</td>'+
+           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+  }
+
+  function render(){
+    tbody.innerHTML = '';
+    const start = page * PAGE;
+    const slice = filtered.slice(start, start + PAGE);
+    for(const row of slice){
+      const tr = document.createElement('tr');
+      tr.innerHTML = buildRow(row);
+      tbody.appendChild(tr);
+    }
+    const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+    info.textContent = 'Pagina '+(page + 1)+' de '+pages;
+    stats.textContent = filtered.length.toLocaleString()+' de '+data.length.toLocaleString()+' archivos visibles';
+    prev.disabled = page <= 0;
+    next.disabled = page >= pages - 1;
+  }
+
+  function apply(){
+    const raw = (input.value || '').trim().toLowerCase();
+    if(!raw){
+      filtered = data.slice();
+      page = 0;
+      render();
+      return;
+    }
+    const terms = raw.split(/\s+/).filter(Boolean);
+    filtered = data.filter(row => {
+      const hay = (row.FullPathLower || '')+' '+(row.Ext || '')+' '+(row.Name || '');
+      return terms.every(term => hay.includes(term));
     });
+    page = 0;
+    render();
+  }
+
+  function downloadRows(rows, filename){
+    if(!rows.length){
+      alert('No hay filas para descargar con el filtro actual.');
+      return;
+    }
+    const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
+    const lines = rows.map(row => [
+      row.Drive,
+      row.Folder,
+      row.Name,
+      row.Ext,
+      row.MB.toFixed(2),
+      fmtDate(row.LastWrite),
+      row.FullPath
+    ].map(value => '"'+String(value ?? '').replace(/"/g,'""')+'"').join(','));
+    const csv = [header.join(','), ...lines].join('
+
+');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  input.addEventListener('input', () => window.requestAnimationFrame(apply));
+  if(clear){
+    clear.addEventListener('click', () => {
+      input.value = '';
+      apply();
+    });
+  }
+  prev.addEventListener('click', () => { if(page > 0){ page--; render(); } });
+  next.addEventListener('click', () => {
+    const pages = Math.ceil(filtered.length / PAGE);
+    if(page < pages - 1){ page++; render(); }
   });
 
-  const q = document.getElementById('q');
-  const clr = document.getElementById('clr');
-  const count = document.getElementById('count');
-  const allRows = Array.from(tbody.rows);
-  function apply(){
-    const val = (q.value||'').toLowerCase();
-    let visible = 0;
-    allRows.forEach(r=>{
-      const folder = r.cells[1].innerText.toLowerCase();
-      const name   = r.cells[2].innerText.toLowerCase();
-      const ok = (!val) || folder.includes(val) || name.includes(val);
-      r.style.display = ok ? '' : 'none';
-      if(ok) visible++;
-    });
-    count.textContent = visible + ' / ' + allRows.length + ' filas';
-  }
-  q.addEventListener('input', apply);
-  clr.addEventListener('click', ()=>{ q.value=''; apply(); });
+  download.addEventListener('click', () => downloadRows(filtered, 'inventario_filtrado.csv'));
+  downloadAll.addEventListener('click', () => downloadRows(data, 'inventario_completo.csv'));
+
   apply();
 })();
 </script>
 "@
 
-  $end = '</body></html>'
+  $sb = [System.Text.StringBuilder]::new()
+  $null = $sb.AppendLine('<!doctype html>')
+  $null = $sb.AppendLine('<html lang="es"><head><meta charset="utf-8">')
+  $null = $sb.AppendLine('<meta name="viewport" content="width=device-width, initial-scale=1">')
+  $null = $sb.AppendLine('<title>Inventario Offline H/I/J</title>')
+  $null = $sb.AppendLine($css)
+  $null = $sb.AppendLine('</head><body><div class="wrap">')
+  $null = $sb.AppendLine('<h1>Inventario H / I / J (offline)</h1>')
+  $chips = ($summary | ForEach-Object { "<span class='pill nowrap'><b>$($_.Drive):</b> $([string]::Format('{0:n0}', $_.Count)) archivos - $([string]::Format('{0:n2}', $_.GB)) GB</span>" }) -join " "
+  $chips += " <span class='pill nowrap'><b>TOTAL</b>: $([string]::Format('{0:n0}', $totalCount)) archivos - $([string]::Format('{0:n2}', $totalGB)) GB</span>"
+  $null = $sb.AppendLine("<div class='bar'>$chips</div>")
+  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas."
+  $null = $sb.AppendLine("<section class='panel intro'>")
+  $null = $sb.AppendLine("<h2>Resumen rapido</h2>")
+  $null = $sb.AppendLine("<p>$(HtmlEnc $analysisIntro)</p>")
+  $null = $sb.AppendLine("<p class='muted small'>Los enlaces <code>file://</code> solo se abren de forma local.</p>")
+  $null = $sb.AppendLine('</section>')
 
-  $fullHtml = $head + $intro + $chips + $controls + $tableHead + $rows.ToString() + $tableTail + $end
-  $fullHtml | Set-Content -Path $outputPath -Encoding UTF8
+  $null = $sb.AppendLine("<section class='panel'>")
+  $null = $sb.AppendLine("<h2>Carpetas destacadas por unidad</h2>")
+  $null = $sb.AppendLine("<p>Ayuda a decidir que zonas respaldar o depurar primero.</p>")
+  if ($topFolders) {
+    $driveCardsBuilder = [System.Text.StringBuilder]::new()
+    foreach ($driveInfo in $summary) {
+      $driveId = $driveInfo.Drive
+      $driveCountFmt = [string]::Format('{0:n0}', $driveInfo.Count)
+      $driveGBFmt = [string]::Format('{0:n2}', $driveInfo.GB)
+      $null = $driveCardsBuilder.AppendLine("<article class='card'>")
+      $null = $driveCardsBuilder.AppendLine("<h3>Unidad $driveId</h3>")
+      $null = $driveCardsBuilder.AppendLine("<p>$driveCountFmt archivos &middot; $driveGBFmt GB</p>")
+      $null = $driveCardsBuilder.AppendLine("<ul class='insights'>")
+      $driveTop = $topFolders | Where-Object { $_.Drive -eq $driveId } | Sort-Object GB -Descending | Select-Object -First 3
+      if (-not $driveTop) {
+        $null = $driveCardsBuilder.AppendLine("<li>Sin carpetas destacadas</li>")
+      } else {
+        foreach ($entry in $driveTop) {
+          $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\ (raiz)' -f $driveId } else { '{0}:\{1}' -f $driveId, $entry.Folder }
+          $safeLabel = HtmlEnc($folderLabel)
+          $countFmt = [string]::Format('{0:n0}', $entry.Count)
+          $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+          $null = $driveCardsBuilder.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+        }
+      }
+      $null = $driveCardsBuilder.AppendLine('</ul>')
+      $null = $driveCardsBuilder.AppendLine('</article>')
+    }
+    $driveCardsHtml = $driveCardsBuilder.ToString().Trim()
+    if ($driveCardsHtml) {
+      $null = $sb.AppendLine("<div class='cards'>")
+      $null = $sb.AppendLine($driveCardsHtml)
+      $null = $sb.AppendLine('</div>')
+    }
+  } else {
+    $null = $sb.AppendLine("<p class='muted'>No hay carpetas destacadas disponible.</p>")
+  }
+  $null = $sb.AppendLine('</section>')
+
+  if ($topExtensions) {
+    $null = $sb.AppendLine("<section class='panel'>")
+    $null = $sb.AppendLine("<h2>Tipos de archivo predominantes</h2>")
+    $null = $sb.AppendLine("<p>Formatos pesados sirven como referencia para planes de copia o limpieza.</p>")
+    $null = $sb.AppendLine("<ul class='insights'>")
+    foreach ($extStat in $topExtensions) {
+      $label = if ($extStat.Ext -eq '(sin)') { 'Sin extension' } else { ($extStat.Ext).ToUpper() }
+      $safeLabel = HtmlEnc($label)
+      $countFmt = [string]::Format('{0:n0}', $extStat.Count)
+      $gbFmt = [string]::Format('{0:n2}', $extStat.GB)
+      $null = $sb.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+    }
+    $null = $sb.AppendLine('</ul>')
+    $null = $sb.AppendLine('</section>')
+  }
+
+  $null = $sb.AppendLine("<section class='panel dataset'>")
+  $null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
+  $null = $sb.AppendLine("<p>Filtra por cualquier fragmento y exporta la vista actual o el inventario completo en CSV.</p>")
+  $null = $sb.AppendLine("<div class='toolbar'>")
+  $null = $sb.AppendLine("  <div class='filter'>")
+  $null = $sb.AppendLine("    <div class='filter-controls'>")
+  $null = $sb.AppendLine("      <input id='q' type='text' placeholder='Filtrar por carpeta, nombre o extension...'>")
+  $null = $sb.AppendLine("      <button id='clr' class='btn ghost'>Limpiar</button>")
+  $null = $sb.AppendLine("    </div>")
+  $null = $sb.AppendLine('<span id="count" class="muted small"></span>')
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine("  <div class='actions'>")
+  $null = $sb.AppendLine("    <button id='download' class='btn secondary'>Descargar vista (CSV)</button>")
+  $null = $sb.AppendLine("    <button id='download-all' class='btn secondary ghost'>Descargar todo (CSV)</button>")
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine("<div class='pager'>")
+  $null = $sb.AppendLine("  <button id='prev' class='btn'>&larr; Prev</button>")
+  $null = $sb.AppendLine("  <span id='info' class='muted small'></span>")
+  $null = $sb.AppendLine("  <button id='next' class='btn'>Next &rarr;</button>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine('<table id="tbl"><thead><tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr></thead><tbody></tbody></table>')
+  $null = $sb.AppendLine('</section>')
+
+  $json = $dataset | ConvertTo-Json -Depth 3 -Compress
+  $json = $json -replace '</script','<\/script'
+  $null = $sb.AppendLine('<script>window.__DATA__ = ')
+  $null = $sb.AppendLine($json)
+  $null = $sb.AppendLine(';</script>')
+  $null = $sb.AppendLine($js)
+  $null = $sb.AppendLine('</div></body></html>')
+
+  $sb.ToString() | Set-Content -Path $outputPath -Encoding UTF8
   Write-Host "Inventario generado en: $outputPath"
+
 
   if ($docsTargetPath) {
     Copy-Item -LiteralPath $outputPath -Destination $docsTargetPath -Force
