@@ -155,6 +155,12 @@ try {
   .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
   .actions{display:flex;flex-wrap:wrap;gap:8px}
   .selector{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px}
+  .table-wrap{overflow:auto;margin-top:12px}
+  thead tr.filters th{background:#0b1220;padding:6px;color:#94a3b8;font-weight:500}
+  .column-filter{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:6px;padding:6px 8px;font-size:12px}
+  .column-filter::placeholder{color:#64748b}
+  .file-link{color:#38bdf8;text-decoration:none}
+  .file-link:hover{text-decoration:underline}
   .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
   .btn:hover{background:#1d283a}
   .btn.secondary{background:#13213a;border-color:#233554}
@@ -169,6 +175,11 @@ try {
   tbody tr:hover{outline:1px solid var(--accent)}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
 </style>
 "@
 
@@ -190,6 +201,7 @@ try {
   const download = document.getElementById('download');
   const downloadAll = document.getElementById('download-all');
   const column = document.getElementById('column');
+  const columnInputs = Array.from(document.querySelectorAll('.column-filter'));
 
   const getters = {
     Drive: row => (row.Drive || ''),
@@ -205,15 +217,36 @@ try {
     return (value || '').replace('T',' ').slice(0,19);
   }
 
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[ch] ?? ch);
+  }
+
   function buildRow(row){
-    const link = 'file:///' + (row.FullPath || '').split('\').join('/');
-    return '<td>'+ (row.Drive || '') +'</td>'+
-           '<td>'+ (row.Folder || '') +'</td>'+
-           '<td>'+ (row.Name || '') +'</td>'+
-           '<td>'+ (row.Ext || '') +'</td>'+
-           '<td>'+ (row.MB ?? 0).toFixed(2) +'</td>'+
+    const rawPath = row.FullPath || '';
+    const href = 'file:///' + rawPath.split('\\').join('/');
+    const size = Number(row.MB ?? 0);
+    const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+    const safeDrive = escapeHtml(row.Drive || '');
+    const safeFolder = escapeHtml(row.Folder || '');
+    const safeName = escapeHtml(row.Name || '');
+    const safeExt = escapeHtml(row.Ext || '');
+    const safePath = escapeHtml(rawPath);
+    const safeHref = escapeHtml(href);
+    const nameLabel = safeName || '(sin nombre)';
+    const pathLabel = safePath || '(sin ruta)';
+    return '<td>'+ safeDrive +'</td>'+
+           '<td>'+ safeFolder +'</td>'+
+           '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
+           '<td>'+ safeExt +'</td>'+
+           '<td>'+ sizeCell +'</td>'+
            '<td>'+ fmtDate(row.LastWrite) +'</td>'+
-           '<td class="path"><a href="'+link+'">Abrir</a></td>';
+           '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
   }
 
   function render(){
@@ -225,33 +258,54 @@ try {
       tr.innerHTML = buildRow(row);
       tbody.appendChild(tr);
     }
-    const guard = Math.max(1, Math.ceil(filtered.length / PAGE));
-    info.textContent = 'Pagina '+ (guard === 0 ? 0 : page + 1) +' de '+ guard;
-    stats.textContent = filtered.length.toLocaleString() +' de '+ data.length.toLocaleString() +' archivos visibles';
-    prev.disabled = page <= 0;
-    next.disabled = page >= guard - 1;
+    const totalRows = filtered.length;
+    const totalPages = totalRows === 0 ? 0 : Math.ceil(totalRows / PAGE);
+    if (totalPages === 0) {
+      info.textContent = 'Sin resultados';
+      page = 0;
+      prev.disabled = true;
+      next.disabled = true;
+    } else {
+      info.textContent = 'Pagina '+ (page + 1) +' de '+ totalPages;
+      prev.disabled = page <= 0;
+      next.disabled = page >= totalPages - 1;
+    }
+    stats.textContent = totalRows.toLocaleString() +' de '+ data.length.toLocaleString() +' archivos visibles';
   }
 
   function apply(){
     const raw = (input?.value || '').trim().toLowerCase();
     const selected = column ? column.value : 'all';
-    if (!raw) {
-      filtered = data.slice();
-      page = 0;
-      render();
-      return;
-    }
+    const activeColumns = columnInputs
+      .map(el => ({ field: el.dataset.field, value: (el.value || '').trim().toLowerCase() }))
+      .filter(entry => entry.field && entry.value);
 
-    if (selected === 'all') {
-      const terms = raw.split(/\s+/).filter(Boolean);
-      filtered = data.filter(row => {
-        const hay = [row.FullPathLower || '', row.Ext || '', row.Name || '', row.Folder || '', row.Drive || ''].join(' ');
-        return terms.every(term => hay.includes(term));
-      });
-    } else {
-      const getter = getters[selected] || (() => '');
-      filtered = data.filter(row => getter(row).toLowerCase().includes(raw));
-    }
+    filtered = data.filter(row => {
+      if (raw) {
+        if (selected === 'all') {
+          const terms = raw.split(/\s+/).filter(Boolean);
+          const hay = [row.FullPathLower || '', row.Ext || '', row.Name || '', row.Folder || '', row.Drive || ''].join(' ');
+          if (!terms.every(term => hay.includes(term))) {
+            return false;
+          }
+        } else {
+          const getter = getters[selected] || (() => '');
+          if (!getter(row).toLowerCase().includes(raw)) {
+            return false;
+          }
+        }
+      }
+
+      for (const filter of activeColumns) {
+        const getter = getters[filter.field] || (() => '');
+        if (!getter(row).toLowerCase().includes(filter.value)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     page = 0;
     render();
   }
@@ -262,18 +316,20 @@ try {
       return;
     }
     const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
-    const lines = rows.map(row => [
-      row.Drive,
-      row.Folder,
-      row.Name,
-      row.Ext,
-      (row.MB ?? 0).toFixed(2),
-      fmtDate(row.LastWrite),
-      row.FullPath
-    ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(','));
-    const csv = [header.join(','), ...lines].join('
-
-');
+    const lines = rows.map(row => {
+      const size = Number(row.MB ?? 0);
+      const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+      return [
+        row.Drive,
+        row.Folder,
+        row.Name,
+        row.Ext,
+        sizeCell,
+        fmtDate(row.LastWrite),
+        row.FullPath
+      ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
+    });
+    const csv = [header.join(','), ...lines].join('\n');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -288,9 +344,13 @@ try {
   input?.addEventListener('input', () => window.requestAnimationFrame(apply));
   clear?.addEventListener('click', () => {
     input.value = '';
+    columnInputs.forEach(el => { el.value = ''; });
     apply();
   });
   column?.addEventListener('change', apply);
+  columnInputs.forEach(el => {
+    el.addEventListener('input', () => window.requestAnimationFrame(apply));
+  });
   prev?.addEventListener('click', () => { if (page > 0) { page--; render(); } });
   next?.addEventListener('click', () => {
     const guard = Math.ceil(filtered.length / PAGE);
@@ -302,7 +362,6 @@ try {
 
   render();
 })();
-</script>
 </script>
 "@
 
@@ -317,6 +376,45 @@ try {
   $chips = ($summary | ForEach-Object { "<span class='pill nowrap'><b>$($_.Drive):</b> $([string]::Format('{0:n0}', $_.Count)) archivos - $([string]::Format('{0:n2}', $_.GB)) GB</span>" }) -join " "
   $chips += " <span class='pill nowrap'><b>TOTAL</b>: $([string]::Format('{0:n0}', $totalCount)) archivos - $([string]::Format('{0:n2}', $totalGB)) GB</span>"
   $null = $sb.AppendLine("<div class='bar'>$chips</div>")
+  $null = $sb.AppendLine("<section class='panel dataset'>")
+  $null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
+  $null = $sb.AppendLine("<p>Filtra por cualquier fragmento y exporta la vista actual o el inventario completo en CSV.</p>")
+  $null = $sb.AppendLine("<div class='toolbar'>")
+  $null = $sb.AppendLine("  <div class='filter'>")
+  $null = $sb.AppendLine("    <div class='filter-controls'>")
+  $null = $sb.AppendLine("      <select id='column' class='selector'>")
+  $null = $sb.AppendLine("        <option value='all'>Todos los campos</option>")
+  $null = $sb.AppendLine("        <option value='Drive'>Unidad</option>")
+  $null = $sb.AppendLine("        <option value='Folder'>Carpeta</option>")
+  $null = $sb.AppendLine("        <option value='Name'>Nombre</option>")
+  $null = $sb.AppendLine("        <option value='Ext'>Extensión</option>")
+  $null = $sb.AppendLine("        <option value='MB'>Tamaño (MB)</option>")
+  $null = $sb.AppendLine("        <option value='LastWrite'>Fecha</option>")
+  $null = $sb.AppendLine("        <option value='FullPath'>Ruta completa</option>")
+  $null = $sb.AppendLine("      </select>")
+  $null = $sb.AppendLine("      <input id='q' type='text' placeholder='Filtrar por carpeta, nombre o extension...'>")
+  $null = $sb.AppendLine("      <button id='clr' class='btn ghost'>Limpiar</button>")
+  $null = $sb.AppendLine("    </div>")
+  $null = $sb.AppendLine("    <span id='count' class='muted small'></span>")
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine("  <div class='actions'>")
+  $null = $sb.AppendLine("    <button id='download' class='btn secondary'>Descargar vista (CSV)</button>")
+  $null = $sb.AppendLine("    <button id='download-all' class='btn secondary ghost'>Descargar todo (CSV)</button>")
+  $null = $sb.AppendLine("    <a id='popout' class='btn ghost' href='inventario_interactivo_offline.html' target='_blank' rel='noopener'>Abrir solo la tabla</a>")
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine("<div class='pager'>")
+  $null = $sb.AppendLine("  <button id='prev' class='btn'>&larr; Prev</button>")
+  $null = $sb.AppendLine("  <span id='info' class='muted small'></span>")
+  $null = $sb.AppendLine("  <button id='next' class='btn'>Next &rarr;</button>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine("<div class='table-wrap'>")
+  $null = $sb.AppendLine("  <table id='tbl'><thead>")
+  $null = $sb.AppendLine("    <tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr>")
+  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extensión'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
+  $null = $sb.AppendLine("  </thead><tbody></tbody></table>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine('</section>')
   $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados."
   $null = $sb.AppendLine("<section class='panel intro'>")
   $null = $sb.AppendLine("<h2>Resumen rapido</h2>")
@@ -380,39 +478,32 @@ try {
     $null = $sb.AppendLine('</section>')
   }
 
-  $null = $sb.AppendLine("<section class='panel dataset'>")
-  $null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
-  $null = $sb.AppendLine("<p>Filtra por cualquier fragmento y exporta la vista actual o el inventario completo en CSV.</p>")
-  $null = $sb.AppendLine("<div class='toolbar'>")
-  $null = $sb.AppendLine("  <div class='filter'>")
-  $null = $sb.AppendLine("    <div class='filter-controls'>")
-  $null = $sb.AppendLine("      <select id='column' class='selector'>")
-  $null = $sb.AppendLine("        <option value='all'>Todos los campos</option>")
-  $null = $sb.AppendLine("        <option value='Drive'>Unidad</option>")
-  $null = $sb.AppendLine("        <option value='Folder'>Carpeta</option>")
-  $null = $sb.AppendLine("        <option value='Name'>Nombre</option>")
-  $null = $sb.AppendLine("        <option value='Ext'>Extensión</option>")
-  $null = $sb.AppendLine("        <option value='MB'>Tamaño (MB)</option>")
-  $null = $sb.AppendLine("        <option value='LastWrite'>Fecha</option>")
-  $null = $sb.AppendLine("        <option value='FullPath'>Ruta completa</option>")
-  $null = $sb.AppendLine("      </select>")
-  $null = $sb.AppendLine("      <input id='q' type='text' placeholder='Filtrar por carpeta, nombre o extension...'>")
-  $null = $sb.AppendLine("      <button id='clr' class='btn ghost'>Limpiar</button>")
-  $null = $sb.AppendLine("    </div>")
-  $null = $sb.AppendLine("    <span id='count' class='muted small'></span>")
-  $null = $sb.AppendLine("  </div>")
-  $null = $sb.AppendLine("  <div class='actions'>")
-  $null = $sb.AppendLine("    <button id='download' class='btn secondary'>Descargar vista (CSV)</button>")
-  $null = $sb.AppendLine("    <button id='download-all' class='btn secondary ghost'>Descargar todo (CSV)</button>")
-  $null = $sb.AppendLine("  </div>")
-  $null = $sb.AppendLine('</div>')
-  $null = $sb.AppendLine("<div class='pager'>")
-  $null = $sb.AppendLine("  <button id='prev' class='btn'>&larr; Prev</button>")
-  $null = $sb.AppendLine("  <span id='info' class='muted small'></span>")
-  $null = $sb.AppendLine("  <button id='next' class='btn'>Next &rarr;</button>")
-  $null = $sb.AppendLine('</div>')
-  $null = $sb.AppendLine('<table id="tbl"><thead><tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr></thead><tbody></tbody></table>')
-  $null = $sb.AppendLine('</section>')
+  $folderRanking = @()
+  if ($topFolders) {
+    $folderRanking = @($topFolders | Where-Object { $_.GB -gt 0.05 } | Sort-Object GB -Descending)
+    if (-not $folderRanking.Count) {
+      $folderRanking = @($topFolders | Sort-Object GB -Descending | Select-Object -First 12)
+    } else {
+      $folderRanking = @($folderRanking | Select-Object -First 12)
+    }
+  }
+
+  if ($folderRanking.Count) {
+    $null = $sb.AppendLine("<section class='panel'>")
+    $null = $sb.AppendLine("<h2>Resumen por carpeta principal</h2>")
+    $null = $sb.AppendLine("<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>")
+    $null = $sb.AppendLine("<table class='summary-table'>")
+    $null = $sb.AppendLine("<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>")
+    foreach ($entry in $folderRanking) {
+      $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raíz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
+      $safeLabel = HtmlEnc($folderLabel)
+      $countFmt = [string]::Format('{0:n0}', $entry.Count)
+      $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+      $null = $sb.AppendLine("<tr><td>$($entry.Drive)</td><td>$safeLabel</td><td class='nowrap'>$countFmt</td><td class='nowrap'>$gbFmt GB</td></tr>")
+    }
+    $null = $sb.AppendLine('</tbody></table>')
+    $null = $sb.AppendLine('</section>')
+  }
 
   $json = $dataset | ConvertTo-Json -Depth 3 -Compress
   $json = $json -replace '</script','<\/script'
