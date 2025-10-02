@@ -169,6 +169,11 @@ try {
   tbody tr:hover{outline:1px solid var(--accent)}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
 </style>
 "@
 
@@ -377,6 +382,33 @@ try {
       $null = $sb.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
     }
     $null = $sb.AppendLine('</ul>')
+    $null = $sb.AppendLine('</section>')
+  }
+
+  $folderRanking = @()
+  if ($topFolders) {
+    $folderRanking = @($topFolders | Where-Object { $_.GB -gt 0.05 } | Sort-Object GB -Descending)
+    if (-not $folderRanking.Count) {
+      $folderRanking = @($topFolders | Sort-Object GB -Descending | Select-Object -First 12)
+    } else {
+      $folderRanking = @($folderRanking | Select-Object -First 12)
+    }
+  }
+
+  if ($folderRanking.Count) {
+    $null = $sb.AppendLine("<section class='panel'>")
+    $null = $sb.AppendLine("<h2>Resumen por carpeta principal</h2>")
+    $null = $sb.AppendLine("<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>")
+    $null = $sb.AppendLine("<table class='summary-table'>")
+    $null = $sb.AppendLine("<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>")
+    foreach ($entry in $folderRanking) {
+      $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raíz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
+      $safeLabel = HtmlEnc($folderLabel)
+      $countFmt = [string]::Format('{0:n0}', $entry.Count)
+      $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+      $null = $sb.AppendLine("<tr><td>$($entry.Drive)</td><td>$safeLabel</td><td class='nowrap'>$countFmt</td><td class='nowrap'>$gbFmt GB</td></tr>")
+    }
+    $null = $sb.AppendLine('</tbody></table>')
     $null = $sb.AppendLine('</section>')
   }
 
