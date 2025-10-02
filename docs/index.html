@@ -41,6 +41,11 @@
   tbody tr:hover{outline:1px solid var(--accent)}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
 </style>
 </head><body><div class="wrap">
 <h1>Inventario H/I/J (offline)</h1>
@@ -96,6 +101,21 @@
 <li><span class='tag'>.DB</span> 186 archivos &middot; 0,03 GB</li>
 <li><span class='tag'>.CSV</span> 5 archivos &middot; 0,01 GB</li>
 </ul>
+</section>
+<section class='panel'>
+<h2>Resumen por carpeta principal</h2>
+<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>
+<table class='summary-table'>
+<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>
+<tr><td>I</td><td>I:\PELICULAS</td><td class='nowrap'>242</td><td class='nowrap'>954,05 GB</td></tr>
+<tr><td>I</td><td>I:\VIDEOS CIENCIA Y TECNOLOGIA</td><td class='nowrap'>387</td><td class='nowrap'>668,91 GB</td></tr>
+<tr><td>H</td><td>H:\Media_Final</td><td class='nowrap'>193</td><td class='nowrap'>350,41 GB</td></tr>
+<tr><td>I</td><td>I:\FAMILIA</td><td class='nowrap'>48</td><td class='nowrap'>97,41 GB</td></tr>
+<tr><td>J</td><td>J:\VIDEO</td><td class='nowrap'>76</td><td class='nowrap'>55,95 GB</td></tr>
+<tr><td>I</td><td>I:\</td><td class='nowrap'>1</td><td class='nowrap'>31,88 GB</td></tr>
+<tr><td>I</td><td>I:\media_final</td><td class='nowrap'>1</td><td class='nowrap'>1,40 GB</td></tr>
+<tr><td>H</td><td>H:\VIDEOS FAMILIA</td><td class='nowrap'>4</td><td class='nowrap'>0,20 GB</td></tr>
+</tbody></table>
 </section>
 <section class='panel dataset'>
 <h2>Explorador interactivo</h2>
