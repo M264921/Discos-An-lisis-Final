@@ -1,0 +1,30 @@
+﻿Informe de duplicados del disco J:
+Fecha de ejecucion: 2025-10-03 12:14:56
+
+Archivos analizados: 25571
+Archivos hasheados (posibles duplicados): 5069
+Grupos de hash duplicados encontrados: 23
+Peso total de los conjuntos duplicados: 2.211 MB
+
+Duplicados movidos a J:\duplicados: 26
+Peso total movido: 1192388 bytes (~1.137 MB)
+
+Duplicados eliminados definitivamente: 26
+Duplicados originales eliminados (.db/.info/.database_uuid): 13
+Archivos originales preservados (imagenes/audio/etc.): 11
+
+Duplicados pendientes por revisar: 0
+Notas:
+[2025-10-03 12:04:59] Resolved manually: J:\_quarantine_from_I\migrated\FAMILIA\FOTOS\Nietos\CUMPLEAÑOS 2012\Thumbs.db
+
+Archivos de soporte:
+ - progreso_identificar_duplicados.log
+ - hash_summary.json
+ - duplicados_pendientes.csv
+ - duplicados_movidos.csv
+ - movimientos_duplicados.log
+ - duplicados_eliminados.log
+ - originales_eliminados.log
+ - duplicados_omitidos.log
+
+Todos los duplicados se reubicaron y eliminaron manteniendo el original valido en su ubicacion inicial.
