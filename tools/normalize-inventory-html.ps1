@@ -13,8 +13,12 @@ $html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
 # Corrige typos comunes
 $html = [regex]::Replace($html, '\bwindiw\b', 'window', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-# Captura array JSON de __DATA__/_DATA_
-$rx = [regex]'window\.(?:__DATA__|_DATA_)\s*=\s*(\[[\s\S]*?\])\s*;'
+# Captura bloque <script>window.__DATA__ = [...];</script> o _DATA_
+$rx = New-Object System.Text.RegularExpressions.Regex(
+  '<script[^>]*>\s*window\.(?:__DATA__|_DATA_)\s*=\s*(\[[\s\S]*?)\s*;?\s*</script>',
+  [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+  -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+)
 $m = $rx.Match($html)
 
 function Get-MetaSummary {
@@ -51,6 +55,12 @@ function Get-MetaSummary {
 
 if ($m.Success) {
   $json = $m.Groups[1].Value
+  if ($null -ne $json) {
+    $json = $json.Trim()
+    if ($json.EndsWith(';')) {
+      $json = $json.Substring(0, $json.Length - 1)
+    }
+  }
   $rowsObj = @()
   try {
     $parsed = $json | ConvertFrom-Json
@@ -67,7 +77,7 @@ if ($m.Success) {
   $meta = Get-MetaSummary -Rows $rowsObj
   $metaJson = $meta | ConvertTo-Json -Compress
   $inject = "`n<script>window.__INVENTARIO__.setData($json,$metaJson);</script>`n"
-  $html = $rx.Replace($html, '')
+  $html = $rx.Replace($html, '', 1)
   $html = [regex]::Replace($html, '</body>\s*</html>\s*$', $inject + '</body></html>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
   [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
   Write-Host "OK: normalizado a __INVENTARIO__.setData con meta: $meta"
