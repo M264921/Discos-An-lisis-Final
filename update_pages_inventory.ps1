@@ -207,6 +207,11 @@ $css = @"
   thead tr.filters th{background:#0b1220;padding:6px;color:#94a3b8;font-weight:500}
   .column-filter{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:6px;padding:6px 8px;font-size:12px}
   .column-filter::placeholder{color:#64748b}
+  .btn-open{padding:.35rem .6rem;border:0;border-radius:.4rem;background:#2b6cb0;color:#fff;cursor:pointer}
+  .btn-open:focus{outline:2px solid #90cdf4;outline-offset:2px}
+  .cell-path{white-space:nowrap;max-width:520px;overflow:hidden;text-overflow:ellipsis}
+  .cell-path .path-text{color:#38bdf8;cursor:pointer}
+  .cell-path .path-text:hover{text-decoration:underline}
   .file-link{color:#38bdf8;text-decoration:none}
   .file-link:hover{text-decoration:underline}
   .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
@@ -314,13 +319,13 @@ $js = @"
     const pathLabel = safePath || '(sin ruta)';
     return '<td>' + safeDrive + '</td>' +
            '<td>' + safeFolder + '</td>' +
-           '<td><span class="name-text">' + nameLabel + '</span></td>' +
+           '<td>' + nameLabel + '</td>' +
            '<td>' + safeExt + '</td>' +
            '<td>' + safeDup + '</td>' +
            '<td>' + sizeCell + '</td>' +
            '<td>' + fmtDate(row.LastWrite) + '</td>' +
            '<td>' + safeHash + '</td>' +
-           '<td class="path" data-full-path="' + safeAttr + '"><span class="path-text">' + pathLabel + '</span></td>';
+           '<td class="path cell-path" data-full-path="' + safeAttr + '"><button class="btn-open" type="button" data-path="' + safeAttr + '">Abrir</button> <span class="path-text" title="' + safeAttr + '">' + pathLabel + '</span></td>';
   }
 
   function selectRow(rowEl, toggle){
@@ -339,6 +344,17 @@ $js = @"
   tbody.addEventListener('click', (event) => {
     const rowEl = event.target.closest('tbody tr');
     if (!rowEl) { return; }
+    const openButton = event.target.closest('.btn-open');
+    if (openButton) {
+      const rawBtn = openButton.dataset.path || '';
+      const hrefBtn = toFileHref(rawBtn);
+      selectRow(rowEl, false);
+      if (hrefBtn) {
+        window.open(hrefBtn, '_blank');
+      }
+      event.preventDefault();
+      return;
+    }
     const pathSpan = event.target.closest('.path-text');
     if (pathSpan) {
       const cell = pathSpan.closest('td.path');
