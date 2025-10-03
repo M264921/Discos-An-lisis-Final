@@ -1,0 +1,24 @@
+{
+  "agents": [
+    {
+      "id": "inventory-cleaner",
+      "name": "Inventory & Duplicates Cleaner",
+      "description": "Limpia duplicados confirmados y regenera el inventario offline.",
+      "entrypoint": "tools/agents/inventory-cleaner.ps1",
+      "inputs": {
+        "DupesCsv": "dupes_confirmed.csv",
+        "LogDir": "logs",
+        "OutputDir": "docs"
+      },
+      "tools_used": [
+        "tools/Move-I-Duplicates.ps1",
+        "tools/remove_nonmedia_duplicates.py",
+        "tools/make_inventory_offline.ps1"
+      ],
+      "artifacts": [
+        "docs/inventario_interactivo_offline.html",
+        "logs/inventory-cleaner-*.log"
+      ]
+    }
+  ]
+}
