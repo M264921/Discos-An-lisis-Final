@@ -234,6 +234,9 @@ try {
   tbody tr{background:#111f37;border:1px solid #1f2937}
   tbody td{padding:8px;vertical-align:top}
   tbody tr:hover{outline:1px solid var(--accent)}
+  tbody tr.selected{outline:2px solid var(--accent);background:#1a2b4d}
+  .path .path-text{color:#38bdf8;cursor:pointer}
+  .path .path-text:hover{text-decoration:underline}
   td.path{font-family:Consolas,Monaco,monospace}
   .small{font-size:12px}
   .nowrap{white-space:nowrap}
@@ -311,8 +314,6 @@ try {
 
   function buildRow(row){
     const rawPath = row.FullPath || '';
-    const href = toFileHref(rawPath);
-    const linkHref = href || 'javascript:void(0)';
     const size = Number(row.MB ?? 0);
     const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
     const safeDrive = escapeHtml(row.Drive || '');
@@ -325,19 +326,50 @@ try {
     const safeDup = escapeHtml(dupText);
     const safeHash = escapeHtml(row.Hash || '');
     const safePath = escapeHtml(rawPath);
-    const safeHref = escapeHtml(linkHref);
+    const safeAttr = escapeHtml(rawPath);
     const nameLabel = safeName || '(sin nombre)';
     const pathLabel = safePath || '(sin ruta)';
-    return '<td>'+ safeDrive +'</td>'+
-           '<td>'+ safeFolder +'</td>'+
-           '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
-           '<td>'+ safeExt +'</td>'+
-           '<td>'+ safeDup +'</td>'+
-           '<td>'+ sizeCell +'</td>'+
-           '<td>'+ fmtDate(row.LastWrite) +'</td>'+
-           '<td>'+ safeHash +'</td>'+
-           '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
+    return '<td>' + safeDrive + '</td>' +
+           '<td>' + safeFolder + '</td>' +
+           '<td><span class="name-text">' + nameLabel + '</span></td>' +
+           '<td>' + safeExt + '</td>' +
+           '<td>' + safeDup + '</td>' +
+           '<td>' + sizeCell + '</td>' +
+           '<td>' + fmtDate(row.LastWrite) + '</td>' +
+           '<td>' + safeHash + '</td>' +
+           '<td class="path" data-full-path="' + safeAttr + '"><span class="path-text">' + pathLabel + '</span></td>';
   }
+
+  function selectRow(rowEl, toggle){
+    if (!rowEl) { return; }
+    const isSelected = rowEl.classList.contains('selected');
+    tbody.querySelectorAll('tr.selected').forEach(tr => {
+      if (tr !== rowEl) { tr.classList.remove('selected'); }
+    });
+    if (toggle && isSelected) {
+      rowEl.classList.remove('selected');
+    } else {
+      rowEl.classList.add('selected');
+    }
+  }
+
+  tbody.addEventListener('click', (event) => {
+    const rowEl = event.target.closest('tbody tr');
+    if (!rowEl) { return; }
+    const pathSpan = event.target.closest('.path-text');
+    if (pathSpan) {
+      const cell = pathSpan.closest('td.path');
+      const raw = cell?.dataset.fullPath || '';
+      selectRow(rowEl, false);
+      const href = toFileHref(raw);
+      if (href) {
+        window.open(href, '_blank');
+      }
+      event.preventDefault();
+      return;
+    }
+    selectRow(rowEl, true);
+  });
 
   function render(){
     tbody.innerHTML = '';
