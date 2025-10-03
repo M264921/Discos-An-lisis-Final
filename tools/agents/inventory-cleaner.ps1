@@ -2,7 +2,8 @@ Param(
     [string]$RepoRoot = "$PSScriptRoot/../..",
     [string]$DupesCsv = "dupes_confirmed.csv",
     [string]$LogDir   = "logs",
-    [string]$OutputDir= "docs"
+    [string]$OutputDir= "docs",
+    [ValidateSet("None","DryRun","Apply")] [string]$SweepMode = "None"
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,8 +26,20 @@ function Log($m) {
 }
 
 Log "== Inventory-Cleaner START =="
-Log "RepoRoot = $RepoRoot"
-Log "DupesCsv = $DupesCsvPath"
+Log "RepoRoot: $RepoRoot"
+Log "DupesCsv: $DupesCsvPath"
+Log "SweepMode: $SweepMode"
+
+# [0] Opcional: Repo Sweep (DryRun/Apply) ANTES de tocar inventario/duplicados
+if ($SweepMode -ne "None") {
+  $Sweep = Join-Path $RepoRoot "tools/agents/repo-sweep.ps1"
+  if (Test-Path $Sweep) {
+    Log "Running repo-sweep.ps1 ($SweepMode) ..."
+    powershell -NoProfile -ExecutionPolicy Bypass -File "$Sweep" -RepoRoot "$RepoRoot" -Mode "$SweepMode" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  } else {
+    Log "SKIP: tools/agents/repo-sweep.ps1 no encontrado"
+  }
+}
 
 # Helpers rutas scripts
 $PyRemove = Join-Path $RepoRoot "tools/remove_nonmedia_duplicates.py"
