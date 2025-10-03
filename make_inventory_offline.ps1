@@ -62,14 +62,15 @@ try {
     if (-not $folder) { $folder = '{0}:\' -f $drive }
     $name = [System.IO.Path]::GetFileName($path)
     $ext = if ($row.Extension) { $row.Extension } else { '(sin)' }
-    $lastWrite = $null
+    $lastWrite = [datetime]::MinValue
     if ($row.LastWrite) {
       [string[]]$formats = @('yyyy-MM-dd HH:mm:ss','dd/MM/yyyy HH:mm:ss','yyyy-MM-ddTHH:mm:ss','yyyy-MM-ddTHH:mm:ss.fff')
-      if (-not [datetime]::TryParseExact($row.LastWrite, $formats, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)) {
-        [datetime]::TryParse($row.LastWrite, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite) | Out-Null
+      $parsed = [datetime]::TryParseExact($row.LastWrite, $formats, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)
+      if (-not $parsed) {
+        $parsed = [datetime]::TryParse($row.LastWrite, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)
       }
+      if (-not $parsed) { $lastWrite = [datetime]::MinValue }
     }
-    if (-not $lastWrite) { $lastWrite = [datetime]::MinValue }
 
     $hashValue = $row.Hash
     if (-not $hashValue) { $hashValue = '' }
@@ -84,6 +85,8 @@ try {
       LastWrite      = $lastWrite
       FullPath       = $path
       Hash           = $hashValue.ToUpper()
+      DuplicateLabel = ''
+      DuplicateCount = 0
     }) | Out-Null
   }
 
