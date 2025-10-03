@@ -1,0 +1,33 @@
+{
+  "$schema": "https://modelcontextprotocol.dev/schemas/resources.schema.json",
+  "version": "1.0",
+  "resources": [
+    {
+      "name": "dupes_confirmed.csv",
+      "path": "dupes_confirmed.csv",
+      "description": "Listado consolidado de duplicados confirmados",
+      "columns": [
+        { "name": "hash", "type": "string", "description": "SHA256 del archivo" },
+        { "name": "path", "type": "string", "description": "Ruta completa" },
+        { "name": "size", "type": "integer", "description": "Bytes" },
+        { "name": "modified", "type": "datetime", "description": "Última modificación" }
+      ]
+    },
+    {
+      "name": "inventory_by_folder.csv",
+      "path": "inventory_by_folder.csv",
+      "description": "Agregado por carpeta (conteos, tamaños)",
+      "columns": [
+        { "name": "folder", "type": "string" },
+        { "name": "files", "type": "integer" },
+        { "name": "bytes", "type": "integer" }
+      ]
+    },
+    {
+      "name": "inventario_offline",
+      "path": "docs/inventario_interactivo_offline.html",
+      "description": "Inventario HTML interactivo (filtros, búsqueda, descarga) generado por make_inventory_offline.ps1",
+      "format": "text/html"
+    }
+  ]
+}
