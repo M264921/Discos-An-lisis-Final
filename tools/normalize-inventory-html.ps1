@@ -78,7 +78,18 @@ if ($m.Success) {
   $metaJson = $meta | ConvertTo-Json -Compress
   $inject = "`n<script>window.__INVENTARIO__.setData($json,$metaJson);</script>`n"
   $html = $rx.Replace($html, '', 1)
-  $html = [regex]::Replace($html, '</body>\s*</html>\s*$', $inject + '</body></html>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+  $targetPattern = '^[^\S\r\n]*<script>\s*\(function\(\)\{\s*const data = window\.__DATA__ \|\| \[\];'
+  $targetRegex = New-Object System.Text.RegularExpressions.Regex(
+    $targetPattern,
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Multiline
+  )
+  $targetMatch = $targetRegex.Match($html)
+  if ($targetMatch.Success) {
+    $html = $html.Insert($targetMatch.Index, $inject)
+  } else {
+    $html = [regex]::Replace($html, '</body>\s*</html>\s*$', $inject + '</body></html>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+  }
   [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
   Write-Host "OK: normalizado a __INVENTARIO__.setData con meta: $meta"
 } else {
