@@ -64,7 +64,10 @@ try {
     $ext = if ($row.Extension) { $row.Extension } else { '(sin)' }
     $lastWrite = $null
     if ($row.LastWrite) {
-      [datetime]::TryParseExact($row.LastWrite, 'dd/MM/yyyy HH:mm:ss', $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite) | Out-Null
+      [string[]]$formats = @('yyyy-MM-dd HH:mm:ss','dd/MM/yyyy HH:mm:ss','yyyy-MM-ddTHH:mm:ss','yyyy-MM-ddTHH:mm:ss.fff')
+      if (-not [datetime]::TryParseExact($row.LastWrite, $formats, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)) {
+        [datetime]::TryParse($row.LastWrite, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite) | Out-Null
+      }
     }
     if (-not $lastWrite) { $lastWrite = [datetime]::MinValue }
 
