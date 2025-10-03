@@ -295,7 +295,7 @@ $js = @"
   function buildRow(row){
     const rawPath = row.FullPath || '';
     const href = toFileHref(rawPath);
-    const linkHref = href || '#';
+    const linkHref = href || 'javascript:void(0)';
     const size = Number(row.MB ?? 0);
     const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
     const safeDrive = escapeHtml(row.Drive || '');
