@@ -1,0 +1,49 @@
+{
+  "$schema": "https://modelcontextprotocol.dev/schemas/tools.schema.json",
+  "version": "1.0",
+  "tools": [
+    {
+      "name": "Move-I-Duplicates",
+      "language": "powershell",
+      "path": "tools/Move-I-Duplicates.ps1",
+      "description": "Mueve archivos duplicados desde una ubicación origen a una carpeta destino.",
+      "inputs": {
+        "SourceDir": { "type": "string", "required": true, "description": "Ruta de origen" },
+        "TargetDir": { "type": "string", "required": true, "description": "Ruta de destino" },
+        "WhatIf":    { "type": "boolean", "required": false, "default": true, "description": "Simulación sin mover" }
+      },
+      "outputs": {
+        "LogFile": { "type": "string", "description": "Ruta del log generado" }
+      },
+      "permissions": ["read", "write"]
+    },
+    {
+      "name": "remove_nonmedia_duplicates",
+      "language": "python",
+      "path": "tools/remove_nonmedia_duplicates.py",
+      "description": "Filtra/elimina duplicados no multimedia en un CSV de inventario.",
+      "inputs": {
+        "InventoryFile": { "type": "string", "required": true, "description": "Ruta al CSV de inventario" },
+        "OutFile":       { "type": "string", "required": false, "description": "CSV de salida limpio" }
+      },
+      "outputs": {
+        "CleanedFile": { "type": "string", "description": "Ruta del CSV resultante" }
+      },
+      "permissions": ["read", "write"]
+    },
+    {
+      "name": "make_inventory_offline",
+      "language": "powershell",
+      "path": "tools/make_inventory_offline.ps1",
+      "description": "Genera un inventario HTML offline (tablas filtrables, descarga, etc.).",
+      "inputs": {
+        "ScanDir":   { "type": "string", "required": true, "description": "Carpeta o disco a inventariar" },
+        "OutputDir": { "type": "string", "required": false, "description": "Carpeta de salida (por defecto docs/)" }
+      },
+      "outputs": {
+        "InventoryHtml": { "type": "string", "description": "Ruta del HTML generado" }
+      },
+      "permissions": ["read", "write"]
+    }
+  ]
+}
