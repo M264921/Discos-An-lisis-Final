@@ -291,9 +291,28 @@ try {
     })[ch] ?? ch);
   }
 
+  function toFileHref(rawPath){
+    if (!rawPath) { return ''; }
+    let pathValue = String(rawPath);
+    if (pathValue.startsWith('\\?\')) {
+      pathValue = pathValue.slice(4);
+    }
+    pathValue = pathValue.replace(/\//g, '\');
+    const driveMatch = pathValue.match(/^([A-Za-z]):\(.*)$/);
+    if (!driveMatch) { return ''; }
+    const drive = driveMatch[1];
+    const remainder = driveMatch[2];
+    const segments = remainder.split(/\+/).filter(Boolean).map(encodeURIComponent);
+    const tail = segments.join('/');
+    return tail ? ('file:///' + drive + ':/' + tail) : ('file:///' + drive + ':/');
+  }
+
+
+
   function buildRow(row){
     const rawPath = row.FullPath || '';
-    const href = 'file:///' + rawPath.split('\\').join('/');
+    const href = toFileHref(rawPath);
+    const linkHref = href || '#';
     const size = Number(row.MB ?? 0);
     const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
     const safeDrive = escapeHtml(row.Drive || '');
@@ -306,7 +325,7 @@ try {
     const safeDup = escapeHtml(dupText);
     const safeHash = escapeHtml(row.Hash || '');
     const safePath = escapeHtml(rawPath);
-    const safeHref = escapeHtml(href);
+    const safeHref = escapeHtml(linkHref);
     const nameLabel = safeName || '(sin nombre)';
     const pathLabel = safePath || '(sin ruta)';
     return '<td>'+ safeDrive +'</td>'+
