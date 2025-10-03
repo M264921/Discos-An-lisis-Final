@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Inventario Interactivo</title>
+</head>
+<body>
+<script>
+window.__INVENTARIO__ = {
+  setData(rows, meta){
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const summary = (function(){
+      if (typeof meta === 'string' && meta.trim().length > 0) {
+        return meta;
+      }
+      const drives = {};
+      safeRows.forEach(r => {
+        if (r && r.Drive) {
+          const key = String(r.Drive).trim().toUpperCase();
+          if (key) {
+            drives[key] = (drives[key] || 0) + 1;
+          }
+        }
+      });
+      const parts = Object.keys(drives).sort().map(k => `${k}: ${drives[k]} ficheros`);
+      return `Total: ${safeRows.length}` + (parts.length ? ` | ${parts.join(' · ')}` : '');
+    })();
+    window.__DATA__ = safeRows;
+    window.__META__ = summary;
+    this._rows = safeRows;
+    this._meta = summary;
+    return safeRows;
+  }
+};
+
+/* Compat shim:
+   - Si la página ya trae window.__DATA__ o window._DATA_, volcarlas al visor.
+   - Construye un meta rápido con totales por unidad.
+*/
+(function(){
+  try{
+    var rows = window.__DATA__ || window._DATA__ || null;
+    if (Array.isArray(rows) && window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData==='function'){
+      var drives = {};
+      rows.forEach(function(r){
+        if(r && r.Drive){
+          var d = String(r.Drive).toUpperCase();
+          if (d){ drives[d]=(drives[d]||0)+1; }
+        }
+      });
+      var keys = Object.keys(drives).sort();
+      var meta = "Total: "+rows.length;
+      if (keys.length){
+        meta += " | " + keys.map(function(k){return k+": "+drives[k]+" ficheros";}).join(" · ");
+      }
+      window.__INVENTARIO__.setData(rows, meta);
+    }
+    }
+  }catch(e){/* silencio */}
+})();
+</script>
+</body>
+</html>

@@ -261,15 +261,30 @@ try {
 (function(){
   const global = window;
   const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
+  const computeMeta = (rows, meta) => {
+    if (typeof meta === 'string' && meta.trim().length > 0) {
+      return meta;
+    }
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const drives = {};
+    for (const row of safeRows) {
+      if (!row || !row.Drive) { continue; }
+      const key = String(row.Drive).trim().toUpperCase();
+      if (!key) { continue; }
+      drives[key] = (drives[key] || 0) + 1;
+    }
+    const keys = Object.keys(drives).sort();
+    const parts = keys.map(k => `${k}: ${drives[k]} ficheros`);
+    return `Total: ${safeRows.length}` + (parts.length ? ` | ${parts.join(' · ')}` : '');
+  };
   if (typeof inventory.setData !== 'function') {
     inventory.setData = function(rows, meta) {
       const safeRows = Array.isArray(rows) ? rows : [];
+      const summary = computeMeta(safeRows, meta);
       global.__DATA__ = safeRows;
-      if (typeof meta !== 'undefined') {
-        global.__META__ = meta;
-      }
+      global.__META__ = summary;
       inventory._lastRows = safeRows;
-      inventory._lastMeta = meta;
+      inventory._lastMeta = summary;
       return safeRows;
     };
   }
@@ -277,8 +292,8 @@ try {
     inventory._shimSeeded = true;
     const legacyRows = Array.isArray(global.__DATA__) ? global.__DATA__ : (Array.isArray(global._DATA_) ? global._DATA_ : null);
     const legacyMeta = typeof global.__META__ !== 'undefined' ? global.__META__ : global._META_;
-    const compatMeta = typeof legacyMeta !== 'undefined' && legacyMeta !== null ? legacyMeta : 'Cargado por compatibilidad';
     if (legacyRows) {
+      const compatMeta = computeMeta(legacyRows, legacyMeta);
       inventory.setData(legacyRows, compatMeta);
     }
   }

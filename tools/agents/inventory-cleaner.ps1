@@ -1,4 +1,4 @@
-﻿Param(
+Param(
     [string]$RepoRoot = "$PSScriptRoot/../..",
     [string]$DupesCsv = "dupes_confirmed.csv",
     [string]$LogDir   = "logs",
@@ -81,25 +81,26 @@ if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
 $ExpectedHtml = Join-Path $OutputDirPath "inventario_interactivo_offline.html"
 $csvDefault = Join-Path $RepoRoot "docs/hash_data.csv"
 
+$usedWrapper = $false
 if (Test-Path $Wrapper) {
-  Log "Running make-inventory-offline-wrapper.ps1 ..."
-  & $Wrapper -RepoRoot "$RepoRoot" -CsvPath "$csvDefault" -OutputHtml "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  $usedWrapper = $true
+  Log "Usando wrapper para generar/normalizar/inyectar/sanitizar inventario..."
+  & $Wrapper -OutDir "$OutputDirPath" -CsvFallback "$csvDefault" 2>&1 | Tee-Object -FilePath $LogFile -Append
 } elseif (Test-Path $MakeInv) {
-  Log "Running make_inventory_offline.ps1 ..."
+  Log "Wrapper no encontrado; usando make_inventory_offline.ps1 directamente..."
   & $MakeInv -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
   if (Test-Path $Normalizer) {
     Log "Normalizando bloque setData ..."
     & $Normalizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
   }
+  if (Test-Path $Sanitizer) {
+    Log "Sanitizando HTML final ..."
+    & $Sanitizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  } else {
+    Log "SKIP: sanitizer no encontrado"
+  }
 } else {
   Log "SKIP: no se encontro make_inventory_offline.ps1"
-}
-
-if (Test-Path $Sanitizer) {
-  Log "Sanitizando HTML final ..."
-  & $Sanitizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
-} else {
-  Log "SKIP: sanitizer no encontrado"
 }
 
 if (Test-Path $ExpectedHtml) {
