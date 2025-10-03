@@ -39,7 +39,7 @@ try {
 
   $indexPath = Join-Path $repoRoot 'index_by_hash.csv'
   if (-not (Test-Path -LiteralPath $indexPath)) {
-    throw "No se encontró index_by_hash.csv en $repoRoot. Ejecuta tools\\Reindex-HIJ.ps1 o detect_drive_changes.ps1 primero."
+    throw "No se encontro index_by_hash.csv en $repoRoot. Ejecuta tools\\Reindex-HIJ.ps1 o detect_drive_changes.ps1 primero."
   }
 
   Write-Verbose "Leyendo inventario desde $indexPath ..."
@@ -109,7 +109,7 @@ try {
       $file.DuplicateLabel = 'Duplicado'
       $file.DuplicateCount = $duplicateMap[$hash]
     } else {
-      $file.DuplicateLabel = 'Único'
+      $file.DuplicateLabel = 'Unico'
       $file.DuplicateCount = 1
     }
   }
@@ -128,6 +128,10 @@ try {
   if (-not $summary) {
     $summary = @()
   }
+
+  $metaByDrive = if ($summary) { $summary | ForEach-Object { "{0}: {1}" -f $_.Drive, $_.Count } } else { @() }
+  $meta = "Total: {0} | {1}" -f $files.Count, ($metaByDrive -join ' | ')
+  $metaJson = ($meta | ConvertTo-Json -Compress)
 
   $fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
   $totalCount = ($summary | Measure-Object Count -Sum).Sum
@@ -250,6 +254,36 @@ try {
   .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
   .summary-table tbody tr:hover{background:#17233b}
 </style>
+"@
+
+  $shim = @"
+<script>
+(function(){
+  const global = window;
+  const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
+  if (typeof inventory.setData !== 'function') {
+    inventory.setData = function(rows, meta) {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      global.__DATA__ = safeRows;
+      if (typeof meta !== 'undefined') {
+        global.__META__ = meta;
+      }
+      inventory._lastRows = safeRows;
+      inventory._lastMeta = meta;
+      return safeRows;
+    };
+  }
+  if (!inventory._shimSeeded) {
+    inventory._shimSeeded = true;
+    const legacyRows = Array.isArray(global.__DATA__) ? global.__DATA__ : (Array.isArray(global._DATA_) ? global._DATA_ : null);
+    const legacyMeta = typeof global.__META__ !== 'undefined' ? global.__META__ : global._META_;
+    const compatMeta = typeof legacyMeta !== 'undefined' && legacyMeta !== null ? legacyMeta : 'Cargado por compatibilidad';
+    if (legacyRows) {
+      inventory.setData(legacyRows, compatMeta);
+    }
+  }
+})();
+</script>
 "@
 
   $js = @"
@@ -529,10 +563,10 @@ try {
   $null = $sb.AppendLine("        <option value='Drive'>Unidad</option>")
   $null = $sb.AppendLine("        <option value='Folder'>Carpeta</option>")
   $null = $sb.AppendLine("        <option value='Name'>Nombre</option>")
-  $null = $sb.AppendLine("        <option value='Ext'>Extensión</option>")
+  $null = $sb.AppendLine("        <option value='Ext'>Extension</option>")
   $null = $sb.AppendLine("        <option value='Duplicate'>Estado duplicado</option>")
   $null = $sb.AppendLine("        <option value='Hash'>Hash</option>")
-  $null = $sb.AppendLine("        <option value='MB'>Tamaño (MB)</option>")
+  $null = $sb.AppendLine("        <option value='MB'>Tamano (MB)</option>")
   $null = $sb.AppendLine("        <option value='LastWrite'>Fecha</option>")
   $null = $sb.AppendLine("        <option value='FullPath'>Ruta completa</option>")
   $null = $sb.AppendLine("      </select>")
@@ -555,16 +589,16 @@ try {
   $null = $sb.AppendLine("<div class='table-wrap'>")
   $null = $sb.AppendLine("  <table id='tbl'><thead>")
   $null = $sb.AppendLine("    <tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>Duplicado</th><th>MB</th><th>LastWrite</th><th>Hash</th><th>Path</th></tr>")
-  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extensión'></th><th><input class='column-filter' data-field='Duplicate' placeholder='Filtrar duplicado'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='Hash' placeholder='Filtrar hash'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
+  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extension'></th><th><input class='column-filter' data-field='Duplicate' placeholder='Filtrar duplicado'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='Hash' placeholder='Filtrar hash'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
   $null = $sb.AppendLine("  </thead><tbody></tbody></table>")
   $null = $sb.AppendLine('</div>')
   $null = $sb.AppendLine('</section>')
-  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados. Detectados $formattedDuplicateFiles archivos duplicados en $formattedDuplicateGroups grupos (según hash SHA256)."
+  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados. Detectados $formattedDuplicateFiles archivos duplicados en $formattedDuplicateGroups grupos (segun hash SHA256)."
   $null = $sb.AppendLine("<section class='panel intro'>")
   $null = $sb.AppendLine("<h2>Resumen rapido</h2>")
   $null = $sb.AppendLine("<p>$(HtmlEnc $analysisIntro)</p>")
   $null = $sb.AppendLine("<p class='muted small'>Los enlaces <code>file://</code> solo se abren de forma local.</p>")
-  $null = $sb.AppendLine("<p class='muted small'>Las carpetas <code>_quarantine*</code> se omiten porque contienen copias que ya cuentan con respaldo o están en revisión.</p>")
+  $null = $sb.AppendLine("<p class='muted small'>Las carpetas <code>_quarantine*</code> se omiten porque contienen copias que ya cuentan con respaldo o estan en revision.</p>")
   $null = $sb.AppendLine('</section>')
 
   $null = $sb.AppendLine("<section class='panel'>")
@@ -639,7 +673,7 @@ try {
     $null = $sb.AppendLine("<table class='summary-table'>")
     $null = $sb.AppendLine("<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>")
     foreach ($entry in $folderRanking) {
-      $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raíz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
+      $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raiz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
       $safeLabel = HtmlEnc($folderLabel)
       $countFmt = [string]::Format('{0:n0}', $entry.Count)
       $gbFmt = [string]::Format('{0:n2}', $entry.GB)
@@ -654,6 +688,9 @@ try {
   $null = $sb.AppendLine('<script>window.__DATA__ = ')
   $null = $sb.AppendLine($json)
   $null = $sb.AppendLine(';</script>')
+  $null = $sb.AppendLine("<script>window.__META__ = $metaJson;</script>")
+  $null = $sb.AppendLine("<script>(function(){ if (window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData === 'function') { window.__INVENTARIO__.setData(window.__DATA__ || [], typeof window.__META__ !== 'undefined' ? window.__META__ : 'Cargado por compatibilidad'); }})();</script>")
+  $null = $sb.AppendLine($shim)
   $null = $sb.AppendLine($js)
   $null = $sb.AppendLine('</div></body></html>')
 
@@ -692,4 +729,7 @@ try {
 finally {
   Pop-Location
 }
+
+
+
 

@@ -1,4 +1,4 @@
-Param(
+﻿Param(
     [string]$RepoRoot = "$PSScriptRoot/../..",
     [string]$DupesCsv = "dupes_confirmed.csv",
     [string]$LogDir   = "logs",
@@ -8,7 +8,6 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
-# [1] Paths base y logging
 $RepoRoot = (Resolve-Path $RepoRoot).Path
 Set-Location $RepoRoot
 
@@ -30,7 +29,6 @@ Log "RepoRoot: $RepoRoot"
 Log "DupesCsv: $DupesCsvPath"
 Log "SweepMode: $SweepMode"
 
-# [0] Opcional: Repo Sweep (DryRun/Apply) ANTES de tocar inventario/duplicados
 if ($SweepMode -ne "None") {
   $Sweep = Join-Path $RepoRoot "tools/agents/repo-sweep.ps1"
   if (Test-Path $Sweep) {
@@ -41,15 +39,16 @@ if ($SweepMode -ne "None") {
   }
 }
 
-# Helpers rutas scripts
 $PyRemove = Join-Path $RepoRoot "tools/remove_nonmedia_duplicates.py"
 $MoveDupes = Join-Path $RepoRoot "tools/Move-I-Duplicates.ps1"
 $MakeInv = Join-Path $RepoRoot "tools/make_inventory_offline.ps1"
 if (-not (Test-Path $MakeInv)) {
   $MakeInv = Join-Path $RepoRoot "make_inventory_offline.ps1"
 }
+$Wrapper = Join-Path $RepoRoot "tools/agents/make-inventory-offline-wrapper.ps1"
+$Normalizer = Join-Path $RepoRoot "tools/normalize-inventory-html.ps1"
+$Sanitizer = Join-Path $RepoRoot "tools/sanitize-inventory-html.ps1"
 
-# [2] Paso A: limpieza de duplicados no multimedia (si existe)
 $pythonExe = $null
 foreach ($cand in @("python","py","python3")) {
   try {
@@ -72,7 +71,6 @@ if (Test-Path $PyRemove) {
   Log "SKIP: tools/remove_nonmedia_duplicates.py no encontrado"
 }
 
-# [3] Paso B: mover duplicados confirmados (si hay CSV + script)
 if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
   Log "Running Move-I-Duplicates.ps1 ..."
   & $MoveDupes -CsvPath "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
@@ -80,19 +78,34 @@ if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
   Log "SKIP: falta Move-I-Duplicates.ps1 o $DupesCsvPath"
 }
 
-# [4] Paso C: regenerar inventario offline (HTML)
 $ExpectedHtml = Join-Path $OutputDirPath "inventario_interactivo_offline.html"
-if (Test-Path $MakeInv) {
+$csvDefault = Join-Path $RepoRoot "docs/hash_data.csv"
+
+if (Test-Path $Wrapper) {
+  Log "Running make-inventory-offline-wrapper.ps1 ..."
+  & $Wrapper -RepoRoot "$RepoRoot" -CsvPath "$csvDefault" -OutputHtml "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+} elseif (Test-Path $MakeInv) {
   Log "Running make_inventory_offline.ps1 ..."
   & $MakeInv -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  if (Test-Path $Normalizer) {
+    Log "Normalizando bloque setData ..."
+    & $Normalizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  }
 } else {
-  Log "SKIP: tools/make_inventory_offline.ps1 no encontrado"
+  Log "SKIP: no se encontro make_inventory_offline.ps1"
+}
+
+if (Test-Path $Sanitizer) {
+  Log "Sanitizando HTML final ..."
+  & $Sanitizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+} else {
+  Log "SKIP: sanitizer no encontrado"
 }
 
 if (Test-Path $ExpectedHtml) {
   Log "OK: HTML generado -> $ExpectedHtml"
 } else {
-  Log "WARN: No se encontró $ExpectedHtml tras la ejecución."
+  Log "WARN: No se encontro $ExpectedHtml tras la ejecucion."
 }
 
 Log "== Inventory-Cleaner DONE =="
