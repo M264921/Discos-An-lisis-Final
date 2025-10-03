@@ -37,35 +37,82 @@ try {
   $excludeRx = '\\(System Volume Information|\$Recycle\.Bin|FOUND\.\d{3}|_quarantine(_from_[A-Z]+|_quarantine)?|_quarantine)($|\\)'
   $files = [System.Collections.Generic.List[object]]::new()
 
-  foreach ($drive in $Drives) {
-    $root = '{0}:\' -f $drive
-    if (-not (Test-Path $root)) {
-      Write-Verbose "Unidad $drive no encontrada, se omite."
+  $indexPath = Join-Path $repoRoot 'index_by_hash.csv'
+  if (-not (Test-Path -LiteralPath $indexPath)) {
+    throw "No se encontró index_by_hash.csv en $repoRoot. Ejecuta tools\\Reindex-HIJ.ps1 o detect_drive_changes.ps1 primero."
+  }
+
+  Write-Verbose "Leyendo inventario desde $indexPath ..."
+  $rawIndex = Import-Csv -LiteralPath $indexPath
+  $culture = [System.Globalization.CultureInfo]::GetCultureInfo('es-ES')
+
+  foreach ($row in $rawIndex) {
+    $rawLength = $row.Length
+    if (-not $rawLength) { $rawLength = '0' }
+    $length = 0L
+    [long]::TryParse($rawLength, [ref]$length) | Out-Null
+    $drive = if ($row.Drive) { $row.Drive.Trim().ToUpper() } else {
+      if ($row.Path -match '^[A-Za-z]:') { $row.Path.Substring(0,1).ToUpper() } else { '' }
+    }
+    if ($Drives -and $Drives.Count -gt 0 -and -not ($Drives -contains $drive)) {
       continue
     }
-    Write-Verbose "Explorando $drive ..."
-    Get-ChildItem $root -Recurse -Force -File -ErrorAction SilentlyContinue |
-      Where-Object { $_.FullName -notmatch $excludeRx } |
-      ForEach-Object {
-        $files.Add([pscustomobject]@{
-          Drive     = $drive
-          Folder    = $_.DirectoryName
-          Name      = $_.Name
-          Extension = ($_.Extension -replace '^$','(sin)')
-          Size      = [int64]$_.Length
-          MB        = [math]::Round($_.Length/1MB, 2)
-          LastWrite = $_.LastWriteTime
-          FullPath  = $_.FullName
-        }) | Out-Null
-      }
+    $path = $row.Path
+    $folder = [System.IO.Path]::GetDirectoryName($path)
+    if (-not $folder) { $folder = '{0}:\' -f $drive }
+    $name = [System.IO.Path]::GetFileName($path)
+    $ext = if ($row.Extension) { $row.Extension } else { '(sin)' }
+    $lastWrite = $null
+    if ($row.LastWrite) {
+      [datetime]::TryParseExact($row.LastWrite, 'dd/MM/yyyy HH:mm:ss', $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite) | Out-Null
+    }
+    if (-not $lastWrite) { $lastWrite = [datetime]::MinValue }
+
+    $hashValue = $row.Hash
+    if (-not $hashValue) { $hashValue = '' }
+
+    $files.Add([pscustomobject]@{
+      Drive          = $drive
+      Folder         = $folder
+      Name           = $name
+      Ext            = $ext
+      Bytes          = $length
+      MB             = [math]::Round($length/1MB, 2)
+      LastWrite      = $lastWrite
+      FullPath       = $path
+      Hash           = $hashValue.ToUpper()
+    }) | Out-Null
   }
 
   if (-not $files.Count) {
-    Write-Warning 'No se encontraron archivos con el filtro actual.'
+    Write-Warning 'No se encontraron archivos en index_by_hash.csv con los filtros actuales.'
   }
 
+  $hashGroups = $files | Where-Object { $_.Hash } | Group-Object Hash
+  $duplicateMap = @{}
+  foreach ($group in $hashGroups) {
+    $duplicateMap[$group.Name] = $group.Count
+  }
+
+  foreach ($file in $files) {
+    $hash = $file.Hash
+    if (-not $hash) {
+      $file.DuplicateLabel = 'Sin hash'
+      $file.DuplicateCount = 0
+    } elseif ($duplicateMap.ContainsKey($hash) -and $duplicateMap[$hash] -gt 1) {
+      $file.DuplicateLabel = 'Duplicado'
+      $file.DuplicateCount = $duplicateMap[$hash]
+    } else {
+      $file.DuplicateLabel = 'Único'
+      $file.DuplicateCount = 1
+    }
+  }
+
+  $duplicateFilesCount = ($files | Where-Object { $_.DuplicateLabel -eq 'Duplicado' }).Count
+  $duplicateGroupCount = ($hashGroups | Where-Object { $_.Count -gt 1 }).Count
+
   $summary = $files | Group-Object Drive | ForEach-Object {
-    $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
     [pscustomobject]@{
       Drive = $_.Name
       Count = $_.Count
@@ -85,6 +132,8 @@ try {
   
   $formattedTotalCount = [string]::Format('{0:n0}', $totalCount)
   $formattedTotalGB = [string]::Format('{0:n2}', $totalGB)
+  $formattedDuplicateFiles = [string]::Format('{0:n0}', $duplicateFilesCount)
+  $formattedDuplicateGroups = [string]::Format('{0:n0}', $duplicateGroupCount)
 
   $topFolderGroups = $files | Group-Object {
     $relative = ($_.FullPath -replace '^[A-Za-z]:\\', '')
@@ -98,7 +147,7 @@ try {
     $parts = $_.Name.Split('|', 2)
     $driveId = $parts[0]
     $folderId = if ($parts.Count -gt 1) { $parts[1] } else { '(raiz)' }
-    $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
     [pscustomobject]@{
       Drive = $driveId
       Folder = $folderId
@@ -107,8 +156,8 @@ try {
     }
   }
 
-  $topExtensions = $files | Group-Object Extension | ForEach-Object {
-    $sumBytes = ($_.Group | Measure-Object Size -Sum).Sum
+  $topExtensions = $files | Group-Object Ext | ForEach-Object {
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
     [pscustomobject]@{
       Ext   = $_.Name
       Count = $_.Count
@@ -117,15 +166,21 @@ try {
   } | Sort-Object GB -Descending | Select-Object -First 8
 
   $dataset = $files | ForEach-Object {
+    $lastWriteIso = if ($_.LastWrite -and $_.LastWrite -ne [datetime]::MinValue) { $_.LastWrite.ToString('yyyy-MM-ddTHH:mm:ss') } else { '' }
+    $fullPathValue = $_.FullPath
+    if (-not $fullPathValue) { $fullPathValue = '' }
     [pscustomobject]@{
-      Drive        = $_.Drive
-      Folder       = $_.Folder
-      Name         = $_.Name
-      Ext          = $_.Extension
-      MB           = $_.MB
-      LastWrite    = ($_.LastWrite.ToString('yyyy-MM-ddTHH:mm:ss'))
-      FullPath     = $_.FullPath
-      FullPathLower= $_.FullPath.ToLower()
+      Drive          = $_.Drive
+      Folder         = $_.Folder
+      Name           = $_.Name
+      Ext            = $_.Ext
+      Duplicate      = $_.DuplicateLabel
+      DuplicateCount = $_.DuplicateCount
+      MB             = $_.MB
+      LastWrite      = $lastWriteIso
+      Hash           = $_.Hash
+      FullPath       = $fullPathValue
+      FullPathLower  = $fullPathValue.ToLower()
     }
   }
 
@@ -208,8 +263,11 @@ try {
     Folder: row => (row.Folder || ''),
     Name: row => (row.Name || ''),
     Ext: row => (row.Ext || ''),
+    Duplicate: row => (row.Duplicate || ''),
+    DuplicateCount: row => String(row.DuplicateCount ?? ''),
     MB: row => String(row.MB ?? ''),
     LastWrite: row => (row.LastWrite || ''),
+    Hash: row => (row.Hash || ''),
     FullPath: row => (row.FullPath || '')
   };
 
@@ -236,6 +294,11 @@ try {
     const safeFolder = escapeHtml(row.Folder || '');
     const safeName = escapeHtml(row.Name || '');
     const safeExt = escapeHtml(row.Ext || '');
+    const dupLabel = row.Duplicate || '';
+    const dupCount = Number(row.DuplicateCount ?? 0);
+    const dupText = dupLabel === 'Duplicado' && dupCount > 1 ? dupLabel + ' (x' + dupCount + ')' : dupLabel;
+    const safeDup = escapeHtml(dupText);
+    const safeHash = escapeHtml(row.Hash || '');
     const safePath = escapeHtml(rawPath);
     const safeHref = escapeHtml(href);
     const nameLabel = safeName || '(sin nombre)';
@@ -244,8 +307,10 @@ try {
            '<td>'+ safeFolder +'</td>'+
            '<td><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ nameLabel +'</a></td>'+
            '<td>'+ safeExt +'</td>'+
+           '<td>'+ safeDup +'</td>'+
            '<td>'+ sizeCell +'</td>'+
            '<td>'+ fmtDate(row.LastWrite) +'</td>'+
+           '<td>'+ safeHash +'</td>'+
            '<td class="path"><a class="file-link" href="'+ safeHref +'" target="_blank" rel="noopener">'+ pathLabel +'</a></td>';
   }
 
@@ -315,7 +380,7 @@ try {
       alert('No hay filas para descargar con el filtro actual.');
       return;
     }
-    const header = ['Drive','Folder','Name','Ext','MB','LastWrite','Path'];
+    const header = ['Drive','Folder','Name','Ext','Duplicado','DuplicadoGrupo','MB','LastWrite','Hash','Path'];
     const lines = rows.map(row => {
       const size = Number(row.MB ?? 0);
       const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
@@ -324,8 +389,11 @@ try {
         row.Folder,
         row.Name,
         row.Ext,
+        row.Duplicate,
+        row.DuplicateCount,
         sizeCell,
         fmtDate(row.LastWrite),
+        row.Hash,
         row.FullPath
       ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
     });
@@ -375,6 +443,7 @@ try {
   $null = $sb.AppendLine('<h1>Inventario H / I / J (offline)</h1>')
   $chips = ($summary | ForEach-Object { "<span class='pill nowrap'><b>$($_.Drive):</b> $([string]::Format('{0:n0}', $_.Count)) archivos - $([string]::Format('{0:n2}', $_.GB)) GB</span>" }) -join " "
   $chips += " <span class='pill nowrap'><b>TOTAL</b>: $([string]::Format('{0:n0}', $totalCount)) archivos - $([string]::Format('{0:n2}', $totalGB)) GB</span>"
+  $chips += " <span class='pill nowrap'><b>Duplicados</b>: $formattedDuplicateFiles archivos en $formattedDuplicateGroups grupos</span>"
   $null = $sb.AppendLine("<div class='bar'>$chips</div>")
   $null = $sb.AppendLine("<section class='panel dataset'>")
   $null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
@@ -388,6 +457,8 @@ try {
   $null = $sb.AppendLine("        <option value='Folder'>Carpeta</option>")
   $null = $sb.AppendLine("        <option value='Name'>Nombre</option>")
   $null = $sb.AppendLine("        <option value='Ext'>Extensión</option>")
+  $null = $sb.AppendLine("        <option value='Duplicate'>Estado duplicado</option>")
+  $null = $sb.AppendLine("        <option value='Hash'>Hash</option>")
   $null = $sb.AppendLine("        <option value='MB'>Tamaño (MB)</option>")
   $null = $sb.AppendLine("        <option value='LastWrite'>Fecha</option>")
   $null = $sb.AppendLine("        <option value='FullPath'>Ruta completa</option>")
@@ -410,12 +481,12 @@ try {
   $null = $sb.AppendLine('</div>')
   $null = $sb.AppendLine("<div class='table-wrap'>")
   $null = $sb.AppendLine("  <table id='tbl'><thead>")
-  $null = $sb.AppendLine("    <tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>MB</th><th>LastWrite</th><th>Path</th></tr>")
-  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extensión'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
+  $null = $sb.AppendLine("    <tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>Duplicado</th><th>MB</th><th>LastWrite</th><th>Hash</th><th>Path</th></tr>")
+  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extensión'></th><th><input class='column-filter' data-field='Duplicate' placeholder='Filtrar duplicado'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='Hash' placeholder='Filtrar hash'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
   $null = $sb.AppendLine("  </thead><tbody></tbody></table>")
   $null = $sb.AppendLine('</div>')
   $null = $sb.AppendLine('</section>')
-  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados."
+  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados. Detectados $formattedDuplicateFiles archivos duplicados en $formattedDuplicateGroups grupos (según hash SHA256)."
   $null = $sb.AppendLine("<section class='panel intro'>")
   $null = $sb.AppendLine("<h2>Resumen rapido</h2>")
   $null = $sb.AppendLine("<p>$(HtmlEnc $analysisIntro)</p>")
