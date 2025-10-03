@@ -129,8 +129,12 @@ try {
     $summary = @()
   }
 
-  $metaByDrive = if ($summary) { $summary | ForEach-Object { "{0}: {1}" -f $_.Drive, $_.Count } } else { @() }
-  $meta = "Total: {0} | {1}" -f $files.Count, ($metaByDrive -join ' | ')
+  $metaByDrive = if ($summary) { $summary | Where-Object { $_.Drive } | ForEach-Object { "{0}: {1} files" -f $_.Drive, $_.Count } } else { @() }
+  $metaSegments = @("Total: {0}" -f $files.Count)
+  if ($metaByDrive -and $metaByDrive.Count) {
+    $metaSegments += $metaByDrive
+  }
+  $meta = ($metaSegments -join ' | ').Trim()
   $metaJson = ($meta | ConvertTo-Json -Compress)
 
   $fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
@@ -261,23 +265,26 @@ try {
 (function(){
   const global = window;
   const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
-  const computeMeta = (rows, meta) => {
-    if (typeof meta === 'string' && meta.trim().length > 0) {
+  function computeMeta(rows, meta) {
+    if (typeof meta === "string" && meta.trim().length > 0) {
       return meta;
     }
     const safeRows = Array.isArray(rows) ? rows : [];
     const drives = {};
-    for (const row of safeRows) {
-      if (!row || !row.Drive) { continue; }
-      const key = String(row.Drive).trim().toUpperCase();
+    for (let index = 0; index < safeRows.length; index++) {
+      const entry = safeRows[index];
+      if (!entry || !entry.Drive) { continue; }
+      const key = String(entry.Drive).trim().toUpperCase();
       if (!key) { continue; }
       drives[key] = (drives[key] || 0) + 1;
     }
-    const keys = Object.keys(drives).sort();
-    const parts = keys.map(k => `${k}: ${drives[k]} ficheros`);
-    return `Total: ${safeRows.length}` + (parts.length ? ` | ${parts.join(' · ')}` : '');
-  };
-  if (typeof inventory.setData !== 'function') {
+    const parts = Object.keys(drives).sort().map(function(key) {
+      return key + ": " + drives[key] + " files";
+    });
+    const total = "Total: " + safeRows.length;
+    return parts.length ? total + " | " + parts.join(" | ") : total;
+  }
+  if (typeof inventory.setData !== "function") {
     inventory.setData = function(rows, meta) {
       const safeRows = Array.isArray(rows) ? rows : [];
       const summary = computeMeta(safeRows, meta);
@@ -291,7 +298,7 @@ try {
   if (!inventory._shimSeeded) {
     inventory._shimSeeded = true;
     const legacyRows = Array.isArray(global.__DATA__) ? global.__DATA__ : (Array.isArray(global._DATA_) ? global._DATA_ : null);
-    const legacyMeta = typeof global.__META__ !== 'undefined' ? global.__META__ : global._META_;
+    const legacyMeta = typeof global.__META__ !== "undefined" ? global.__META__ : global._META_;
     if (legacyRows) {
       const compatMeta = computeMeta(legacyRows, legacyMeta);
       inventory.setData(legacyRows, compatMeta);
@@ -744,7 +751,4 @@ try {
 finally {
   Pop-Location
 }
-
-
-
 

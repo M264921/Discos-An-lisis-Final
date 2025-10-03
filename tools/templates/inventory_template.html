@@ -7,23 +7,23 @@
 <body>
 <script>
 window.__INVENTARIO__ = {
-  setData(rows, meta){
+  setData(rows, meta) {
     const safeRows = Array.isArray(rows) ? rows : [];
-    const summary = (function(){
+    const summary = (function buildSummary() {
       if (typeof meta === 'string' && meta.trim().length > 0) {
         return meta;
       }
       const drives = {};
-      safeRows.forEach(r => {
-        if (r && r.Drive) {
-          const key = String(r.Drive).trim().toUpperCase();
+      for (const entry of safeRows) {
+        if (entry && entry.Drive) {
+          const key = String(entry.Drive).trim().toUpperCase();
           if (key) {
             drives[key] = (drives[key] || 0) + 1;
           }
         }
-      });
-      const parts = Object.keys(drives).sort().map(k => `${k}: ${drives[k]} ficheros`);
-      return `Total: ${safeRows.length}` + (parts.length ? ` | ${parts.join(' · ')}` : '');
+      }
+      const parts = Object.keys(drives).sort().map((key) => key + ': ' + drives[key] + ' files');
+      return 'Total: ' + safeRows.length + (parts.length ? ' | ' + parts.join(' | ') : '');
     })();
     window.__DATA__ = safeRows;
     window.__META__ = summary;
@@ -33,31 +33,37 @@ window.__INVENTARIO__ = {
   }
 };
 
-/* Compat shim:
-   - Si la página ya trae window.__DATA__ o window._DATA_, volcarlas al visor.
-   - Construye un meta rápido con totales por unidad.
-*/
-(function(){
-  try{
+// Compat shim:
+// - If legacy HTML exposes window.__DATA__ or window._DATA_, hydrate the viewer.
+// - Always rebuild a quick meta summary with drive totals.
+(function bootstrapLegacyDataset() {
+  try {
     var rows = window.__DATA__ || window._DATA__ || null;
-    if (Array.isArray(rows) && window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData==='function'){
-      var drives = {};
-      rows.forEach(function(r){
-        if(r && r.Drive){
-          var d = String(r.Drive).toUpperCase();
-          if (d){ drives[d]=(drives[d]||0)+1; }
+    if (Array.isArray(rows) && window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData === 'function') {
+      var driveTotals = {};
+      for (var index = 0; index < rows.length; index++) {
+        var record = rows[index];
+        if (record && record.Drive) {
+          var driveId = String(record.Drive).trim().toUpperCase();
+          if (driveId) {
+            driveTotals[driveId] = (driveTotals[driveId] || 0) + 1;
+          }
         }
-      });
-      var keys = Object.keys(drives).sort();
-      var meta = "Total: "+rows.length;
-      if (keys.length){
-        meta += " | " + keys.map(function(k){return k+": "+drives[k]+" ficheros";}).join(" · ");
+      }
+      var driveKeys = Object.keys(driveTotals).sort();
+      var meta = 'Total: ' + rows.length;
+      if (driveKeys.length) {
+        meta += ' | ' + driveKeys.map(function (key) {
+          return key + ': ' + driveTotals[key] + ' files';
+        }).join(' | ');
       }
       window.__INVENTARIO__.setData(rows, meta);
     }
-    }
-  }catch(e){/* silencio */}
+  } catch (error) {
+    // swallow compatibility errors silently
+  }
 })();
 </script>
 </body>
 </html>
+

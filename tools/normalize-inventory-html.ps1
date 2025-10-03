@@ -1,76 +1,58 @@
 Param(
-  [string]$HtmlPath = "docs/inventario_interactivo_offline.html"
+  [string]$HtmlPath = "docs\inventario_interactivo_offline.html"
 )
 
 $ErrorActionPreference = "Stop"
 
-if (!(Test-Path -LiteralPath $HtmlPath)) {
-  throw "No existe $HtmlPath"
-}
+if (!(Test-Path -LiteralPath $HtmlPath)) { throw "No se genero $HtmlPath" }
 
 $html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
 
-# Corrige typos comunes
-$html = [regex]::Replace($html, '\bwindiw\b', 'window', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+$html = [regex]::Replace($html, 'windiw', 'window', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-# Captura array JSON de __DATA__/_DATA_
-$rx = [regex]'window\.(?:__DATA__|_DATA_)\s*=\s*(\[[\s\S]*?\])\s*;'
+$rx = [System.Text.RegularExpressions.Regex]::new('window\.(?:__DATA__|_DATA_)\s*=\s*(\[[\s\S]*?\]);', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 $m = $rx.Match($html)
-
-function Get-MetaSummary {
-  param([object[]]$Rows)
-  if (-not $Rows) { return "Total: 0" }
-  $drives = @{}
-  foreach ($row in $Rows) {
-    if ($null -eq $row) { continue }
-    $drive = $null
-    if ($row.PSObject.Properties['Drive']) {
-      $drive = [string]$row.Drive
-    } elseif ($row.PSObject.Properties['_Drive']) {
-      $drive = [string]$row._Drive
-    }
-    if ([string]::IsNullOrWhiteSpace($drive)) { continue }
-    $key = $drive.Trim().ToUpperInvariant()
-    if (-not $key) { continue }
-    if ($drives.ContainsKey($key)) {
-      $drives[$key] += 1
-    } else {
-      $drives[$key] = 1
-    }
-  }
-  $parts = @()
-  foreach ($key in ($drives.Keys | Sort-Object)) {
-    $parts += "{0}: {1} ficheros" -f $key, $drives[$key]
-  }
-  $meta = "Total: {0}" -f $Rows.Count
-  if ($parts.Count) {
-    $meta += " | " + ($parts -join " · ")
-  }
-  return $meta
-}
-
 if ($m.Success) {
   $json = $m.Groups[1].Value
-  $rowsObj = @()
+  $metaText = 'Normalizado desde __DATA__'
   try {
-    $parsed = $json | ConvertFrom-Json
-    if ($null -ne $parsed) {
-      if ($parsed -is [System.Collections.IEnumerable] -and -not ($parsed -is [string])) {
-        $rowsObj = @($parsed)
-      } else {
-        $rowsObj = @($parsed)
+    $rows = $json | ConvertFrom-Json
+    if ($rows) {
+      if ($rows -isnot [System.Collections.IEnumerable]) {
+        $rows = @($rows)
       }
+      $rowsArray = @($rows)
+      $metaSegments = @("Total: {0}" -f $rowsArray.Count)
+      $driveCounts = @{}
+      foreach ($row in $rowsArray) {
+        $drive = $null
+        if ($row -and $row.PSObject.Properties['Drive']) {
+          $drive = ("{0}" -f $row.Drive).Trim()
+        }
+        if ($drive) {
+          $driveUpper = $drive.ToUpperInvariant()
+          if (-not $driveCounts.ContainsKey($driveUpper)) {
+            $driveCounts[$driveUpper] = 0
+          }
+          $driveCounts[$driveUpper]++
+        }
+      }
+      if ($driveCounts.Count -gt 0) {
+        $driveSummary = $driveCounts.Keys | Sort-Object | ForEach-Object { "{0}: {1} files" -f $_, $driveCounts[$_] }
+        $metaSegments += $driveSummary
+      }
+      $metaText = ($metaSegments -join ' | ').Trim()
     }
   } catch {
-    $rowsObj = @()
+    $metaText = 'Normalizado desde __DATA__'
   }
-  $meta = Get-MetaSummary -Rows $rowsObj
-  $metaJson = $meta | ConvertTo-Json -Compress
-  $inject = "`n<script>window.__INVENTARIO__.setData($json,$metaJson);</script>`n"
+  $metaLiteral = ($metaText | ConvertTo-Json -Compress)
+  $inject = "`n<script>window.__INVENTARIO__.setData($json, $metaLiteral);</script>`n"
   $html = $rx.Replace($html, '')
   $html = [regex]::Replace($html, '</body>\s*</html>\s*$', $inject + '</body></html>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
   [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
-  Write-Host "OK: normalizado a __INVENTARIO__.setData con meta: $meta"
+  Write-Host "OK: normalizado a __INVENTARIO__.setData(...)"
 } else {
-  Write-Host "No se encontró __DATA__/_DATA_; no hay cambios de normalización."
+  Write-Host "No se encontro __DATA__/_DATA_; sin cambios"
 }
+

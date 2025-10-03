@@ -163,10 +163,19 @@ foreach ($row in $rowsOut) {
 }
 
 $rowsOrdered = $rowsOut | Sort-Object FullPath
-$byDrive = $rowsOrdered | Group-Object Drive | ForEach-Object { "{0}: {1}" -f $_.Name, $_.Count }
-$meta = "Total: {0} | {1}" -f $rowsOrdered.Count, ($byDrive -join " | ")
+$byDrive = $rowsOrdered | Group-Object Drive | ForEach-Object {
+  if ($_.Name) { "{0}: {1} files" -f $_.Name, $_.Count }
+}
+$metaSegments = @("Total: {0}" -f $rowsOrdered.Count)
+$driveSummaries = $byDrive | Where-Object { $_ }
+if ($driveSummaries) {
+  foreach ($summaryLine in @($driveSummaries)) {
+    if ($summaryLine) { $metaSegments += $summaryLine }
+  }
+}
+$meta = ($metaSegments -join " | ").Trim()
 $metaJson = ($meta | ConvertTo-Json -Compress)
-$setDataCall = "if (window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData === 'function') { window.__INVENTARIO__.setData(window.__DATA__ || [], typeof window.__META__ !== 'undefined' ? window.__META__ : 'Cargado por compatibilidad'); }"
+$setDataCall = 'if (window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData === "function") { window.__INVENTARIO__.setData(window.__DATA__ || [], typeof window.__META__ !== "undefined" ? window.__META__ : "Cargado por compatibilidad"); }'
 
 $shimScript = @"
 <script>
