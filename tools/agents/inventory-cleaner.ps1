@@ -1,4 +1,4 @@
-Param(
+﻿Param(
     [string]$RepoRoot = "$PSScriptRoot/../..",
     [string]$DupesCsv = "dupes_confirmed.csv",
     [string]$LogDir   = "logs",
@@ -85,6 +85,14 @@ $ExpectedHtml = Join-Path $OutputDirPath "inventario_interactivo_offline.html"
 if (Test-Path $MakeInv) {
   Log "Running make_inventory_offline.ps1 ..."
   & $MakeInv -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    # Sanitizar HTML para remover enlaces externos / acestream
+    \ = Join-Path \ "tools\sanitize-inventory-html.ps1"
+    if (Test-Path \) {
+        Log "Sanitizando HTML (anti-acestream y externos) ..."
+        powershell -NoProfile -ExecutionPolicy Bypass -File "\" -HtmlPath (Join-Path \ "inventario_interactivo_offline.html") 2>&1 | Tee-Object -FilePath \ -Append
+    } else {
+        Log "SKIP: sanitizer no encontrado"
+    }
 } else {
   Log "SKIP: tools/make_inventory_offline.ps1 no encontrado"
 }
@@ -96,3 +104,4 @@ if (Test-Path $ExpectedHtml) {
 }
 
 Log "== Inventory-Cleaner DONE =="
+
