@@ -1,5 +1,6 @@
-﻿# ============================
+# ============================
 # make_inventory_offline.ps1
+# Genera inventario interactivo en local y opcionalmente publica en docs/.
 # ============================
 
 [CmdletBinding()]
@@ -14,366 +15,740 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Resolve-OutputPath {
-  param(
-    [string]$BasePath,
-    [string]$Candidate
-  )
-  if ([string]::IsNullOrWhiteSpace($Candidate)) {
-    return [System.IO.Path]::Combine($BasePath, 'inventario_interactivo_offline.html')
-  }
-  if ([System.IO.Path]::IsPathRooted($Candidate)) {
-    return $Candidate
-  }
-  return [System.IO.Path]::Combine($BasePath, $Candidate)
-}
-
-function Normalize-Drive {
-  param([string]$DriveId)
-  if ([string]::IsNullOrWhiteSpace($DriveId)) { return $null }
-  $trimmed = $DriveId.Trim()
-  if (-not $trimmed) { return $null }
-  return $trimmed.Substring(0,1).ToUpperInvariant()
-}
-
-function Resolve-LastWriteIso {
-  param(
-    [string]$Value,
-    [System.Globalization.CultureInfo[]]$Cultures
-  )
-  if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-  $text = $Value.Trim()
-  if (-not $text) { return $null }
-  $formats = @(
-    'yyyy-MM-ddTHH:mm:ss',
-    'yyyy-MM-ddTHH:mm:ss.fff',
-    'yyyy-MM-dd HH:mm:ss',
-    'yyyy/MM/dd HH:mm:ss',
-    'dd/MM/yyyy HH:mm:ss',
-    'dd-MM-yyyy HH:mm:ss',
-    'MM/dd/yyyy HH:mm:ss',
-    'yyyy-MM-dd'
-  )
-  foreach ($culture in $Cultures) {
-    foreach ($fmt in $formats) {
-      try {
-        $parsed = [datetime]::ParseExact($text, $fmt, $culture)
-        return $parsed.ToString('s')
-      } catch {}
-    }
-    try {
-      $parsed = [datetime]::Parse($text, $culture)
-      return $parsed.ToString('s')
-    } catch {}
-  }
-  return $null
-}
-
-$script:InventoryTypeByExtension = @{}
-$inventoryGroups = @{
-  video     = @('3gp','asf','avi','flv','m2ts','m4v','mkv','mov','mp4','mpeg','mpg','mts','mxf','ts','vob','webm','wmv')
-  foto      = @('arw','bmp','cr2','cr3','dng','gif','heic','heif','jpg','jpeg','nef','orf','png','psd','raf','raw','svg','tif','tiff','webp')
-  audio     = @('aac','aiff','ape','flac','m3u','m4a','mid','midi','mp3','ogg','opus','wav','wma')
-  documento = @('csv','doc','docm','docx','htm','html','ini','json','key','log','md','numbers','odp','ods','odt','pdf','ppt','pptx','rtf','txt','xls','xlsm','xlsx','xml','yaml','yml')
-}
-foreach ($entry in $inventoryGroups.GetEnumerator()) {
-  foreach ($ext in $entry.Value) {
-    $script:InventoryTypeByExtension[$ext] = $entry.Key
-  }
-}
-
-function Get-InventoryType {
-  param([string]$Extension)
-  if ([string]::IsNullOrWhiteSpace($Extension)) { return 'otro' }
-  $ext = $Extension.Trim().ToLowerInvariant()
-  if ($ext.StartsWith('.')) { $ext = $ext.Substring(1) }
-  if ($script:InventoryTypeByExtension.ContainsKey($ext)) {
-    return $script:InventoryTypeByExtension[$ext]
-  }
-  return 'otro'
-}
-
-function Escape-ScriptJson {
-  param([string]$Json)
-  if ($null -eq $Json) { return '' }
-  return ($Json -replace '</', '<\/')
+function HtmlEnc {
+  param([string]$Value)
+  if (-not $Value) { return '' }
+  return ($Value -replace '&','&amp;' -replace '<','&lt;' -replace '>','&gt;' -replace '"','&quot;')
 }
 
 $repoRoot = if ($PSCommandPath) { Split-Path -Parent $PSCommandPath } else { (Get-Location).Path }
 Push-Location $repoRoot
 try {
-  $outputPath = Resolve-OutputPath -BasePath $repoRoot -Candidate $Output
-  $docsTargetPath = if ($DocsTarget) { Resolve-OutputPath -BasePath $repoRoot -Candidate $DocsTarget } else { $null }
-
-  $outputDir = Split-Path -Parent $outputPath
-  if ($outputDir -and -not (Test-Path -LiteralPath $outputDir)) {
-    New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-  }
-
-  if ($docsTargetPath) {
+  $outputPath = if ([System.IO.Path]::IsPathRooted($Output)) { $Output } else { Join-Path $repoRoot $Output }
+  $docsTargetPath = $null
+  if ($DocsTarget) {
+    $docsTargetPath = if ([System.IO.Path]::IsPathRooted($DocsTarget)) { $DocsTarget } else { Join-Path $repoRoot $DocsTarget }
     $docsDir = Split-Path -Parent $docsTargetPath
-    if ($docsDir -and -not (Test-Path -LiteralPath $docsDir)) {
+    if ($docsDir -and -not (Test-Path $docsDir)) {
       New-Item -ItemType Directory -Force -Path $docsDir | Out-Null
     }
   }
 
+  $excludeRx = '\\(System Volume Information|\$Recycle\.Bin|FOUND\.\d{3}|_quarantine(_from_[A-Z]+|_quarantine)?|_quarantine)($|\\)'
+  $files = [System.Collections.Generic.List[object]]::new()
+
   $indexPath = Join-Path $repoRoot 'index_by_hash.csv'
   if (-not (Test-Path -LiteralPath $indexPath)) {
-    throw "index_by_hash.csv no se encontro en $repoRoot"
+    throw "No se encontro index_by_hash.csv en $repoRoot. Ejecuta tools\\Reindex-HIJ.ps1 o detect_drive_changes.ps1 primero."
   }
 
-  $driveFilter = @()
-  if ($Drives) {
-    foreach ($driveItem in $Drives) {
-      $normalized = Normalize-Drive -DriveId $driveItem
-      if ($normalized) { $driveFilter += $normalized }
+  Write-Verbose "Leyendo inventario desde $indexPath ..."
+  $rawIndex = Import-Csv -LiteralPath $indexPath
+  $culture = [System.Globalization.CultureInfo]::GetCultureInfo('es-ES')
+
+  foreach ($row in $rawIndex) {
+    $rawLength = $row.Length
+    if (-not $rawLength) { $rawLength = '0' }
+    $length = 0L
+    [long]::TryParse($rawLength, [ref]$length) | Out-Null
+    $drive = if ($row.Drive) { $row.Drive.Trim().ToUpper() } else {
+      if ($row.Path -match '^[A-Za-z]:') { $row.Path.Substring(0,1).ToUpper() } else { '' }
     }
-    if ($driveFilter.Count) {
-      $driveFilter = $driveFilter | Sort-Object -Unique
+    if ($Drives -and $Drives.Count -gt 0 -and -not ($Drives -contains $drive)) {
+      continue
     }
-  }
-
-  $cultures = @(
-    [System.Globalization.CultureInfo]::GetCultureInfo('es-ES'),
-    [System.Globalization.CultureInfo]::InvariantCulture
-  )
-
-  $rawRows = Import-Csv -LiteralPath $indexPath
-  $rows = New-Object System.Collections.Generic.List[object]
-  $driveCounts = @{}
-  $driveBytes = @{}
-  $typeCounts = @{}
-  $totalBytes = 0L
-
-  foreach ($item in $rawRows) {
-    $path = $item.Path
-    if ([string]::IsNullOrWhiteSpace($path)) { continue }
-    $path = $path.Trim()
-    if (-not $path) { continue }
-
-    $drive = $item.Drive
-    if (-not $drive -and $path -match '^[A-Za-z]:') {
-      $drive = $path.Substring(0,1)
-    }
-    $drive = Normalize-Drive -DriveId $drive
-    if (-not $drive) { continue }
-    if ($driveFilter.Count -gt 0 -and -not ($driveFilter -contains $drive)) { continue }
-
-    $lengthText = ('' + ($item.Length ?? '0')).Trim()
-    $lengthValue = 0L
-    if (-not [long]::TryParse($lengthText, [ref]$lengthValue)) {
-      $normalizedLength = $lengthText -replace '[^0-9]', ''
-      if (-not [long]::TryParse($normalizedLength, [ref]$lengthValue)) {
-        $lengthValue = 0L
-      }
-    }
-
-    $lastIso = Resolve-LastWriteIso -Value $item.LastWrite -Cultures $cultures
-
-    $extension = $item.Extension
-    if (-not $extension) {
-      $extension = [System.IO.Path]::GetExtension($path)
-    }
-    $type = Get-InventoryType -Extension $extension
-
+    $path = $row.Path
+    $folder = [System.IO.Path]::GetDirectoryName($path)
+    if (-not $folder) { $folder = '{0}:\' -f $drive }
     $name = [System.IO.Path]::GetFileName($path)
-    if (-not $name) { $name = $path }
-
-    $sha = if ($item.Hash) { ('' + $item.Hash).Trim().ToUpperInvariant() } else { '' }
-
-    $row = [PSCustomObject]@{
-      sha   = $sha
-      type  = $type
-      name  = $name
-      path  = $path
-      drive = $drive
-      size  = [int64]$lengthValue
-      last  = $lastIso
+    $ext = if ($row.Extension) { $row.Extension } else { '(sin)' }
+    $lastWrite = [datetime]::MinValue
+    if ($row.LastWrite) {
+      [string[]]$formats = @('yyyy-MM-dd HH:mm:ss','dd/MM/yyyy HH:mm:ss','yyyy-MM-ddTHH:mm:ss','yyyy-MM-ddTHH:mm:ss.fff')
+      $parsed = [datetime]::TryParseExact($row.LastWrite, $formats, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)
+      if (-not $parsed) {
+        $parsed = [datetime]::TryParse($row.LastWrite, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$lastWrite)
+      }
+      if (-not $parsed) { $lastWrite = [datetime]::MinValue }
     }
-    $rows.Add($row) | Out-Null
 
-    if (-not $driveCounts.ContainsKey($drive)) { $driveCounts[$drive] = 0 }
-    $driveCounts[$drive]++
+    $hashValue = $row.Hash
+    if (-not $hashValue) { $hashValue = '' }
 
-    if (-not $driveBytes.ContainsKey($drive)) { $driveBytes[$drive] = 0L }
-    $driveBytes[$drive] += $lengthValue
-
-    if (-not $typeCounts.ContainsKey($type)) { $typeCounts[$type] = 0 }
-    $typeCounts[$type]++
-
-    $totalBytes += $lengthValue
+    $files.Add([pscustomobject]@{
+      Drive          = $drive
+      Folder         = $folder
+      Name           = $name
+      Ext            = $ext
+      Bytes          = $length
+      MB             = [math]::Round($length/1MB, 2)
+      LastWrite      = $lastWrite
+      FullPath       = $path
+      Hash           = $hashValue.ToUpper()
+      DuplicateLabel = ''
+      DuplicateCount = 0
+    }) | Out-Null
   }
 
-  $rowsArray = @($rows)
-  $metaObject = [ordered]@{
-    total = $rowsArray.Count
-    totalBytes = $totalBytes
-    driveCounts = [ordered]@{}
-    driveBytes = [ordered]@{}
-    typeCounts = [ordered]@{}
-    generatedAt = (Get-Date).ToUniversalTime().ToString('s')
-  }
-  foreach ($driveKey in ($driveCounts.Keys | Sort-Object)) {
-    $metaObject.driveCounts[$driveKey] = $driveCounts[$driveKey]
-    $metaObject.driveBytes[$driveKey] = $driveBytes[$driveKey]
-  }
-  foreach ($typeKey in ($typeCounts.Keys | Sort-Object)) {
-    $metaObject.typeCounts[$typeKey] = $typeCounts[$typeKey]
+  if (-not $files.Count) {
+    Write-Warning 'No se encontraron archivos en index_by_hash.csv con los filtros actuales.'
   }
 
-  $metaJson = $metaObject | ConvertTo-Json -Depth 6 -Compress
-  $dataJson = $rowsArray | ConvertTo-Json -Depth 4 -Compress
-
-  $metaPayload = Escape-ScriptJson -Json $metaJson
-  $dataPayload = Escape-ScriptJson -Json $dataJson
-
-  $assetsDir = Join-Path $repoRoot 'tools' 'templates'
-  $cssPath = Join-Path $assetsDir 'inventory_offline.css'
-  $jsPath = Join-Path $assetsDir 'inventory_offline.js'
-
-  if (-not (Test-Path -LiteralPath $cssPath)) {
-    throw "No se encontro $cssPath"
-  }
-  if (-not (Test-Path -LiteralPath $jsPath)) {
-    throw "No se encontro $jsPath"
+  $hashGroups = $files | Where-Object { $_.Hash } | Group-Object Hash
+  $duplicateMap = @{}
+  foreach ($group in $hashGroups) {
+    $duplicateMap[$group.Name] = $group.Count
   }
 
-  $styleBlock = Get-Content -LiteralPath $cssPath -Raw -Encoding UTF8
-  $scriptBlock = Get-Content -LiteralPath $jsPath -Raw -Encoding UTF8
+  foreach ($file in $files) {
+    $hash = $file.Hash
+    if (-not $hash) {
+      $file.DuplicateLabel = 'Sin hash'
+      $file.DuplicateCount = 0
+    } elseif ($duplicateMap.ContainsKey($hash) -and $duplicateMap[$hash] -gt 1) {
+      $file.DuplicateLabel = 'Duplicado'
+      $file.DuplicateCount = $duplicateMap[$hash]
+    } else {
+      $file.DuplicateLabel = 'Unico'
+      $file.DuplicateCount = 1
+    }
+  }
 
-  $builder = New-Object System.Text.StringBuilder
-  [void]$builder.AppendLine('<!DOCTYPE html>')
-  [void]$builder.AppendLine('<html lang="es">')
-  [void]$builder.AppendLine('<head>')
-  [void]$builder.AppendLine('  <meta charset="utf-8" />')
-  [void]$builder.AppendLine('  <meta name="viewport" content="width=device-width, initial-scale=1" />')
-  [void]$builder.AppendLine('  <title>Inventario offline</title>')
-  [void]$builder.AppendLine('  <style>')
-  [void]$builder.AppendLine($styleBlock.TrimEnd())
-  [void]$builder.AppendLine('  </style>')
-  [void]$builder.AppendLine('</head>')
-  [void]$builder.AppendLine('<body>')
-  [void]$builder.AppendLine('  <div class="app">')
-  [void]$builder.AppendLine('    <header class="page-header">')
-  [void]$builder.AppendLine('      <div>')
-  [void]$builder.AppendLine('        <h1>Inventario offline</h1>')
-  [void]$builder.AppendLine('        <p class="muted" id="generated-at"></p>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('    </header>')
-  [void]$builder.AppendLine('    <section class="toolbar">')
-  [void]$builder.AppendLine('      <div class="search-box">')
-  [void]$builder.AppendLine('        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2a8 8 0 105.293 14.003l4.352 4.354a1 1 0 001.414-1.414l-4.354-4.352A8 8 0 0010 2zm0 2a6 6 0 110 12A6 6 0 0110 4z"/></svg>')
-  [void]$builder.AppendLine('        <input id="global-search" type="search" placeholder="Buscar por nombre, ruta o hash" autocomplete="off" />')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('      <div class="toolbar-buttons">')
-  [void]$builder.AppendLine('        <button type="button" class="btn" id="reset-filters">Reset filtros</button>')
-  [void]$builder.AppendLine('        <button type="button" class="btn primary" id="export-csv">Exportar CSV</button>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('    </section>')
-  [void]$builder.AppendLine('    <section class="chip-bar">')
-  [void]$builder.AppendLine('      <div class="chip-group">')
-  [void]$builder.AppendLine('        <span class="chip-label">Unidades</span>')
-  [void]$builder.AppendLine('        <div class="chip-set" id="drive-chips" data-chip="drive"></div>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('      <div class="chip-group">')
-  [void]$builder.AppendLine('        <span class="chip-label">Tipos</span>')
-  [void]$builder.AppendLine('        <div class="chip-set" id="type-chips" data-chip="type"></div>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('    </section>')
-  [void]$builder.AppendLine('    <section class="stats">')
-  [void]$builder.AppendLine('      <div class="stats-grid">')
-  [void]$builder.AppendLine('        <article class="stat-card">')
-  [void]$builder.AppendLine('          <span class="stat-label">Archivos visibles</span>')
-  [void]$builder.AppendLine('          <span class="stat-value" id="stat-count">0</span>')
-  [void]$builder.AppendLine('          <span class="stat-sub" id="stat-total"></span>')
-  [void]$builder.AppendLine('        </article>')
-  [void]$builder.AppendLine('        <article class="stat-card">')
-  [void]$builder.AppendLine('          <span class="stat-label">Tamano visible</span>')
-  [void]$builder.AppendLine('          <span class="stat-value" id="stat-size">0 B</span>')
-  [void]$builder.AppendLine('          <span class="stat-sub" id="stat-size-total"></span>')
-  [void]$builder.AppendLine('        </article>')
-  [void]$builder.AppendLine('        <article class="stat-card">')
-  [void]$builder.AppendLine('          <span class="stat-label">Resumen por unidad</span>')
-  [void]$builder.AppendLine('          <ul class="stat-list" id="stat-drive"></ul>')
-  [void]$builder.AppendLine('        </article>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('    </section>')
-  [void]$builder.AppendLine('    <section class="legend">')
-  [void]$builder.AppendLine('      <h2>Como usar</h2>')
-  [void]$builder.AppendLine('      <ul>')
-  [void]$builder.AppendLine('        <li>Busca por nombre, ruta o hash con el cuadro superior.</li>')
-  [void]$builder.AppendLine('        <li>Combina chips de unidad y tipo para acotar el inventario.</li>')
-  [void]$builder.AppendLine('        <li>Usa los filtros de columna para coincidencias exactas o comparaciones de tamano (ej. &gt;2GB).</li>')
-  [void]$builder.AppendLine('        <li>Los botones de cada fila permiten abrir la ruta o copiarla al portapapeles.</li>')
-  [void]$builder.AppendLine('        <li>Exporta el conjunto visible a CSV para compartir un corte puntual.</li>')
-  [void]$builder.AppendLine('      </ul>')
-  [void]$builder.AppendLine('    </section>')
-  [void]$builder.AppendLine('    <section class="table-panel">')
-  [void]$builder.AppendLine('      <div class="table-wrap">')
-  [void]$builder.AppendLine('        <table id="inventory-table">')
-  [void]$builder.AppendLine('          <thead>')
-  [void]$builder.AppendLine('            <tr>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="name">Nombre<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="drive">Unidad<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="type">Tipo<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable numeric" data-sort="size">Tamano<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="last">Modificado<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="sha">SHA<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th class="sortable" data-sort="path">Ruta<span class="sort-indicator"></span></th>')
-  [void]$builder.AppendLine('              <th>Acciones</th>')
-  [void]$builder.AppendLine('            </tr>')
-  [void]$builder.AppendLine('            <tr class="filters">')
-  [void]$builder.AppendLine('              <th><input data-filter="name" placeholder="Nombre" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="drive" placeholder="Unidad" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="type" placeholder="Tipo" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="size" placeholder="Tamano" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="last" placeholder="Fecha" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="sha" placeholder="SHA" /></th>')
-  [void]$builder.AppendLine('              <th><input data-filter="path" placeholder="Ruta" /></th>')
-  [void]$builder.AppendLine('              <th></th>')
-  [void]$builder.AppendLine('            </tr>')
-  [void]$builder.AppendLine('          </thead>')
-  [void]$builder.AppendLine('          <tbody></tbody>')
-  [void]$builder.AppendLine('        </table>')
-  [void]$builder.AppendLine('      </div>')
-  [void]$builder.AppendLine('      <div class="empty" id="empty-state" hidden>No hay filas con los filtros actuales.</div>')
-  [void]$builder.AppendLine('    </section>')
-  [void]$builder.AppendLine('  </div>')
-  [void]$builder.AppendLine("  <script id=\"inventory-meta\" type=\"application/json\">$metaPayload</script>")
-  [void]$builder.AppendLine("  <script id=\"inventory-data\" type=\"application/json\">$dataPayload</script>")
-  [void]$builder.AppendLine('  <script>')
-  [void]$builder.AppendLine($scriptBlock.TrimEnd())
-  [void]$builder.AppendLine('  </script>')
-  [void]$builder.AppendLine('</body>')
-  [void]$builder.AppendLine('</html>')
+  $duplicateFilesCount = ($files | Where-Object { $_.DuplicateLabel -eq 'Duplicado' }).Count
+  $duplicateGroupCount = ($hashGroups | Where-Object { $_.Count -gt 1 }).Count
 
-  $encoding = New-Object System.Text.UTF8Encoding($false)
-  [System.IO.File]::WriteAllText($outputPath, $builder.ToString(), $encoding)
-  Write-Host "Inventario renderizado en: $outputPath"
+  $summary = $files | Group-Object Drive | ForEach-Object {
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
+    [pscustomobject]@{
+      Drive = $_.Name
+      Count = $_.Count
+      GB    = [math]::Round($sumBytes / 1GB, 2)
+    }
+  } | Sort-Object Drive
+  if (-not $summary) {
+    $summary = @()
+  }
 
-  if ($docsTargetPath -and -not [string]::Equals($docsTargetPath, $outputPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+  $metaByDrive = if ($summary) { $summary | Where-Object { $_.Drive } | ForEach-Object { "{0}: {1} files" -f $_.Drive, $_.Count } } else { @() }
+  $metaSegments = @("Total: {0}" -f $files.Count)
+  if ($metaByDrive -and $metaByDrive.Count) {
+    $metaSegments += $metaByDrive
+  }
+  $meta = ($metaSegments -join ' | ').Trim()
+  $metaJson = ($meta | ConvertTo-Json -Compress)
+
+  $fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
+  $totalCount = ($summary | Measure-Object Count -Sum).Sum
+  if (-not $totalCount) { $totalCount = 0 }
+  $totalGB    = ($summary | Measure-Object GB -Sum).Sum
+  if (-not $totalGB) { $totalGB = 0 }
+
+  
+  $formattedTotalCount = [string]::Format('{0:n0}', $totalCount)
+  $formattedTotalGB = [string]::Format('{0:n2}', $totalGB)
+  $formattedDuplicateFiles = [string]::Format('{0:n0}', $duplicateFilesCount)
+  $formattedDuplicateGroups = [string]::Format('{0:n0}', $duplicateGroupCount)
+
+  $topFolderGroups = $files | Group-Object {
+    $relative = ($_.FullPath -replace '^[A-Za-z]:\\', '')
+    if (-not $relative) { return "{0}|(raiz)" -f $_.Drive }
+    $segment = $relative.Split('\')[0]
+    if (-not $segment) { return "{0}|(raiz)" -f $_.Drive }
+    return "{0}|{1}" -f $_.Drive, $segment
+  }
+
+  $topFolders = $topFolderGroups | ForEach-Object {
+    $parts = $_.Name.Split('|', 2)
+    $driveId = $parts[0]
+    $folderId = if ($parts.Count -gt 1) { $parts[1] } else { '(raiz)' }
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
+    [pscustomobject]@{
+      Drive = $driveId
+      Folder = $folderId
+      Count = $_.Count
+      GB    = [math]::Round($sumBytes/1GB, 2)
+    }
+  }
+
+  $topExtensions = $files | Group-Object Ext | ForEach-Object {
+    $sumBytes = ($_.Group | Measure-Object Bytes -Sum).Sum
+    [pscustomobject]@{
+      Ext   = $_.Name
+      Count = $_.Count
+      GB    = [math]::Round($sumBytes/1GB, 2)
+    }
+  } | Sort-Object GB -Descending | Select-Object -First 8
+
+  $dataset = $files | ForEach-Object {
+    $lastWriteIso = if ($_.LastWrite -and $_.LastWrite -ne [datetime]::MinValue) { $_.LastWrite.ToString('yyyy-MM-ddTHH:mm:ss') } else { '' }
+    $fullPathValue = $_.FullPath
+    if (-not $fullPathValue) { $fullPathValue = '' }
+    [pscustomobject]@{
+      Drive          = $_.Drive
+      Folder         = $_.Folder
+      Name           = $_.Name
+      Ext            = $_.Ext
+      Duplicate      = $_.DuplicateLabel
+      DuplicateCount = $_.DuplicateCount
+      MB             = $_.MB
+      LastWrite      = $lastWriteIso
+      Hash           = $_.Hash
+      FullPath       = $fullPathValue
+      FullPathLower  = $fullPathValue.ToLower()
+    }
+  }
+
+  $css = @"
+<style>
+  :root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --chip:#1f2937; --accent:#22d3ee; }
+  *{box-sizing:border-box}
+  body{margin:16px;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Arial}
+  h1{margin:0 0 10px;font-size:22px}
+  h2{margin:0 0 12px;font-size:18px;color:#e2e8f0}
+  .muted{color:var(--muted)}
+  .wrap{max-width:1200px;margin:0 auto}
+  .bar{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+  .pill{background:var(--chip);padding:6px 12px;border-radius:999px;border:1px solid #1f2937}
+  .pill b{color:#fff}
+  .panel{background:rgba(15,23,42,0.35);border:1px solid #1f2937;border-radius:16px;padding:18px;margin:18px 0}
+  .panel p{margin:0 0 12px}
+  .cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:14px}
+  .card h3{margin:0 0 6px;font-size:16px;color:#e2e8f0}
+  .insights{list-style:none;margin:8px 0 0;padding:0;font-size:13px;color:#cbd5e1}
+  .insights li{margin:4px 0;line-height:1.4}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:#1f2937;border:1px solid #334155;border-radius:999px;padding:3px 10px;font-size:12px;color:#e2e8f0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin:12px 0}
+  .filter{display:flex;flex-direction:column;gap:6px;min-width:260px}
+  .filter-controls{display:flex;gap:8px;align-items:center}
+  .filter-controls input{flex:1 1 260px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:8px;padding:8px 10px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .selector{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 10px;border-radius:8px}
+  .table-wrap{overflow:auto;margin-top:12px}
+  thead tr.filters th{background:#0b1220;padding:6px;color:#94a3b8;font-weight:500}
+  .column-filter{width:100%;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:6px;padding:6px 8px;font-size:12px}
+  .column-filter::placeholder{color:#64748b}
+  .btn-open{padding:.35rem .6rem;border:0;border-radius:.4rem;background:#2b6cb0;color:#fff;cursor:pointer}
+  .btn-open:focus{outline:2px solid #90cdf4;outline-offset:2px}
+  .cell-path{white-space:nowrap;max-width:520px;overflow:hidden;text-overflow:ellipsis}
+  .cell-path .path-text{color:#38bdf8;cursor:pointer}
+  .cell-path .path-text:hover{text-decoration:underline}
+  .file-link{color:#38bdf8;text-decoration:none}
+  .file-link:hover{text-decoration:underline}
+  .btn{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
+  .btn:hover{background:#1d283a}
+  .btn.secondary{background:#13213a;border-color:#233554}
+  .btn.secondary:hover{background:#1f2f4c}
+  .btn.ghost{background:transparent;border-color:#334155}
+  .btn.ghost:hover{background:#1d283a}
+  .pager{display:flex;gap:10px;align-items:center;margin:12px 0 18px}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:13px}
+  thead th{color:#cbd5e1;text-align:left;padding:8px;background:#0f172a;border:1px solid #1f2937;border-bottom:0}
+  tbody tr{background:#111f37;border:1px solid #1f2937}
+  tbody td{padding:8px;vertical-align:top}
+  tbody tr:hover{outline:1px solid var(--accent)}
+  tbody tr.selected{outline:2px solid var(--accent);background:#1a2b4d}
+  .path .path-text{color:#38bdf8;cursor:pointer}
+  .path .path-text:hover{text-decoration:underline}
+  td.path{font-family:Consolas,Monaco,monospace}
+  .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .summary-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  .summary-table thead th{background:#0b1220;color:#e2e8f0;text-align:left;padding:8px;border-bottom:1px solid #1f2937}
+  .summary-table tbody td{padding:6px 8px;border-bottom:1px solid #1f2937;color:#cbd5e1}
+  .summary-table tbody tr:hover{background:#17233b}
+</style>
+"@
+
+  $shim = @"
+<script>
+(function(){
+  const global = window;
+  const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
+  function computeMeta(rows, meta) {
+    if (typeof meta === "string" && meta.trim().length > 0) {
+      return meta;
+    }
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const drives = {};
+    for (let index = 0; index < safeRows.length; index++) {
+      const entry = safeRows[index];
+      if (!entry || !entry.Drive) { continue; }
+      const key = String(entry.Drive).trim().toUpperCase();
+      if (!key) { continue; }
+      drives[key] = (drives[key] || 0) + 1;
+    }
+    const parts = Object.keys(drives).sort().map(function(key) {
+      return key + ": " + drives[key] + " files";
+    });
+    const total = "Total: " + safeRows.length;
+    return parts.length ? total + " | " + parts.join(" | ") : total;
+  }
+  if (typeof inventory.setData !== "function") {
+    inventory.setData = function(rows, meta) {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const summary = computeMeta(safeRows, meta);
+      global.__DATA__ = safeRows;
+      global.__META__ = summary;
+      inventory._lastRows = safeRows;
+      inventory._lastMeta = summary;
+      return safeRows;
+    };
+  }
+  if (!inventory._shimSeeded) {
+    inventory._shimSeeded = true;
+    const legacyRows = Array.isArray(global.__DATA__) ? global.__DATA__ : (Array.isArray(global._DATA_) ? global._DATA_ : null);
+    const legacyMeta = typeof global.__META__ !== "undefined" ? global.__META__ : global._META_;
+    if (legacyRows) {
+      const compatMeta = computeMeta(legacyRows, legacyMeta);
+      inventory.setData(legacyRows, compatMeta);
+    }
+  }
+})();
+</script>
+"@
+
+  $js = @"
+<script>
+(function(){
+  const data = window.__DATA__ || [];
+  const PAGE = 200;
+  let page = 0;
+  let filtered = data.slice();
+
+  const tbody = document.querySelector('#tbl tbody');
+  const input = document.getElementById('q');
+  const clear = document.getElementById('clr');
+  const stats = document.getElementById('count');
+  const info = document.getElementById('info');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const download = document.getElementById('download');
+  const downloadAll = document.getElementById('download-all');
+  const column = document.getElementById('column');
+  const columnInputs = Array.from(document.querySelectorAll('.column-filter'));
+
+  const getters = {
+    Drive: row => (row.Drive || ''),
+    Folder: row => (row.Folder || ''),
+    Name: row => (row.Name || ''),
+    Ext: row => (row.Ext || ''),
+    Duplicate: row => (row.Duplicate || ''),
+    DuplicateCount: row => String(row.DuplicateCount ?? ''),
+    MB: row => String(row.MB ?? ''),
+    LastWrite: row => (row.LastWrite || ''),
+    Hash: row => (row.Hash || ''),
+    FullPath: row => (row.FullPath || '')
+  };
+
+  function fmtDate(value){
+    return (value || '').replace('T',' ').slice(0,19);
+  }
+
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[ch] ?? ch);
+  }
+
+  function toFileHref(rawPath){
+    if (!rawPath) { return ''; }
+    let pathValue = String(rawPath);
+    if (pathValue.startsWith('\\?\')) {
+      pathValue = pathValue.slice(4);
+    }
+    pathValue = pathValue.replace(/\//g, '\');
+    const driveMatch = pathValue.match(/^([A-Za-z]):\\(.*)$/);
+    if (!driveMatch) { return ''; }
+    const drive = driveMatch[1];
+    const remainder = driveMatch[2] || '';
+    const segments = remainder
+      .split(/\\+/)
+      .filter(Boolean)
+      .map(segment => encodeURIComponent(segment));
+    const tail = segments.join('/');
+    return tail ? ('file:///' + drive + ':/' + tail) : ('file:///' + drive + ':/');
+  }
+  function buildRow(row){
+    const rawPath = row.FullPath || '';
+    const size = Number(row.MB ?? 0);
+    const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+    const safeDrive = escapeHtml(row.Drive || '');
+    const safeFolder = escapeHtml(row.Folder || '');
+    const safeName = escapeHtml(row.Name || '');
+    const safeExt = escapeHtml(row.Ext || '');
+    const dupLabel = row.Duplicate || '';
+    const dupCount = Number(row.DuplicateCount ?? 0);
+    const dupText = dupLabel === 'Duplicado' && dupCount > 1 ? dupLabel + ' (x' + dupCount + ')' : dupLabel;
+    const safeDup = escapeHtml(dupText);
+    const safeHash = escapeHtml(row.Hash || '');
+    const safePath = escapeHtml(rawPath);
+    const safeAttr = escapeHtml(rawPath);
+    const nameLabel = safeName || '(sin nombre)';
+    const pathLabel = safePath || '(sin ruta)';
+    return '<td>' + safeDrive + '</td>' +
+           '<td>' + safeFolder + '</td>' +
+           '<td>' + nameLabel + '</td>' +
+           '<td>' + safeExt + '</td>' +
+           '<td>' + safeDup + '</td>' +
+           '<td>' + sizeCell + '</td>' +
+           '<td>' + fmtDate(row.LastWrite) + '</td>' +
+           '<td>' + safeHash + '</td>' +
+           '<td class="path cell-path" data-full-path="' + safeAttr + '"><button class="btn-open" type="button" data-path="' + safeAttr + '">Abrir</button> <span class="path-text" title="' + safeAttr + '">' + pathLabel + '</span></td>';
+  }
+
+  function selectRow(rowEl, toggle){
+    if (!rowEl) { return; }
+    const isSelected = rowEl.classList.contains('selected');
+    tbody.querySelectorAll('tr.selected').forEach(tr => {
+      if (tr !== rowEl) { tr.classList.remove('selected'); }
+    });
+    if (toggle && isSelected) {
+      rowEl.classList.remove('selected');
+    } else {
+      rowEl.classList.add('selected');
+    }
+  }
+
+  tbody.addEventListener('click', (event) => {
+    const rowEl = event.target.closest('tbody tr');
+    if (!rowEl) { return; }
+    const openButton = event.target.closest('.btn-open');
+    if (openButton) {
+      const rawBtn = openButton.dataset.path || '';
+      const hrefBtn = toFileHref(rawBtn);
+      selectRow(rowEl, false);
+      if (hrefBtn) {
+        window.open(hrefBtn, '_blank');
+      }
+      event.preventDefault();
+      return;
+    }
+    const pathSpan = event.target.closest('.path-text');
+    if (pathSpan) {
+      const cell = pathSpan.closest('td.path');
+      const raw = cell?.dataset.fullPath || '';
+      selectRow(rowEl, false);
+      const href = toFileHref(raw);
+      if (href) {
+        window.open(href, '_blank');
+      }
+      event.preventDefault();
+      return;
+    }
+    selectRow(rowEl, true);
+  });
+
+  function render(){
+    tbody.innerHTML = '';
+    const start = page * PAGE;
+    const slice = filtered.slice(start, start + PAGE);
+    for (const row of slice) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = buildRow(row);
+      tbody.appendChild(tr);
+    }
+    const totalRows = filtered.length;
+    const totalPages = totalRows === 0 ? 0 : Math.ceil(totalRows / PAGE);
+    if (totalPages === 0) {
+      info.textContent = 'Sin resultados';
+      page = 0;
+      prev.disabled = true;
+      next.disabled = true;
+    } else {
+      info.textContent = 'Pagina '+ (page + 1) +' de '+ totalPages;
+      prev.disabled = page <= 0;
+      next.disabled = page >= totalPages - 1;
+    }
+    stats.textContent = totalRows.toLocaleString() +' de '+ data.length.toLocaleString() +' archivos visibles';
+  }
+
+  function apply(){
+    const raw = (input?.value || '').trim().toLowerCase();
+    const selected = column ? column.value : 'all';
+    const activeColumns = columnInputs
+      .map(el => ({ field: el.dataset.field, value: (el.value || '').trim().toLowerCase() }))
+      .filter(entry => entry.field && entry.value);
+
+    filtered = data.filter(row => {
+      if (raw) {
+        if (selected === 'all') {
+          const terms = raw.split(/\s+/).filter(Boolean);
+          const hay = [row.FullPathLower || '', row.Ext || '', row.Name || '', row.Folder || '', row.Drive || ''].join(' ');
+          if (!terms.every(term => hay.includes(term))) {
+            return false;
+          }
+        } else {
+          const getter = getters[selected] || (() => '');
+          if (!getter(row).toLowerCase().includes(raw)) {
+            return false;
+          }
+        }
+      }
+
+      for (const filter of activeColumns) {
+        const getter = getters[filter.field] || (() => '');
+        if (!getter(row).toLowerCase().includes(filter.value)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    page = 0;
+    render();
+  }
+
+  function downloadRows(rows, filename){
+    if (!rows.length) {
+      alert('No hay filas para descargar con el filtro actual.');
+      return;
+    }
+    const header = ['Drive','Folder','Name','Ext','Duplicado','DuplicadoGrupo','MB','LastWrite','Hash','Path'];
+    const lines = rows.map(row => {
+      const size = Number(row.MB ?? 0);
+      const sizeCell = Number.isFinite(size) ? size.toFixed(2) : '0.00';
+      return [
+        row.Drive,
+        row.Folder,
+        row.Name,
+        row.Ext,
+        row.Duplicate,
+        row.DuplicateCount,
+        sizeCell,
+        fmtDate(row.LastWrite),
+        row.Hash,
+        row.FullPath
+      ].map(value => '"'+ String(value ?? '').replace(/"/g,'""') +'"').join(',');
+    });
+    const csv = [header.join(','), ...lines].join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  input?.addEventListener('input', () => window.requestAnimationFrame(apply));
+  clear?.addEventListener('click', () => {
+    input.value = '';
+    columnInputs.forEach(el => { el.value = ''; });
+    apply();
+  });
+  column?.addEventListener('change', apply);
+  columnInputs.forEach(el => {
+    el.addEventListener('input', () => window.requestAnimationFrame(apply));
+  });
+  prev?.addEventListener('click', () => { if (page > 0) { page--; render(); } });
+  next?.addEventListener('click', () => {
+    const guard = Math.ceil(filtered.length / PAGE);
+    if (page < guard - 1) { page++; render(); }
+  });
+
+  download?.addEventListener('click', () => downloadRows(filtered, 'inventario_filtrado.csv'));
+  downloadAll?.addEventListener('click', () => downloadRows(data, 'inventario_completo.csv'));
+
+  render();
+})();
+</script>
+"@
+
+  $sb = [System.Text.StringBuilder]::new()
+  $null = $sb.AppendLine('<!doctype html>')
+  $null = $sb.AppendLine('<html lang="es"><head><meta charset="utf-8">')
+  $null = $sb.AppendLine('<meta name="viewport" content="width=device-width, initial-scale=1">')
+  $null = $sb.AppendLine('<title>Inventario Offline H/I/J</title>')
+  $null = $sb.AppendLine($css)
+  $null = $sb.AppendLine('</head><body><div class="wrap">')
+  $null = $sb.AppendLine('<h1>Inventario H / I / J (offline)</h1>')
+  $chips = ($summary | ForEach-Object { "<span class='pill nowrap'><b>$($_.Drive):</b> $([string]::Format('{0:n0}', $_.Count)) archivos - $([string]::Format('{0:n2}', $_.GB)) GB</span>" }) -join " "
+  $chips += " <span class='pill nowrap'><b>TOTAL</b>: $([string]::Format('{0:n0}', $totalCount)) archivos - $([string]::Format('{0:n2}', $totalGB)) GB</span>"
+  $chips += " <span class='pill nowrap'><b>Duplicados</b>: $formattedDuplicateFiles archivos en $formattedDuplicateGroups grupos</span>"
+  $null = $sb.AppendLine("<div class='bar'>$chips</div>")
+  $null = $sb.AppendLine("<section class='panel dataset'>")
+  $null = $sb.AppendLine("<h2>Explorador interactivo</h2>")
+  $null = $sb.AppendLine("<p>Filtra por cualquier fragmento y exporta la vista actual o el inventario completo en CSV.</p>")
+  $null = $sb.AppendLine("<div class='toolbar'>")
+  $null = $sb.AppendLine("  <div class='filter'>")
+  $null = $sb.AppendLine("    <div class='filter-controls'>")
+  $null = $sb.AppendLine("      <select id='column' class='selector'>")
+  $null = $sb.AppendLine("        <option value='all'>Todos los campos</option>")
+  $null = $sb.AppendLine("        <option value='Drive'>Unidad</option>")
+  $null = $sb.AppendLine("        <option value='Folder'>Carpeta</option>")
+  $null = $sb.AppendLine("        <option value='Name'>Nombre</option>")
+  $null = $sb.AppendLine("        <option value='Ext'>Extension</option>")
+  $null = $sb.AppendLine("        <option value='Duplicate'>Estado duplicado</option>")
+  $null = $sb.AppendLine("        <option value='Hash'>Hash</option>")
+  $null = $sb.AppendLine("        <option value='MB'>Tamano (MB)</option>")
+  $null = $sb.AppendLine("        <option value='LastWrite'>Fecha</option>")
+  $null = $sb.AppendLine("        <option value='FullPath'>Ruta completa</option>")
+  $null = $sb.AppendLine("      </select>")
+  $null = $sb.AppendLine("      <input id='q' type='text' placeholder='Filtrar por carpeta, nombre o extension...'>")
+  $null = $sb.AppendLine("      <button id='clr' class='btn ghost'>Limpiar</button>")
+  $null = $sb.AppendLine("    </div>")
+  $null = $sb.AppendLine("    <span id='count' class='muted small'></span>")
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine("  <div class='actions'>")
+  $null = $sb.AppendLine("    <button id='download' class='btn secondary'>Descargar vista (CSV)</button>")
+  $null = $sb.AppendLine("    <button id='download-all' class='btn secondary ghost'>Descargar todo (CSV)</button>")
+  $null = $sb.AppendLine("    <a id='popout' class='btn ghost' href='inventario_interactivo_offline.html' target='_blank' rel='noopener'>Abrir solo la tabla</a>")
+  $null = $sb.AppendLine("  </div>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine("<div class='pager'>")
+  $null = $sb.AppendLine("  <button id='prev' class='btn'>&larr; Prev</button>")
+  $null = $sb.AppendLine("  <span id='info' class='muted small'></span>")
+  $null = $sb.AppendLine("  <button id='next' class='btn'>Next &rarr;</button>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine("<div class='table-wrap'>")
+  $null = $sb.AppendLine("  <table id='tbl'><thead>")
+  $null = $sb.AppendLine("    <tr><th>Drive</th><th>Folder</th><th>Name</th><th>Ext</th><th>Duplicado</th><th>MB</th><th>LastWrite</th><th>Hash</th><th>Path</th></tr>")
+  $null = $sb.AppendLine("    <tr class='filters'><th><input class='column-filter' data-field='Drive' placeholder='Filtrar unidad'></th><th><input class='column-filter' data-field='Folder' placeholder='Filtrar carpeta'></th><th><input class='column-filter' data-field='Name' placeholder='Filtrar nombre'></th><th><input class='column-filter' data-field='Ext' placeholder='Filtrar extension'></th><th><input class='column-filter' data-field='Duplicate' placeholder='Filtrar duplicado'></th><th><input class='column-filter' data-field='MB' placeholder='Filtrar MB'></th><th><input class='column-filter' data-field='LastWrite' placeholder='Filtrar fecha'></th><th><input class='column-filter' data-field='Hash' placeholder='Filtrar hash'></th><th><input class='column-filter' data-field='FullPath' placeholder='Filtrar ruta'></th></tr>")
+  $null = $sb.AppendLine("  </thead><tbody></tbody></table>")
+  $null = $sb.AppendLine('</div>')
+  $null = $sb.AppendLine('</section>')
+  $analysisIntro = "Inventario generado el $fecha. Se excluyen carpetas de sistema, reciclaje y cuarentenas para evitar contar duplicados ya tratados. Detectados $formattedDuplicateFiles archivos duplicados en $formattedDuplicateGroups grupos (segun hash SHA256)."
+  $null = $sb.AppendLine("<section class='panel intro'>")
+  $null = $sb.AppendLine("<h2>Resumen rapido</h2>")
+  $null = $sb.AppendLine("<p>$(HtmlEnc $analysisIntro)</p>")
+  $null = $sb.AppendLine("<p class='muted small'>Los enlaces <code>file://</code> solo se abren de forma local.</p>")
+  $null = $sb.AppendLine("<p class='muted small'>Las carpetas <code>_quarantine*</code> se omiten porque contienen copias que ya cuentan con respaldo o estan en revision.</p>")
+  $null = $sb.AppendLine('</section>')
+
+  $null = $sb.AppendLine("<section class='panel'>")
+  $null = $sb.AppendLine("<h2>Carpetas destacadas por unidad</h2>")
+  $null = $sb.AppendLine("<p>Ayuda a decidir que zonas respaldar o depurar primero.</p>")
+  if ($topFolders) {
+    $driveCardsBuilder = [System.Text.StringBuilder]::new()
+    foreach ($driveInfo in $summary) {
+      $driveId = $driveInfo.Drive
+      $driveCountFmt = [string]::Format('{0:n0}', $driveInfo.Count)
+      $driveGBFmt = [string]::Format('{0:n2}', $driveInfo.GB)
+      $null = $driveCardsBuilder.AppendLine("<article class='card'>")
+      $null = $driveCardsBuilder.AppendLine("<h3>Unidad $driveId</h3>")
+      $null = $driveCardsBuilder.AppendLine("<p>$driveCountFmt archivos &middot; $driveGBFmt GB</p>")
+      $null = $driveCardsBuilder.AppendLine("<ul class='insights'>")
+      $driveTop = $topFolders | Where-Object { $_.Drive -eq $driveId } | Sort-Object GB -Descending | Select-Object -First 3
+      if (-not $driveTop) {
+        $null = $driveCardsBuilder.AppendLine("<li>Sin carpetas destacadas</li>")
+      } else {
+        foreach ($entry in $driveTop) {
+          $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\ (raiz)' -f $driveId } else { '{0}:\{1}' -f $driveId, $entry.Folder }
+          $safeLabel = HtmlEnc($folderLabel)
+          $countFmt = [string]::Format('{0:n0}', $entry.Count)
+          $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+          $null = $driveCardsBuilder.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+        }
+      }
+      $null = $driveCardsBuilder.AppendLine('</ul>')
+      $null = $driveCardsBuilder.AppendLine('</article>')
+    }
+    $driveCardsHtml = $driveCardsBuilder.ToString().Trim()
+    if ($driveCardsHtml) {
+      $null = $sb.AppendLine("<div class='cards'>")
+      $null = $sb.AppendLine($driveCardsHtml)
+      $null = $sb.AppendLine('</div>')
+    }
+  } else {
+    $null = $sb.AppendLine("<p class='muted'>No hay carpetas destacadas disponible.</p>")
+  }
+  $null = $sb.AppendLine('</section>')
+
+  if ($topExtensions) {
+    $null = $sb.AppendLine("<section class='panel'>")
+    $null = $sb.AppendLine("<h2>Tipos de archivo predominantes</h2>")
+    $null = $sb.AppendLine("<p>Formatos pesados sirven como referencia para planes de copia o limpieza.</p>")
+    $null = $sb.AppendLine("<ul class='insights'>")
+    foreach ($extStat in $topExtensions) {
+      $label = if ($extStat.Ext -eq '(sin)') { 'Sin extension' } else { ($extStat.Ext).ToUpper() }
+      $safeLabel = HtmlEnc($label)
+      $countFmt = [string]::Format('{0:n0}', $extStat.Count)
+      $gbFmt = [string]::Format('{0:n2}', $extStat.GB)
+      $null = $sb.AppendLine("<li><span class='tag'>$safeLabel</span> $countFmt archivos &middot; $gbFmt GB</li>")
+    }
+    $null = $sb.AppendLine('</ul>')
+    $null = $sb.AppendLine('</section>')
+  }
+
+  $folderRanking = @()
+  if ($topFolders) {
+    $folderRanking = @($topFolders | Where-Object { $_.GB -gt 0.05 } | Sort-Object GB -Descending)
+    if (-not $folderRanking.Count) {
+      $folderRanking = @($topFolders | Sort-Object GB -Descending | Select-Object -First 12)
+    } else {
+      $folderRanking = @($folderRanking | Select-Object -First 12)
+    }
+  }
+
+  if ($folderRanking.Count) {
+    $null = $sb.AppendLine("<section class='panel'>")
+    $null = $sb.AppendLine("<h2>Resumen por carpeta principal</h2>")
+    $null = $sb.AppendLine("<p>Ranking de carpetas superiores ordenadas por espacio ocupado (hasta 12 entradas).</p>")
+    $null = $sb.AppendLine("<table class='summary-table'>")
+    $null = $sb.AppendLine("<thead><tr><th>Unidad</th><th>Carpeta</th><th>Archivos</th><th>GB</th></tr></thead><tbody>")
+    foreach ($entry in $folderRanking) {
+      $folderLabel = if ($entry.Folder -eq '(raiz)') { '{0}:\\ (raiz)' -f $entry.Drive } else { '{0}:\\{1}' -f $entry.Drive, $entry.Folder }
+      $safeLabel = HtmlEnc($folderLabel)
+      $countFmt = [string]::Format('{0:n0}', $entry.Count)
+      $gbFmt = [string]::Format('{0:n2}', $entry.GB)
+      $null = $sb.AppendLine("<tr><td>$($entry.Drive)</td><td>$safeLabel</td><td class='nowrap'>$countFmt</td><td class='nowrap'>$gbFmt GB</td></tr>")
+    }
+    $null = $sb.AppendLine('</tbody></table>')
+    $null = $sb.AppendLine('</section>')
+  }
+
+  $json = $dataset | ConvertTo-Json -Depth 3 -Compress
+  $json = $json -replace '</script','<\/script'
+  $null = $sb.AppendLine('<script>window.__DATA__ = ')
+  $null = $sb.AppendLine($json)
+  $null = $sb.AppendLine(';</script>')
+  $null = $sb.AppendLine("<script>window.__META__ = $metaJson;</script>")
+  $null = $sb.AppendLine("<script>(function(){ if (window.__INVENTARIO__ && typeof window.__INVENTARIO__.setData === 'function') { window.__INVENTARIO__.setData(window.__DATA__ || [], typeof window.__META__ !== 'undefined' ? window.__META__ : 'Cargado por compatibilidad'); }})();</script>")
+  $null = $sb.AppendLine($shim)
+  $null = $sb.AppendLine($js)
+  $null = $sb.AppendLine('</div></body></html>')
+
+  $sb.ToString() | Set-Content -Path $outputPath -Encoding UTF8
+  Write-Host "Inventario generado en: $outputPath"
+
+
+  if ($docsTargetPath) {
     Copy-Item -LiteralPath $outputPath -Destination $docsTargetPath -Force
-    Write-Host "Copia adicional en: $docsTargetPath"
+    Write-Host "Copiado a: $docsTargetPath"
   }
 
   if ($Push) {
     $git = Get-Command git -ErrorAction Stop
     $targets = @($outputPath)
     if ($docsTargetPath) { $targets += $docsTargetPath }
-    $uniqueTargets = $targets | Sort-Object -Unique
-    foreach ($target in $uniqueTargets) {
-      & $git.Source add -- $target
+    $relative = @()
+    foreach ($target in ($targets | Sort-Object -Unique)) {
+      if (Test-Path $target) {
+        $relative += (Resolve-Path -LiteralPath $target -Relative)
+      }
     }
-    $status = & $git.Source status --short
-    if ($status) {
+    foreach ($item in $relative) {
+      & $git.Source add -- $item
+    }
+    $status = (& $git.Source status --short)
+    if (-not $status) {
+      Write-Host 'No hay cambios para commitear.'
+    } else {
       & $git.Source commit -m $CommitMessage | Out-Null
       & $git.Source push
-      Write-Host 'Cambios enviados.'
-    } else {
-      Write-Host 'Sin cambios para commitear.'
+      Write-Host 'Cambios enviados a remoto.'
     }
   }
 }
 finally {
   Pop-Location
 }
+

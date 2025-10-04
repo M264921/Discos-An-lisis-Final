@@ -44,6 +44,35 @@
         "InventoryHtml": { "type": "string", "description": "Ruta del HTML generado" }
       },
       "permissions": ["read", "write"]
+    },
+    {
+      "name": "build_hash_data",
+      "language": "powershell",
+      "path": "tools/build-hash-data.ps1",
+      "description": "Reconstruye docs/hash_data.csv a partir de index_by_hash.csv sin reescanear las unidades.",
+      "inputs": {
+        "RepoRoot": { "type": "string", "required": false, "description": "Raíz del repositorio" },
+        "IndexPath": { "type": "string", "required": false, "description": "CSV base index_by_hash.csv" },
+        "OutputCsv": { "type": "string", "required": false, "description": "Destino para hash_data.csv" }
+      },
+      "outputs": {
+        "HashCsv": { "type": "string", "description": "Ruta del CSV normalizado" }
+      },
+      "permissions": ["read", "write"]
+    },
+    {
+      "name": "generate_duplicates_table",
+      "language": "python",
+      "path": "tools/generate_duplicates_table.py",
+      "description": "Construye el visor interactivo de duplicados a partir de dupes_confirmed.csv.",
+      "inputs": {
+        "source": { "type": "string", "required": false, "description": "CSV de duplicados (por defecto dupes_confirmed.csv)" },
+        "target": { "type": "string", "required": false, "description": "HTML de salida" }
+      },
+      "outputs": {
+        "DuplicatesHtml": { "type": "string", "description": "Ruta del HTML generado" }
+      },
+      "permissions": ["read", "write"]
     }
   ]
 }

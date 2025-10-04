@@ -12,12 +12,22 @@
         "SweepMode": "None"
       },
       "tools_used": [
-        "tools/Move-I-Duplicates.ps1",
+        "tools/agents/repo-sweep.ps1",
         "tools/remove_nonmedia_duplicates.py",
-        "tools/make_inventory_offline.ps1"
+        "tools/Move-I-Duplicates.ps1",
+        "tools/build-hash-data.ps1",
+        "make_inventory_offline.ps1",
+        "tools/agents/make-inventory-offline-wrapper.ps1",
+        "tools/normalize-inventory-html.ps1",
+        "tools/inventory-inject-from-csv.ps1",
+        "tools/sanitize-inventory-html.ps1",
+        "tools/generate_duplicates_table.py"
       ],
       "artifacts": [
         "docs/inventario_interactivo_offline.html",
+        "docs/hash_data.csv",
+        "docs/Listado_Duplicados_interactivo.html",
+        "logs/make-inventory-wrapper.log",
         "logs/inventory-cleaner-*.log",
         "logs/repo-sweep-*.log",
         "logs/repo-sweep-dryrun-*.csv",
