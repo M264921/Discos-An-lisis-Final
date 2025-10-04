@@ -41,6 +41,7 @@ if ($SweepMode -ne "None") {
 
 $PyRemove = Join-Path $RepoRoot "tools/remove_nonmedia_duplicates.py"
 $MoveDupes = Join-Path $RepoRoot "tools/Move-I-Duplicates.ps1"
+$BuildHash = Join-Path $RepoRoot "tools/build-hash-data.ps1"
 $MakeInv = Join-Path $RepoRoot "tools/make_inventory_offline.ps1"
 if (-not (Test-Path $MakeInv)) {
   $MakeInv = Join-Path $RepoRoot "make_inventory_offline.ps1"
@@ -48,6 +49,7 @@ if (-not (Test-Path $MakeInv)) {
 $Wrapper = Join-Path $RepoRoot "tools/agents/make-inventory-offline-wrapper.ps1"
 $Normalizer = Join-Path $RepoRoot "tools/normalize-inventory-html.ps1"
 $Sanitizer = Join-Path $RepoRoot "tools/sanitize-inventory-html.ps1"
+$DupesExplorer = Join-Path $RepoRoot "tools/generate_duplicates_table.py"
 
 $pythonExe = $null
 foreach ($cand in @("python","py","python3")) {
@@ -76,6 +78,19 @@ if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
   & $MoveDupes -CsvPath "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
 } else {
   Log "SKIP: falta Move-I-Duplicates.ps1 o $DupesCsvPath"
+}
+
+$hashDataPath = Join-Path $OutputDirPath "hash_data.csv"
+if (Test-Path $BuildHash) {
+  Log "Regenerando docs/hash_data.csv ..."
+  & $BuildHash -RepoRoot "$RepoRoot" -IndexPath "index_by_hash.csv" -OutputCsv "$hashDataPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  if (Test-Path $hashDataPath) {
+    Log "OK: hash_data.csv actualizado"
+  } else {
+    Log "WARN: build-hash-data.ps1 no produjo $hashDataPath"
+  }
+} else {
+  Log "SKIP: tools/build-hash-data.ps1 no encontrado"
 }
 
 $ExpectedHtml = Join-Path $OutputDirPath "inventario_interactivo_offline.html"
@@ -121,6 +136,25 @@ if (Test-Path $ExpectedHtml) {
   Log "OK: HTML generado -> $ExpectedHtml"
 } else {
   Log "WARN: No se encontro $ExpectedHtml tras la ejecucion."
+}
+
+$dupesHtml = Join-Path $OutputDirPath "Listado_Duplicados_interactivo.html"
+if (Test-Path $DupesExplorer) {
+  if (-not (Test-Path $DupesCsvPath)) {
+    Log "SKIP: dupes_confirmed.csv no encontrado; no se genera Listado_Duplicados_interactivo.html"
+  } elseif ($pythonExe) {
+    Log "Generando Listado_Duplicados_interactivo.html ..."
+    & $pythonExe "$DupesExplorer" --source "$DupesCsvPath" --target "$dupesHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    if (Test-Path $dupesHtml) {
+      Log "OK: Listado_Duplicados_interactivo.html actualizado"
+    } else {
+      Log "WARN: No se encontro $dupesHtml tras ejecutar generate_duplicates_table.py"
+    }
+  } else {
+    Log "WARN: Python no detectado; se omite generate_duplicates_table.py"
+  }
+} else {
+  Log "SKIP: tools/generate_duplicates_table.py no encontrado"
 }
 
 Log "== Inventory-Cleaner DONE =="
