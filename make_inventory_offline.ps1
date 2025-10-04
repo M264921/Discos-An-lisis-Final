@@ -362,17 +362,17 @@ try {
       pathValue = pathValue.slice(4);
     }
     pathValue = pathValue.replace(/\//g, '\');
-    const driveMatch = pathValue.match(/^([A-Za-z]):\(.*)$/);
+    const driveMatch = pathValue.match(/^([A-Za-z]):\\(.*)$/);
     if (!driveMatch) { return ''; }
     const drive = driveMatch[1];
-    const remainder = driveMatch[2];
-    const segments = remainder.split(/\+/).filter(Boolean).map(encodeURIComponent);
+    const remainder = driveMatch[2] || '';
+    const segments = remainder
+      .split(/\\+/)
+      .filter(Boolean)
+      .map(segment => encodeURIComponent(segment));
     const tail = segments.join('/');
     return tail ? ('file:///' + drive + ':/' + tail) : ('file:///' + drive + ':/');
   }
-
-
-
   function buildRow(row){
     const rawPath = row.FullPath || '';
     const size = Number(row.MB ?? 0);
