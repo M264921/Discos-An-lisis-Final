@@ -121,18 +121,27 @@ function Build-MetaSummary {
     [object[]]$InputRows,
     [ordered]$DriveCounts
   )
-  $metaParts = New-Object System.Collections.Generic.List[string]
-  $metaParts.Add("Total: {0}" -f $InputRows.Count) | Out-Null
+  $segments = New-Object System.Collections.Generic.List[string]
+  $segments.Add("Total: {0}" -f $InputRows.Count) | Out-Null
+
+  $hiParts = New-Object System.Collections.Generic.List[string]
   foreach ($letter in @('H', 'I', 'J')) {
-    if ($DriveCounts.Contains($letter)) {
-      $metaParts.Add("{0}: {1} files" -f $letter, $DriveCounts[$letter]) | Out-Null
+    $count = if ($DriveCounts.Contains($letter)) { $DriveCounts[$letter] } else { 0 }
+    $hiParts.Add("{0}: {1}" -f $letter, $count) | Out-Null
+  }
+  if ($hiParts.Count -gt 0) {
+    $segments.Add(($hiParts -join ' · ')) | Out-Null
+  }
+
+  $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H', 'I', 'J') } | Sort-Object
+  if ($others) {
+    $extraParts = $others | ForEach-Object { "{0}: {1}" -f $_, $DriveCounts[$_] }
+    if ($extraParts) {
+      $segments.Add(($extraParts -join ' · ')) | Out-Null
     }
   }
-  $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H', 'I', 'J') } | Sort-Object
-  foreach ($drive in $others) {
-    $metaParts.Add("{0}: {1} files" -f $drive, $DriveCounts[$drive]) | Out-Null
-  }
-  return ($metaParts -join ' | ')
+
+  return ($segments -join ' | ')
 }
 
 $summary = Build-MetaSummary -InputRows $rows -DriveCounts $driveMap
