@@ -109,18 +109,27 @@ try {
       [string]$ExistingSummary
     )
     if ($ExistingSummary) { return $ExistingSummary }
-    $parts = New-Object System.Collections.Generic.List[string]
-    $parts.Add("Total: {0}" -f $Rows.Count) | Out-Null
+    $segments = New-Object System.Collections.Generic.List[string]
+    $segments.Add("Total: {0}" -f $Rows.Count) | Out-Null
+
+    $hiParts = New-Object System.Collections.Generic.List[string]
     foreach ($letter in @('H','I','J')) {
-      if ($DriveCounts.Contains($letter)) {
-        $parts.Add("{0}: {1} files" -f $letter, $DriveCounts[$letter]) | Out-Null
+      $count = if ($DriveCounts.Contains($letter)) { $DriveCounts[$letter] } else { 0 }
+      $hiParts.Add("{0}: {1}" -f $letter, $count) | Out-Null
+    }
+    if ($hiParts.Count -gt 0) {
+      $segments.Add(($hiParts -join ' · ')) | Out-Null
+    }
+
+    $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H','I','J') } | Sort-Object
+    if ($others) {
+      $extraParts = $others | ForEach-Object { "{0}: {1}" -f $_, $DriveCounts[$_] }
+      if ($extraParts) {
+        $segments.Add(($extraParts -join ' · ')) | Out-Null
       }
     }
-    $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H','I','J') } | Sort-Object
-    foreach ($drive in $others) {
-      $parts.Add("{0}: {1} files" -f $drive, $DriveCounts[$drive]) | Out-Null
-    }
-    return ($parts -join ' | ')
+
+    return ($segments -join ' | ')
   }
 
   function Get-InventorySnapshot {
