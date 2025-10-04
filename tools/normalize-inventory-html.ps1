@@ -19,7 +19,7 @@ $rx = New-Object System.Text.RegularExpressions.Regex(
   -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
 )
 $m = $rx.Match($html)
-if (!$m.Success) {
+if (-not $m.Success) {
   Write-Host "No se encontro __DATA__/_DATA_; sin cambios"
   return
 }
@@ -111,5 +111,63 @@ $metaLiteral = ($metaText | ConvertTo-Json -Compress)
 $replacement = "`n<script>window.__INVENTARIO__.setData($json, $metaLiteral);</script>`n"
 
 $html = $rx.Replace($html, $replacement, 1)
+
+if ($html -notmatch 'global.__INVENTARIO__') {
+  $shimScript = @"
+<script>
+(function(){
+  const global = window;
+  const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
+  function computeMeta(rows, meta) {
+    if (typeof meta === "string" && meta.trim().length > 0) {
+      return meta;
+    }
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const drives = {};
+    for (let index = 0; index < safeRows.length; index++) {
+      const entry = safeRows[index];
+      if (!entry || !entry.Drive) { continue; }
+      const key = String(entry.Drive).trim().toUpperCase();
+      if (!key) { continue; }
+      drives[key] = (drives[key] || 0) + 1;
+    }
+    const parts = Object.keys(drives).sort().map(function(key) {
+      return key + ": " + drives[key] + " files";
+    });
+    const total = "Total: " + safeRows.length;
+    return parts.length ? total + " | " + parts.join(" | ") : total;
+  }
+  if (typeof inventory.setData !== "function") {
+    inventory.setData = function(rows, meta) {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const summary = computeMeta(safeRows, meta);
+      global.__DATA__ = safeRows;
+      global.__META__ = summary;
+      inventory._lastRows = safeRows;
+      inventory._lastMeta = summary;
+      return safeRows;
+    };
+  }
+  if (!inventory._shimSeeded) {
+    inventory._shimSeeded = true;
+    const legacyRows = Array.isArray(global.__DATA__) ? global.__DATA__ : (Array.isArray(global._DATA_) ? global._DATA_ : null);
+    const legacyMeta = typeof global.__META__ !== "undefined" ? global.__META__ : global._META_;
+    if (legacyRows) {
+      const compatMeta = computeMeta(legacyRows, legacyMeta);
+      inventory.setData(legacyRows, compatMeta);
+    }
+  }
+})();
+</script>
+"@
+
+  $insertIndex = $html.IndexOf('window.__INVENTARIO__.setData(')
+  if ($insertIndex -gt -1) {
+    $html = $html.Insert($insertIndex, $shimScript)
+  } else {
+    $html = $shimScript + $html
+  }
+}
+
 [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
 Write-Host "OK: normalizado a __INVENTARIO__.setData(...)"
