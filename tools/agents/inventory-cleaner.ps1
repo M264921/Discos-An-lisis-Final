@@ -81,17 +81,33 @@ if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
 $ExpectedHtml = Join-Path $OutputDirPath "inventario_interactivo_offline.html"
 $csvDefault = Join-Path $RepoRoot "docs/hash_data.csv"
 
-$usedWrapper = $false
-if (Test-Path $Wrapper) {
-  $usedWrapper = $true
-  Log "Usando wrapper para generar/normalizar/inyectar/sanitizar inventario..."
-  & $Wrapper -OutDir "$OutputDirPath" -CsvFallback "$csvDefault" 2>&1 | Tee-Object -FilePath $LogFile -Append
-} elseif (Test-Path $MakeInv) {
-  Log "Wrapper no encontrado; usando make_inventory_offline.ps1 directamente..."
+$htmlGenerado = $false
+if (Test-Path $MakeInv) {
+  Log "Generando inventario base con make_inventory_offline.ps1 ..."
   & $MakeInv -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  if (Test-Path $ExpectedHtml) {
+    $htmlGenerado = $true
+  } else {
+    Log "WARN: make_inventory_offline.ps1 no produjo $ExpectedHtml"
+  }
+} else {
+  Log "ERROR: no se encontro make_inventory_offline.ps1"
+}
+
+if ($htmlGenerado -and (Test-Path $Wrapper)) {
+  Log "Post-procesando inventario (wrapper)..."
+  powershell -NoProfile -ExecutionPolicy Bypass -File "$Wrapper" `
+    -RepoRoot "$RepoRoot" `
+    -HtmlPath "$ExpectedHtml" `
+    -CsvFallback "$csvDefault" `
+    -PreviewRows 50 2>&1 | Tee-Object -FilePath $LogFile -Append
+} elseif ($htmlGenerado) {
+  Log "Wrapper no encontrado; aplicando normalizacion y sanitizado manual."
   if (Test-Path $Normalizer) {
-    Log "Normalizando bloque setData ..."
-    & $Normalizer -HtmlPath "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    Log "Normalizando HTML ..."
+    & $Normalizer -HtmlPath "$ExpectedHtml" -PreviewRows 50 2>&1 | Tee-Object -FilePath $LogFile -Append
+  } else {
+    Log "SKIP: normalizador no encontrado"
   }
   if (Test-Path $Sanitizer) {
     Log "Sanitizando HTML final ..."
@@ -99,8 +115,6 @@ if (Test-Path $Wrapper) {
   } else {
     Log "SKIP: sanitizer no encontrado"
   }
-} else {
-  Log "SKIP: no se encontro make_inventory_offline.ps1"
 }
 
 if (Test-Path $ExpectedHtml) {
