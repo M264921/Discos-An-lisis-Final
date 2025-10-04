@@ -1,115 +1,97 @@
-Param(
+﻿Param(
   [string]$HtmlPath = "docs\inventario_interactivo_offline.html"
 )
 
 $ErrorActionPreference = "Stop"
 
-if (!(Test-Path -LiteralPath $HtmlPath)) { throw "No se genero $HtmlPath" }
+if (-not (Test-Path -LiteralPath $HtmlPath)) {
+  throw "No se encontro $HtmlPath"
+}
+
+function Escape-ScriptJson {
+  param([string]$Json)
+  if ($null -eq $Json) { return '' }
+  return ($Json -replace '</', '<\/')
+}
 
 $html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
-
-$html = [regex]::Replace($html, 'windiw', 'window', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-
-$scriptPattern = '<script[\s\S]*?window\.__DATA__\s*=\s*(\[[\s\S]*?\]);[\s\S]*?</script>'
-$rx = [System.Text.RegularExpressions.Regex]::new($scriptPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-# Captura bloque <script>window.__DATA__ = [...];</script> o _DATA_
-$rx = New-Object System.Text.RegularExpressions.Regex(
-  '<script[^>]*>\s*window\.(?:__DATA__|_DATA_)\s*=\s*(\[[\s\S]*?)\s*;?\s*</script>',
-  [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-  -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
-)
-$m = $rx.Match($html)
-if (!$m.Success) {
-  Write-Host "No se encontro __DATA__/_DATA_; sin cambios"
+$dataMatch = [regex]::Match($html, '<script\s+id="inventory-data"[^>]*>([\s\S]*?)</script>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+if (-not $dataMatch.Success) {
+  Write-Host 'No se encontro <script id="inventory-data">. Sin cambios.'
   return
 }
 
-$json = $m.Groups[1].Value
-$metaText = $null
+$metaMatch = [regex]::Match($html, '<script\s+id="inventory-meta"[^>]*>([\s\S]*?)</script>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-$metaMatch = [System.Text.RegularExpressions.Regex]::Match($m.Value, 'window\.__META__\s*=\s*(.+?);', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-if ($metaMatch.Success) {
-  $rawMeta = $metaMatch.Groups[1].Value.Trim()
+$dataJson = $dataMatch.Groups[1].Value.Trim()
+$rows = @()
+if ($dataJson) {
   try {
-    $metaText = ($rawMeta | ConvertFrom-Json)
-  } catch {
-    $metaText = $rawMeta.Trim('"')
-  }
-}
-
-try {
-  $rows = $json | ConvertFrom-Json
-  if ($rows) {
-    if ($rows -isnot [System.Collections.IEnumerable]) { $rows = @($rows) }
-    $rowsArray = @($rows)
-    $metaSegments = @("Total: {0}" -f $rowsArray.Count)
-    $driveCounts = @{}
-    foreach ($row in $rowsArray) {
-      $driveRaw = $null
-      if ($row -and $row.PSObject.Properties['Drive']) {
-        $driveRaw = ("{0}" -f $row.Drive).Trim()
-      }
-      if ($driveRaw) {
-        $driveKey = $driveRaw.ToUpperInvariant()
-        if (-not $driveCounts.ContainsKey($driveKey)) {
-          $driveCounts[$driveKey] = 0
-        }
-        $driveCounts[$driveKey]++
-if ($m.Success) {
-  $json = $m.Groups[1].Value
-  if ($null -ne $json) {
-    $json = $json.Trim()
-    if ($json.EndsWith(';')) {
-      $json = $json.Substring(0, $json.Length - 1)
-    }
-  }
-  $rowsObj = @()
-  try {
-    $parsed = $json | ConvertFrom-Json
-    if ($null -ne $parsed) {
+    $parsed = $dataJson | ConvertFrom-Json
+    if ($parsed) {
       if ($parsed -is [System.Collections.IEnumerable] -and -not ($parsed -is [string])) {
-        $rowsObj = @($parsed)
+        $rows = @($parsed)
       } else {
-        $rowsObj = @($parsed)
+        $rows = @($parsed)
       }
     }
-    if ($driveCounts.Count -gt 0) {
-      $driveSummary = $driveCounts.Keys | Sort-Object | ForEach-Object { "{0}: {1} files" -f $_, $driveCounts[$_] }
-      $metaSegments += $driveSummary
-    }
-    $computedMeta = ($metaSegments -join ' | ').Trim()
-    if ([string]::IsNullOrWhiteSpace($metaText)) {
-      $metaText = $computedMeta
-    }
+  } catch {
+    Write-Warning "No se pudo leer inventory-data como JSON."
   }
-} catch {
-  if (-not $metaText) { $metaText = 'Normalizado desde __DATA__' }
-  $meta = Get-MetaSummary -Rows $rowsObj
-  $metaJson = $meta | ConvertTo-Json -Compress
-  $inject = "`n<script>window.__INVENTARIO__.setData($json,$metaJson);</script>`n"
-  $html = $rx.Replace($html, '', 1)
-
-  $targetPattern = '^[^\S\r\n]*<script>\s*\(function\(\)\{\s*const data = window\.__DATA__ \|\| \[\];'
-  $targetRegex = New-Object System.Text.RegularExpressions.Regex(
-    $targetPattern,
-    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Multiline
-  )
-  $targetMatch = $targetRegex.Match($html)
-  if ($targetMatch.Success) {
-    $html = $html.Insert($targetMatch.Index, $inject)
-  } else {
-    $html = [regex]::Replace($html, '</body>\s*</html>\s*$', $inject + '</body></html>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-  }
-  [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
-  Write-Host "OK: normalizado a __INVENTARIO__.setData con meta: $meta"
-} else {
-  Write-Host "No se encontró __DATA__/_DATA_; no hay cambios de normalización."
 }
 
-if (-not $metaText) { $metaText = 'Normalizado desde __DATA__' }
-$metaLiteral = ($metaText | ConvertTo-Json -Compress)
-$replacement = "`n<script>window.__INVENTARIO__.setData($json, $metaLiteral);</script>`n"
+if (-not $rows) {
+  Write-Host 'Bloque inventory-data sin filas. Nada que normalizar.'
+  return
+}
 
-$html = $rx.Replace($html, $replacement, 1)
+$driveCounts = @{}
+$driveBytes = @{}
+$typeCounts = @{}
+$totalBytes = 0L
+
+foreach ($row in $rows) {
+  $drive = if ($row.PSObject.Properties['drive']) { ("{0}" -f $row.drive).Trim().ToUpperInvariant() } else { '' }
+  $type = if ($row.PSObject.Properties['type']) { ("{0}" -f $row.type).Trim().ToLowerInvariant() } else { 'otro' }
+  $size = 0L
+  if ($row.PSObject.Properties['size']) {
+    [long]::TryParse(("{0}" -f $row.size), [ref]$size) | Out-Null
+  }
+  if ($drive) {
+    if (-not $driveCounts.ContainsKey($drive)) { $driveCounts[$drive] = 0 }
+    if (-not $driveBytes.ContainsKey($drive)) { $driveBytes[$drive] = 0L }
+    $driveCounts[$drive]++
+    $driveBytes[$drive] += $size
+  }
+  if (-not $typeCounts.ContainsKey($type)) { $typeCounts[$type] = 0 }
+  $typeCounts[$type]++
+  $totalBytes += $size
+}
+
+$metaObject = [ordered]@{
+  total = $rows.Count
+  totalBytes = $totalBytes
+  driveCounts = [ordered]@{}
+  driveBytes = [ordered]@{}
+  typeCounts = [ordered]@{}
+  generatedAt = (Get-Date).ToUniversalTime().ToString('s')
+}
+foreach ($driveKey in ($driveCounts.Keys | Sort-Object)) {
+  $metaObject.driveCounts[$driveKey] = $driveCounts[$driveKey]
+  $metaObject.driveBytes[$driveKey] = $driveBytes[$driveKey]
+}
+foreach ($typeKey in ($typeCounts.Keys | Sort-Object)) {
+  $metaObject.typeCounts[$typeKey] = $typeCounts[$typeKey]
+}
+
+$metaJson = $metaObject | ConvertTo-Json -Depth 6 -Compress
+$newDataJson = $rows | ConvertTo-Json -Depth 4 -Compress
+
+$metaPayload = Escape-ScriptJson -Json $metaJson
+$dataPayload = Escape-ScriptJson -Json $newDataJson
+
+$html = [regex]::Replace($html, '<script\s+id="inventory-meta"[^>]*>[\s\S]*?</script>', "<script id=\"inventory-meta\" type=\"application/json\">$metaPayload</script>", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+$html = [regex]::Replace($html, '<script\s+id="inventory-data"[^>]*>[\s\S]*?</script>', "<script id=\"inventory-data\" type=\"application/json\">$dataPayload</script>", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
 [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
-Write-Host "OK: normalizado a __INVENTARIO__.setData(...)"
+Write-Host "OK: normalizado inventory-data/meta en $HtmlPath"
