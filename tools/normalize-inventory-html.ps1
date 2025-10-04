@@ -121,18 +121,27 @@ function Build-MetaSummary {
     [object[]]$InputRows,
     [ordered]$DriveCounts
   )
-  $metaParts = New-Object System.Collections.Generic.List[string]
-  $metaParts.Add("Total: {0}" -f $InputRows.Count) | Out-Null
+  $segments = New-Object System.Collections.Generic.List[string]
+  $segments.Add("Total: {0}" -f $InputRows.Count) | Out-Null
+
+  $hiParts = New-Object System.Collections.Generic.List[string]
   foreach ($letter in @('H', 'I', 'J')) {
-    if ($DriveCounts.Contains($letter)) {
-      $metaParts.Add("{0}: {1} files" -f $letter, $DriveCounts[$letter]) | Out-Null
+    $count = if ($DriveCounts.Contains($letter)) { $DriveCounts[$letter] } else { 0 }
+    $hiParts.Add("{0}: {1}" -f $letter, $count) | Out-Null
+  }
+  if ($hiParts.Count -gt 0) {
+    $segments.Add(($hiParts -join ' · ')) | Out-Null
+  }
+
+  $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H', 'I', 'J') } | Sort-Object
+  if ($others) {
+    $extraParts = $others | ForEach-Object { "{0}: {1}" -f $_, $DriveCounts[$_] }
+    if ($extraParts) {
+      $segments.Add(($extraParts -join ' · ')) | Out-Null
     }
   }
-  $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H', 'I', 'J') } | Sort-Object
-  foreach ($drive in $others) {
-    $metaParts.Add("{0}: {1} files" -f $drive, $DriveCounts[$drive]) | Out-Null
-  }
-  return ($metaParts -join ' | ')
+
+  return ($segments -join ' | ')
 }
 
 $summary = Build-MetaSummary -InputRows $rows -DriveCounts $driveMap
@@ -312,8 +321,18 @@ $scriptBlock = @"
 (function(){
   const MAX_PREVIEW_ROWS = $PreviewRows;
   const global = window;
-  const inventory = global.__INVENTARIO__ = global.__INVENTARIO__ || {};
-  const previousSetData = typeof inventory.setData === 'function' ? inventory.setData.bind(inventory) : null;
+  const existingInventory = global.__INVENTARIO__;
+  const legacyInvoker = typeof existingInventory === 'function' ? existingInventory.bind(global) : null;
+  const inventory = (existingInventory && (typeof existingInventory === 'object' || typeof existingInventory === 'function'))
+    ? existingInventory
+    : {};
+  if (!existingInventory || !(typeof existingInventory === 'object' || typeof existingInventory === 'function')) {
+    global.__INVENTARIO__ = inventory;
+  }
+  const existingSetData = typeof inventory.setData === 'function' ? inventory.setData : null;
+  const previousSetData = existingSetData && existingSetData._previewShimOriginal
+    ? existingSetData._previewShimOriginal
+    : (existingSetData ? existingSetData.bind(inventory) : legacyInvoker);
   const state = {
     rows: [],
     meta: null,
@@ -662,7 +681,7 @@ $scriptBlock = @"
     }
   }
 
-  inventory.setData = function(rows, meta) {
+  const shimmedSetData = function(rows, meta) {
     const baseRows = previousSetData ? previousSetData(rows, meta) : rows;
     const safeRows = Array.isArray(baseRows) ? baseRows : (Array.isArray(rows) ? rows : []);
     const normalized = normalizeRows(safeRows);
@@ -670,9 +689,13 @@ $scriptBlock = @"
     state.meta = normalizeMeta(meta, normalized);
     global.__DATA__ = normalized;
     global.__META__ = state.meta;
+    inventory._lastRows = normalized;
+    inventory._lastMeta = state.meta;
     render();
     return baseRows;
   };
+  shimmedSetData._previewShimOriginal = previousSetData;
+  inventory.setData = shimmedSetData;
 
   inventory.getPreviewState = function() {
     return {
@@ -691,13 +714,22 @@ $scriptBlock = @"
 })();
 </script>
 <script id="inventory-preview-data">
-window.__INVENTARIO__ = window.__INVENTARIO__ || {};
-if (typeof window.__INVENTARIO__.setData === 'function') {
-  window.__INVENTARIO__.setData($dataJson,$metaJson);
-} else {
-  window.__DATA__ = $dataJson;
-  window.__META__ = $metaJson;
-}
+(function(global){
+  var rows = $dataJson;
+  var meta = $metaJson;
+  var inventory = global.__INVENTARIO__;
+  if (!inventory || !(typeof inventory === 'object' || typeof inventory === 'function')) {
+    inventory = {};
+    global.__INVENTARIO__ = inventory;
+  }
+  global.__DATA__ = rows;
+  global.__META__ = meta;
+  if (inventory && typeof inventory.setData === 'function') {
+    inventory.setData(rows, meta);
+  } else if (typeof inventory === 'function') {
+    inventory(rows, meta);
+  }
+})(window);
 </script>
 "@
 
