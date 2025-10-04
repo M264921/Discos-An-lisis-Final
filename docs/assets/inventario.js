@@ -60,3 +60,154 @@
   render();
 })();
 
+
+;(() => {
+  // === DOM Pagination (auto-inyectado) ===
+  const PAGER_NS = 'INVENTARIO_PAGER';
+  if (window[PAGER_NS]) return; // evitar doble carga
+
+  const state = {
+    page: 1,
+    pageSize: parseInt(localStorage.getItem('inv.pageSize') || '25', 10),
+    total: 0, from: 0, to: 0, lastPage: 1
+  };
+
+  function findTbody(){
+    // Intenta encontrar un tbody 'oficial'; si hay data-attr úsalo.
+    const byData = document.querySelector('table[data-inventario] tbody, [data-table="inventario"] tbody');
+    if (byData) return byData;
+    // fallback: primer tbody visible con filas
+    const all = Array.from(document.querySelectorAll('table tbody'));
+    const candidate = all.find(tb => tb && tb.children && tb.children.length >= 0);
+    return candidate || null;
+  }
+
+  function countVisibleRows(tbody){
+    // Cuenta filas "visibles" según CSS (no display:none)
+    const rows = Array.from(tbody.children);
+    return rows.filter(tr => (tr.offsetParent !== null) || (getComputedStyle(tr).display !== 'none')).length;
+  }
+
+  function sliceDom(tbody){
+    const rows = Array.from(tbody.children);
+    // filtradas actuales = las que no están 'display:none' por otros filtros
+    const filtered = rows.filter(tr => (tr.dataset.hiddenByFilter !== '1')); // si tu código marca algo así
+    // si no existe tal marca, usa visibilidad real
+    const effective = filtered.length ? filtered : rows.filter(tr => (tr.style.display !== 'none'));
+
+    state.total = effective.length;
+    state.lastPage = Math.max(1, Math.ceil(state.total / state.pageSize));
+    if (state.page > state.lastPage) state.page = state.lastPage;
+    const start = (state.page - 1) * state.pageSize;
+    const end   = Math.min(start + state.pageSize, state.total);
+    state.from = state.total ? (start + 1) : 0;
+    state.to   = end;
+
+    // Oculta todas y muestra solo el rango
+    // Primero: asegura que no interfiera con ocultaciones por filtro
+    rows.forEach(tr => tr.dataset.hiddenByPager = '1'); // marca previa
+    effective.forEach((tr, idx) => {
+      if (idx >= start && idx < end) {
+        tr.style.display = '';
+        tr.dataset.hiddenByPager = '0';
+      } else {
+        tr.style.display = 'none';
+        tr.dataset.hiddenByPager = '1';
+      }
+    });
+
+    // Si hay filas fuera de 'effective', respeta su display tal cual
+    rows.forEach(tr => {
+      if (!effective.includes(tr) && tr.dataset.hiddenByFilter === '1') {
+        tr.style.display = 'none';
+      }
+    });
+  }
+
+  function ensureControls(){
+    if (document.getElementById('pager-controls')) return;
+
+    const host =
+      document.getElementById('toolbar') ||
+      document.querySelector('.toolbar') ||
+      document.body;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'pager-controls';
+    wrap.className = 'pager';
+    wrap.innerHTML = [
+      '<label>Mostrar ',
+      '<select id="page-size">',
+      '<option>10</option><option>25</option><option>50</option><option>100</option>',
+      '</select> filas</label>',
+      '<button id="first-page" title="Primera">«</button>',
+      '<button id="prev-page"  title="Anterior">‹</button>',
+      '<span id="page-info">0–0 de 0</span>',
+      '<button id="next-page"  title="Siguiente">›</button>',
+      '<button id="last-page"  title="Última">»</button>'
+    ].join('');
+
+    // Inserta al inicio del host
+    if (host.firstChild) host.insertBefore(wrap, host.firstChild);
+    else host.appendChild(wrap);
+
+    // Set inicial selector
+    const sel = wrap.querySelector('#page-size');
+    sel.value = String(state.pageSize);
+    sel.addEventListener('change', () => {
+      state.pageSize = parseInt(sel.value, 10);
+      localStorage.setItem('inv.pageSize', String(state.pageSize));
+      state.page = 1;
+      window[PAGER_NS].apply();
+    });
+
+    wrap.querySelector('#first-page').onclick = () => { state.page = 1; window[PAGER_NS].apply(); };
+    wrap.querySelector('#prev-page').onclick  = () => { state.page = Math.max(1, state.page-1); window[PAGER_NS].apply(); };
+    wrap.querySelector('#next-page').onclick  = () => { state.page = Math.min(state.lastPage, state.page+1); window[PAGER_NS].apply(); };
+    wrap.querySelector('#last-page').onclick  = () => { state.page = state.lastPage; window[PAGER_NS].apply(); };
+  }
+
+  function updateControls(){
+    const info = document.getElementById('page-info');
+    const b1 = document.getElementById('first-page');
+    const b2 = document.getElementById('prev-page');
+    const b3 = document.getElementById('next-page');
+    const b4 = document.getElementById('last-page');
+    if (!info || !b1) return;
+    info.textContent = ${state.from}– de ;
+    b1.disabled = b2.disabled = (state.page === 1);
+    b3.disabled = b4.disabled = (state.page === state.lastPage);
+  }
+
+  // Observa el tbody para re-aplicar paginación después de renders/filtrados
+  let observer;
+  function observeTbody(tbody){
+    if (observer) observer.disconnect();
+    observer = new MutationObserver(() => {
+      // reset a pág. 1 si cambió el número de filas visiblemente
+      state.page = 1;
+      window[PAGER_NS].apply();
+    });
+    observer.observe(tbody, { childList: true, subtree: false, attributes: true, attributeFilter: ['style','data-hidden-by-filter'] });
+  }
+
+  function apply(){
+    const tbody = findTbody();
+    if (!tbody) return;
+    sliceDom(tbody);
+    updateControls();
+  }
+
+  function init(){
+    ensureControls();
+    const tbody = findTbody();
+    if (tbody) observeTbody(tbody);
+    apply();
+  }
+
+  window[PAGER_NS] = { init, apply, _state: state };
+  window.addEventListener('DOMContentLoaded', () => {
+    // Inicia cuando la página esté lista
+    setTimeout(init, 0);
+  });
+})();
