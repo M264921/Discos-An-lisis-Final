@@ -1,23 +1,64 @@
-﻿Param(
-  [string]$HtmlPath = "docs\inventario_interactivo_offline.html"
+Param(
+  [string]$HtmlPath = 'docs/inventario_interactivo_offline.html'
 )
-$ErrorActionPreference = "Stop"
-if (!(Test-Path -LiteralPath $HtmlPath)) { throw "No existe: $HtmlPath" }
+
+$ErrorActionPreference = 'Stop'
+
+if (-not (Test-Path -LiteralPath $HtmlPath)) {
+  throw "No existe el HTML de inventario: $HtmlPath"
+}
+
 [string]$html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
 
-# Quitar <script src="http(s)://..."></script> y <iframe src="http(s)://..."></iframe>
-$html = [regex]::Replace($html, '<script[^>]*\bsrc\s*=\s*"(https?:)?//[^"]*"[^>]*>\s*</script>', '', 'IgnoreCase')
-$html = [regex]::Replace($html, '<iframe[^>]*\bsrc\s*=\s*"(https?:)?//[^"]*"[^>]*>\s*</iframe>', '', 'IgnoreCase')
+$singleLine = [System.Text.RegularExpressions.RegexOptions]::Singleline
+$ignoreCase = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+$rxOptions = $singleLine -bor $ignoreCase
 
-# Quitar cualquier referencia a dominios sospechosos/trackers
-$block = '(acestream\.net|yandex\.ru|metrika|mc\.yandex|instat\.acestream|emet\.news)'
-$html = [regex]::Replace($html, "(?is)<script[^>]*$block[^>]*>.*?</script>", '', 'IgnoreCase')
-$html = [regex]::Replace($html, "(?is)<iframe[^>]*$block[^>]*>.*?</iframe>", '', 'IgnoreCase')
+function Remove-Pattern {
+  param(
+    [string]$Input,
+    [string]$Pattern
+  )
+  $regex = [System.Text.RegularExpressions.Regex]::new($Pattern, $rxOptions)
+  return $regex.Replace($Input, '')
+}
 
-# Quitar enlaces 'acestream://' (a, href, texto plano)
-$html = [regex]::Replace($html, '(?is)<a[^>]*\bhref\s*=\s*"acestream://[^"]*"[^>]*>.*?</a>', '', 'IgnoreCase')
-$html = [regex]::Replace($html, 'acestream://[^\s"''<>]+', '', 'IgnoreCase')
+$externalPatterns = @(
+  '<script[^>]*\bsrc\s*=\s*"(?:https?:|ftp:)?//[^"]*"[^>]*>\s*</script>',
+  "<script[^>]*\\bsrc\\s*=\\s*'(?:https?:|ftp:)?//[^']*'[^>]*>\\s*</script>",
+  '<link[^>]*\bhref\s*=\s*"(?:https?:|ftp:)?//[^"]*"[^>]*?>',
+  "<link[^>]*\\bhref\\s*=\\s*'(?:https?:|ftp:)?//[^']*'[^>]*?>",
+  '<iframe[^>]*\bsrc\s*=\s*"(?:https?:|ftp:)?//[^"]*"[^>]*>[\s\S]*?</iframe>',
+  "<iframe[^>]*\\bsrc\\s*=\\s*'(?:https?:|ftp:)?//[^']*'[^>]*>[\\s\\S]*?</iframe>",
+  '<img[^>]*\bsrc\s*=\s*"(?:https?:|ftp:)?//[^"]*"[^>]*>',
+  "<img[^>]*\\bsrc\\s*=\\s*'(?:https?:|ftp:)?//[^']*'[^>]*>"
+)
 
-# Salvar limpio
+foreach ($pattern in $externalPatterns) {
+  $html = Remove-Pattern -Input $html -Pattern $pattern
+}
+
+$blockList = '(?:acestream|yandex|metrika|tiktok|facebook|doubleclick|googletag|google-analytics|mc\.yandex|vk\.com)'
+$scriptBlockPattern = "<script[^>]*$blockList[^>]*>[\\s\\S]*?</script>"
+$iframeBlockPattern = "<iframe[^>]*$blockList[^>]*>[\\s\\S]*?</iframe>"
+$html = Remove-Pattern -Input $html -Pattern $scriptBlockPattern
+$html = Remove-Pattern -Input $html -Pattern $iframeBlockPattern
+
+$acestreamPattern = '(?i)acestream://[^\s"'']+'
+$html = [System.Text.RegularExpressions.Regex]::Replace($html, $acestreamPattern, '')
+
+$attributePatterns = @(
+  '\bsrc\s*=\s*"(?:https?:|ftp:)?//[^\"#]+"',
+  "\\bsrc\\s*=\\s*'(?:https?:|ftp:)?//[^'"#]+'",
+  '\bhref\s*=\s*"(?:acestream:|magnet:)[^"]*"',
+  "\\bhref\\s*=\\s*'(?:acestream:|magnet:)[^']*'"
+)
+foreach ($attrPattern in $attributePatterns) {
+  $regex = [System.Text.RegularExpressions.Regex]::new($attrPattern, $rxOptions)
+  $html = $regex.Replace($html, ' data-sanitized="#"')
+}
+
+$html = $html -replace '\s+data-sanitized="#"', ' data-sanitized="#"'
+
 [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
-Write-Host "OK: Sanitizado -> $HtmlPath"
+Write-Host "OK: HTML sanitizado -> $HtmlPath"
