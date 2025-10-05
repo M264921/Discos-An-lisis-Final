@@ -1,19 +1,54 @@
-# Repository Guidelines
+# 🧭 Agent Playbook
 
-## Project Structure & Module Organization
-The root hosts inventory inputs produced by drives (e.g., `index_by_hash.csv`, `inventory_by_folder.csv`) plus orchestrator scripts like `make_inventory_offline.ps1`. Reusable automation lives under `tools/`; `tools/agents/` houses entry-point wrappers (`inventory-cleaner.ps1`), while sibling scripts such as `build-hash-data.ps1`, `inventory-inject-from-csv.ps1`, and `normalize-inventory-html.ps1` implement discrete data steps. Generated artifacts such as `docs/hash_data.csv`, `docs/inventario_interactivo_offline.html`, and duplicate dashboards reside in `docs/`. Treat any file under `docs/` as read-only outputs and regenerate them through the described flows.
+Guía operativa para mantener el flujo autónomo de inventario multimedia.
 
-## Build, Test, and Development Commands
-Run `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/agents/inventory-cleaner.ps1 -RepoRoot . -SweepMode None` to execute the full pipeline: hash refresh, HTML normalization, sanitization, and final offline bundle. Use `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` when you only need to refresh `docs/hash_data.csv`. Regenerate duplicate analytics with `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json`.
+---
 
-## Coding Style & Naming Conventions
-PowerShell scripts use 2-space indentation, Verb-Noun command names (`Resolve-InRepo`), and single quotes for literal strings; keep modules ASCII-only. Python utilities follow 4-space indentation, snake_case identifiers, and stay self-contained without external imports. Never edit sanitized HTML or CSV by hand; pipe changes through the provided scripts.
+## 🧱 Arquitectura del repositorio
 
-## Testing Guidelines
-After any pipeline change, rerun the cleaner wrapper and review its log for non-zero row counts and the H/I/J drive summary in the generated HTML. When altering normalization logic, perform `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html` as a smoke test. For hash or duplicate adjustments, inspect `docs/hash_data.csv` to confirm the expected columns (`FullName`, `Hash`, `Length`, `Extension`, `Error`) and spot-check representative records.
+| Zona | Contenido | Notas |
+| --- | --- | --- |
+| Raíz | CSV y reportes generados (`index_by_hash.csv`, `inventory_by_folder.csv`) más orquestadores como `make_inventory_offline.ps1`. | Los artefactos se regeneran desde scripts, no se editan manualmente. |
+| `tools/` | Automatizaciones reutilizables. | Los *entry-points* viven en `tools/agents/`; los módulos auxiliares (`build-hash-data.ps1`, `inventory-inject-from-csv.ps1`, `normalize-inventory-html.ps1`) implementan pasos individuales. |
+| `docs/` | Salida pública (`docs/hash_data.csv`, `docs/inventario_interactivo_offline.html`, tableros de duplicados). | Trátalos como read-only; usa los scripts para actualizarlos. |
 
-## Commit & Pull Request Guidelines
-Adopt conventional commit prefixes (`feat`, `fix`, `chore`, `docs`) with optional scopes such as `fix(inventory): guard __DATA__ shim`. PRs should summarize changes, link related Trello cards or issues, and attach before/after evidence when HTML or CSV outputs shift. Commit regenerated artifacts alongside code changes to keep reviewers synchronized.
+---
 
-## Security & Operational Notes
-`docs/hash_data.csv` contains absolute paths and file sizes; share it only with trusted collaborators. Sanitizers intentionally strip external protocols (acestream, http). Extend the blocklist rather than disabling these guards when new protocols appear.
+## 🛠️ Comandos esenciales
+
+| Objetivo | Comando |
+| --- | --- |
+| Pipeline completo (hash → HTML → sanitizado) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/agents/inventory-cleaner.ps1 -RepoRoot . -SweepMode None` |
+| Refrescar solo `docs/hash_data.csv` | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
+| Regenerar analítica de duplicados | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
+
+Mantén los scripts idempotentes y sin rutas absolutas codificadas.
+
+---
+
+## 🧩 Estilo y convenciones
+
+- **PowerShell**: Sangría de 2 espacios, comandos `Verbo-Nombre`, usa comillas simples para literales, ASCII puro.
+- **Python**: Sangría de 4 espacios, `snake_case`, sin dependencias externas.
+- **HTML/CSV generados**: nunca los edites a mano; actualízalos mediante los scripts correspondientes.
+
+---
+
+## ✅ Verificaciones recomendadas
+
+1. Después de modificar la tubería, ejecuta el *cleaner* y revisa el log para confirmar los recuentos y el resumen H/I/J en el HTML generado.
+2. Cambios de normalización → `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html` como *smoke test*.
+3. Ajustes de hash o duplicados → inspecciona `docs/hash_data.csv` y verifica las columnas `FullName`, `Hash`, `Length`, `Extension`, `Error`.
+
+---
+
+## 📬 Commits y PRs
+
+- Usa prefijos convencionales (`feat`, `fix`, `chore`, `docs`) con un alcance opcional (`fix(inventory): ...`).
+- Los PRs deben resumir cambios, enlazar Trello/issues cuando aplique y adjuntar evidencias antes/después si se modifican HTML o CSV.
+
+---
+
+## 🔐 Notas operativas
+
+`docs/hash_data.csv` contiene rutas absolutas y tamaños. Solo compártelo con colaboradores de confianza. Los sanitizadores bloquean protocolos externos (acestream, http); extiende la blocklist si aparecen nuevos protocolos, en vez de deshabilitarla.
