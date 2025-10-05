@@ -1,15 +1,17 @@
 ﻿param([Parameter(Mandatory)]$CsvPath,[Parameter(Mandatory)]$HtmlPath)
 
-function Leaf([string]$p){ if($p){ try{ (Split-Path $p -Leaf) }catch{ "" } } }
-function DriveFromPath([string]$p){ if($p -match '^([A-Za-z]):'){ $Matches[1].ToUpper() } else { "OTROS" } }
-function ExtType([string]$ext){
-  $e = ("$ext").ToLower()
-  switch -regex ($e){
-    '\.(mp4|mkv|avi|mov|wmv|flv|m4v)$'                { 'video' }
-    '\.(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic)$'    { 'foto' }
-    '\.(mp3|wav|flac|aac|ogg|m4a)$'                   { 'audio' }
-    '\.(pdf|docx?|xlsx?|pptx?|txt|rtf)$'              { 'documento' }
-    default                                           { 'otro' }
+function FirstNonEmpty([object[]]$v){ foreach($x in $v){ if($null-ne $x -and "$x".Trim()){ return "$x" } } "" }
+function LeafOrEmpty([string]$p){ if($p -and "$p".Trim()){ try{ return (Split-Path $p -Leaf) }catch{ "" } } ""; }
+function DriveFromPath([string]$p){ if($p -and $p -match '^([A-Za-z]):'){ return $Matches[1].ToUpper() } "OTROS" }
+function ExtType([string]$n){
+  if(-not $n){ return 'otro' }
+  $n = "$n".ToLower()
+  switch -regex ($n){
+    '\.(mp4|mkv|avi|mov|wmv|flv|m4v)$'             { 'video'; break }
+    '\.(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic)$' { 'foto'; break }
+    '\.(mp3|wav|flac|aac|ogg|m4a)$'                { 'audio'; break }
+    '\.(pdf|docx?|xlsx?|pptx?|txt|rtf)$'           { 'documento'; break }
+    default                                        { 'otro' }
   }
 }
 
@@ -18,23 +20,29 @@ $html = (Get-Item -LiteralPath $HtmlPath).FullName
 $rows = Import-Csv -LiteralPath $csv
 
 $map = $rows | ForEach-Object {
-  $path = $_.FullName
-  $name = if ($_.Name) { $_.Name } else { Leaf $path }
-  $ext  = if ($_.Extension) { $_.Extension } else { [IO.Path]::GetExtension($name) }
-  $size = 0; [void][int64]::TryParse("$($_.Length)", [ref]$size)
+  $path  = FirstNonEmpty @($_.path,$_.full_path,$_.filepath,$_.FullName,$_.ruta,$_.location)
+  $name  = FirstNonEmpty @($_.name,$_.filename,$_.file_name, (LeafOrEmpty $path))
+  if(-not $name){ $name = FirstNonEmpty @($_.sha,$_.hash,"(sin nombre)") }
+
+  $sizeS = FirstNonEmpty @($_.size,$_.bytes,$_.length,$_.Length,$_.filesize,0)
+  [void][int64]::TryParse("$sizeS",[ref]([int64]$size=0))
+
+  $last  = FirstNonEmpty @($_.last,$_.modified,$_.mtime,$_.date)
+  $drive = if(FirstNonEmpty @($_.drive,$_.unidad)){ (FirstNonEmpty @($_.drive,$_.unidad)).ToUpper() } else { DriveFromPath $path }
+  $type  = FirstNonEmpty @($_.type,$_.category,$_.tipo, (ExtType $name))
 
   [pscustomobject]@{
-    sha   = $_.Hash
-    type  = ExtType $ext
+    sha   = FirstNonEmpty @($_.sha,$_.hash,$_.md5,$_.sha1,$_.sha256)
+    type  = $type
     name  = $name
     path  = $path
-    drive = DriveFromPath $path
+    drive = $drive
     size  = [int64]$size
-    last  = ""   # no viene en el CSV
+    last  = $last
   }
 }
 
-$meta = [pscustomobject]@{ total=$map.Count; driveCounts=@{}; generatedAt=(Get-Date).ToString('s') }
+$meta = [pscustomobject]@{ total=$map.Count; driveCounts=@{}; generatedAt=(Get-Date).ToString("s") }
 $map | Group-Object drive | ForEach-Object { $meta.driveCounts[$_.Name] = $_.Count }
 
 $doc = Get-Content -LiteralPath $html -Raw
@@ -47,4 +55,6 @@ function SetBlock($id,$json){
 SetBlock "inventory-data" (ConvertTo-Json $map -Depth 6)
 SetBlock "inventory-meta" (ConvertTo-Json $meta -Depth 6)
 Set-Content -LiteralPath $html -Value $doc -Encoding UTF8
-"Injector OK: $($map.Count) | " + ($meta.driveCounts.GetEnumerator() | ForEach-Object { "$($_.Key):$($_.Value)" } -join ' ')
+
+$dcSummary = ($meta.driveCounts.GetEnumerator() | Sort-Object Key | ForEach-Object { "$($_.Key):$($_.Value)" }) -join ' '
+"Injector OK: $($map.Count) | $dcSummary"
