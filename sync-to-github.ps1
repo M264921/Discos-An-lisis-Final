@@ -11,7 +11,8 @@ Write-Host "Rama actual: $current" -ForegroundColor Cyan
 
 # 1) Añadir y commit (solo si hay cambios)
 git add -A
-if ((git status --porcelain).Trim()) {
+$gitStatus = git status --porcelain | Out-String
+if ($gitStatus.Trim()) {
   $msg = 'chore: sync UI + scanner + injector (force pages rebuild)'
   git commit -m $msg
   Write-Host "Commit hecho: $msg" -ForegroundColor Green
