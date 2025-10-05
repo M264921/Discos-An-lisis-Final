@@ -1,0 +1,18 @@
+Cómo usarlo
+
+Interactivo (popup):
+
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\scan-drives-interactive.ps1
+
+
+Elegir por parámetro (sin popup):
+
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\scan-drives-interactive.ps1 -Drives C,F
+
+
+Reutilizar los últimos scans guardados (sin re-escanear):
+
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\scan-drives-interactive.ps1 -UseAllStored
+
+
+Esto te deja el “último análisis” por unidad en docs\inventory\scan_<LETRA>.csv y siempre compone la UI desde esos CSVs fusionados. Si quieres, luego hacemos un “modo incremental”, pero con esto ya tienes selección por popup + persistencia por unidad.
