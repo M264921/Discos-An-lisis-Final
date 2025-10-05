@@ -57,6 +57,11 @@ try {
 
 # 6) Abrir página con cache-buster
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
-$final = "$pagesUrlBase?v=$ts"
-Start-Process $final
-Write-Host "🌐 Abriendo: $final" -ForegroundColor Cyan
+$final = "https://m264921.github.io/Discos-An-lisis-Final/inventario_interactivo_offline.html?v=$ts"
+
+try { Start-Process $final }
+catch {
+  try { Start-Process "explorer.exe" $final }           # fallback 1
+  catch { Start-Process "cmd.exe" "/c start $final" }   # fallback 2
+}
+"$final"
