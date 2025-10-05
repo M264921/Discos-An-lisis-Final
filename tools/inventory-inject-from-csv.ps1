@@ -1,4 +1,37 @@
-﻿param(
+﻿function SmartFolderName([string]$path) {
+  if (-not $path) { return "" }
+  $parts = ($path -split '[\\/]+') | Where-Object { $_ -and ($_ -notmatch '^[A-Za-z]:$') }
+  if (-not $parts) { return "" }
+  $file = $parts[-1]
+  $dirs = if ($parts.Count -gt 1) { $parts[0..($parts.Count-2)] } else { @() }
+
+  # candidatos: últimos 3 directorios
+  $candidates = @(); for ($i=$dirs.Count-1; $i -ge [Math]::Max(0,$dirs.Count-3); $i--) { $candidates += $dirs[$i] }
+
+  $stop = @(
+    '_quarantine_from_i','migrated','familia','fotos','videos','imagenes','imagenes2','documentos',
+    'origen','originales','backup','backups','tmp','temp','new','old','misc','varios'
+  )
+
+  function Score([string]$s) {
+    if (-not $s) { return -999 }
+    $t = $s.Trim()
+    if ($t.Length -lt 2) { return -50 }
+    if ($stop -contains $t.ToLower()) { return -40 }
+    $score = 0
+    if ($t -match '[A-Za-z].*[A-Za-z]') { $score += 20 }
+    if ($t -match '\s')                { $score += 5  }
+    if ($t.Length -ge 4 -and $t.Length -le 40) { $score += 5 }
+    if ($t -match '^\d+$') { $score -= 20 }
+    if ($t -match '^(img|dsc|scan|photo|foto|vid)[-_]?\d+' -i) { $score -= 15 }
+    return $score
+  }
+
+  $best = ""; $bestScore = -999
+  foreach($c in $candidates){ $sc = Score $c; if ($sc -gt $bestScore) { $best=$c; $bestScore=$sc } }
+  return $best
+}
+param(
   [Parameter(Mandatory)]$CsvPath,
   [Parameter(Mandatory)]$HtmlPath
 )
@@ -49,6 +82,7 @@ $map = $rows | ForEach-Object {
     drive = $drive
     size  = [int64]$size
     last  = $last
+    label = (SmartFolderName $path)
   }
 }
 
@@ -68,3 +102,4 @@ Set-Content -LiteralPath $html -Value $doc -Encoding utf8
 
 $sum = ($map | Measure-Object size -Sum).Sum
 "Injector OK: $($map.Count) filas | bytes totales: $sum | H:$($meta.driveCounts.H) I:$($meta.driveCounts.I) J:$($meta.driveCounts.J)"
+
