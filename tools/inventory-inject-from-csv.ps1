@@ -1,4 +1,4 @@
-﻿function SmartFolderName([string]$path) {
+function SmartFolderName([string]$path) {
   if (-not $path) { return "" }
   $parts = ($path -split '[\\/]+') | Where-Object { $_ -and ($_ -notmatch '^[A-Za-z]:$') }
   if (-not $parts) { return "" }
@@ -23,7 +23,7 @@
     if ($t -match '\s')                { $score += 5  }
     if ($t.Length -ge 4 -and $t.Length -le 40) { $score += 5 }
     if ($t -match '^\d+$') { $score -= 20 }
-    if ($t -match '^(img|dsc|scan|photo|foto|vid)[-_]?\d+' -i) { $score -= 15 }
+    if ($t -imatch '^(img|dsc|scan|photo|foto|vid)[-_]?\d+') { $score -= 15 }
     return $score
   }
 
@@ -103,3 +103,9 @@ Set-Content -LiteralPath $html -Value $doc -Encoding utf8
 $sum = ($map | Measure-Object size -Sum).Sum
 "Injector OK: $($map.Count) filas | bytes totales: $sum | H:$($meta.driveCounts.H) I:$($meta.driveCounts.I) J:$($meta.driveCounts.J)"
 
+
+# --- Auto: regenerar HTML si está disponible ---
+try {
+  \ = Join-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools 'make_inventory_offline.ps1'
+  if(Test-Path \){ & \ }
+} catch { Write-Warning ("No se pudo generar HTML: {0}" -f \.Exception.Message) }

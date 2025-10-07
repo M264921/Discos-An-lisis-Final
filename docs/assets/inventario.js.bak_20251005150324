@@ -1,0 +1,29 @@
+﻿document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        // 1️⃣ Intentar leer JSON embebido en el HTML
+        const embedded = document.getElementById("inventory-data");
+        let data;
+
+        if (embedded) {
+            console.log("📦 Cargando datos embebidos en el HTML...");
+            data = JSON.parse(embedded.textContent);
+        } else {
+            console.log("🌐 Cargando datos desde data/inventory.json...");
+            const response = await fetch("data/inventory.json");
+            if (!response.ok) throw new Error("No se pudo cargar data/inventory.json");
+            data = await response.json();
+        }
+
+        // 2️⃣ Renderizar los datos
+        if (typeof renderInventory === "function") {
+            renderInventory(data);
+        } else if (typeof buildTable === "function") {
+            buildTable(data);
+        } else {
+            console.error("❌ No se encontró la función renderInventory ni buildTable.");
+        }
+
+    } catch (err) {
+        console.error("❌ Error al cargar los datos del inventario:", err);
+    }
+});
