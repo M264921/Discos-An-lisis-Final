@@ -1,0 +1,93 @@
+﻿param(
+  [Parameter(Mandatory)][string]$CsvPath,
+  [Parameter(Mandatory)][string]$HtmlPath
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+function FirstNonEmpty([object[]]$v){
+  foreach($x in $v){ if($null -ne $x -and "$x".Trim()){ return "$x" } }
+  ""
+}
+function LeafOrEmpty([string]$p){
+  if($p -and "$p".Trim()){
+    try { return (Split-Path -Path $p -Leaf) } catch { return "" }
+  }
+  ""
+}
+function DriveFromPath([string]$p){
+  if($p -and ($p -imatch '^([A-Za-z]):')){ return $Matches[1].ToUpper() }
+  "OTROS"
+}
+function ExtType([string]$n){
+  if(-not $n){ return 'otro' }
+  $n = "$n".ToLower()
+  switch -regex ($n){
+    '\.(mp4|mkv|avi|mov|wmv|flv|m4v)$'             { 'video'; break }
+    '\.(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic)$' { 'foto'; break }
+    '\.(mp3|wav|flac|aac|ogg|m4a)$'                { 'audio'; break }
+    '\.(pdf|docx?|xlsx?|pptx?|txt|rtf)$'           { 'documento'; break }
+    default                                        { 'otro' }
+  }
+}
+
+$csvFull  = (Get-Item -LiteralPath $CsvPath).FullName
+$htmlFull = (Get-Item -LiteralPath $HtmlPath).FullName
+$rowsRaw  = Import-Csv -LiteralPath $csvFull
+
+# Map a esquema estándar
+$rows = foreach($r in $rowsRaw){
+  $path  = FirstNonEmpty @($r.path,$r.fullname,$r.full_path,$r.filepath,$r.ruta,$r.location)
+  $name  = FirstNonEmpty @($r.name,$r.filename,$r.file_name,(LeafOrEmpty $path))
+  if(-not $name){ $name = FirstNonEmpty @($r.sha,$r.hash,"(sin nombre)") }
+
+  $sizeS = FirstNonEmpty @($r.size,$r.bytes,$r.length,$r.filesize,0)
+  $size  = 0L; [void][int64]::TryParse("$sizeS",[ref]$size)
+
+  $last  = FirstNonEmpty @($r.last,$r.modified,$r.mtime,$r.date)
+  $drive = if(FirstNonEmpty @($r.drive,$r.unidad)) {
+    (FirstNonEmpty @($r.drive,$r.unidad)).ToUpper()
+  } else { DriveFromPath $path }
+
+  $type  = FirstNonEmpty @($r.type,$r.category,$r.tipo,(ExtType $name))
+
+  [pscustomobject]@{
+    sha   = FirstNonEmpty @($r.sha,$r.hash,$r.md5,$r.sha1,$r.sha256)
+    type  = $type
+    name  = $name
+    path  = $path
+    drive = $drive
+    size  = [int64]$size
+    last  = $last
+  }
+}
+
+# Meta
+$meta = [pscustomobject]@{
+  total       = $rows.Count
+  driveCounts = @{}
+  generatedAt = (Get-Date).ToString("s")
+}
+$bytesTotal = 0L
+foreach($r in $rows){ $bytesTotal += ($r.size -as [int64]) }
+$rows | Group-Object drive | ForEach-Object { $meta.driveCounts[$_.Name] = $_.Count }
+
+# Inserción JSON en HTML
+$doc = Get-Content -LiteralPath $htmlFull -Raw
+function SetBlock([string]$id, [string]$json){
+  $pat = "<script id=""$id""[^>]*>[\s\S]*?</script>"
+  $rep = "<script id=""$id"" type=""application/json"">$json</script>"
+  if($script:doc -match $pat){
+    $script:doc = [regex]::Replace($script:doc,$pat,$rep,1)
+  } else {
+    $script:doc = $script:doc -replace '</body>', ($rep + "`r`n</body>")
+  }
+}
+SetBlock "inventory-data" (ConvertTo-Json $rows -Depth 6)
+SetBlock "inventory-meta" (ConvertTo-Json $meta -Depth 6)
+Set-Content -LiteralPath $htmlFull -Value $doc -Encoding UTF8
+
+# Resumen
+$h = $meta.driveCounts['H']; $i = $meta.driveCounts['I']; $j = $meta.driveCounts['J']
+"Injector OK: $($rows.Count) filas | bytes totales: $bytesTotal | H:$h I:$i J:$j"

@@ -1,3 +1,33 @@
+# === Añade esto al principio de tools/sync-to-github.ps1 (justo tras setear $RepoRoot si existe) ===
+Write-Host "== Sync: pull previo =="
+$branch = (git rev-parse --abbrev-ref HEAD).Trim()
+if (-not $branch) { throw "No se pudo detectar la rama actual." }
+
+# Si hay cambios sin commitear, los guardamos temporalmente
+$dirty = (git status --porcelain).Trim()
+$stashed = $false
+if ($dirty) {
+  Write-Host "Hay cambios locales; creando stash temporal..."
+  git stash push -k -u -m "sync-autostash $(Get-Date -Format s)" | Out-Null
+  $stashed = $true
+}
+
+# Traer y rebasar sobre remoto
+git fetch origin
+git pull --rebase --autostash origin $branch
+if ($LASTEXITCODE -ne 0) {
+  throw "Fallo al hacer pull --rebase. Resuelve conflictos y reintenta."
+}
+
+# Restaurar stash si lo creamos y quedó algo pendiente
+if ($stashed) {
+  Write-Host "Restaurando cambios locales..."
+  git stash pop | Out-Null
+}
+Write-Host "== Pull OK =="
+# === Fin bloque pull ===
+
+
 # sync-to-github.ps1
 $ErrorActionPreference = 'Stop'
 $repoDir = "$HOME\Documents\GitHub\Discos-An-lisis-Final"
