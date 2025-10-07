@@ -1,145 +1,95 @@
+﻿[CmdletBinding()]
 param(
-  [string[]]$Drives,                             # opcional: salta el popup si lo pasas
-  [string]$OutDir   = "docs\inventory",
-  [string]$Merged   = "docs\hash_data.csv",
-  [switch]$UseAllStored                         # fusiona TODOS los CSV ya guardados en OutDir (sin re-escanear)
+  [string[]]$Roots
 )
 
-$ErrorActionPreference = 'Continue'
-Set-StrictMode -Version Latest
-$PSStyle.OutputRendering = 'PlainText'
+# Importa el filtro multimedia compartido
+. "$PSScriptRoot\common\media-filter.ps1"
 
-# --- 1) Descubrir unidades ---
-function Get-DriveTable {
-  $vols = @()
+function Get-DefaultRoots {
   try {
-    $vols = Get-Volume -ErrorAction SilentlyContinue | Where-Object DriveLetter
-  } catch { }
-  if(-not $vols){
-    # Fallback
-    $vols = Get-PSDrive -PSProvider FileSystem | ForEach-Object {
-      [pscustomobject]@{
-        DriveLetter = $_.Name
-        FileSystem  = $null
-        FileSystemLabel = $null
-        Size        = $null
-        SizeRemaining = $null
-      }
-    }
-  }
-  $vols | ForEach-Object {
-    [pscustomobject]@{
-      Letter   = "$($_.DriveLetter)".ToUpper()
-      Label    = $_.FileSystemLabel
-      FS       = $_.FileSystem
-      SizeGB   = if($_.Size){ [math]::Round($_.Size/1GB,1) } else { $null }
-      FreeGB   = if($_.SizeRemaining){ [math]::Round($_.SizeRemaining/1GB,1) } else { $null }
-      Root     = if($_.DriveLetter){ "$($_.DriveLetter):\" } else { "$($_.Name):\" }
-    }
-  } | Sort-Object Letter
+    $fixed = Get-PSDrive -PSProvider FileSystem |
+      Where-Object { $_.DisplayRoot -eq $null -and $_.Free -ne $null } |
+      ForEach-Object { ($_.Root).TrimEnd('\') }
+  } catch { $fixed = @("C:") }
+  if(-not $fixed -or $fixed.Count -eq 0){ $fixed = @("C:") }
+  return $fixed
 }
 
-# --- 2) UI selección (o parámetro) ---
-$pick = @()
-if($UseAllStored){
-  # no seleccionamos, fusionamos lo guardado
-} elseif($Drives -and $Drives.Count){
-  $pick = ($Drives | ForEach-Object { $_.Substring(0,1).ToUpper() }) | Select-Object -Unique
-} else {
-  $table = Get-DriveTable
-  if(Get-Command Out-GridView -ErrorAction SilentlyContinue){
-    $sel = $table | Out-GridView -PassThru -Title "Selecciona unidades a escanear (Ctrl+Click múltiple)"
-    if($sel){ $pick = $sel.Letter } else { Write-Warning "No se seleccionó nada."; return }
+function Normalize-Root([string]$r){
+  if([string]::IsNullOrWhiteSpace($r)){ return $null }
+  $r = $r.Trim().Trim('"').Trim("'")
+  if($r.Length -eq 2 -and $r[1] -eq ':'){ return "$r\" }
+  if($r.Length -ge 2 -and $r[1] -eq ':' -and $r[-1] -ne '\'){ return "$r\" }
+  return $r
+}
+
+if(-not $Roots -or $Roots.Count -eq 0){
+  $defaults = Get-DefaultRoots
+  Write-Host "Unidades detectadas: $($defaults -join ', ')"
+  $ans = Read-Host "¿Qué quieres escanear? (enter = todas; o ej. C:\,F:\,G:\)"
+  if([string]::IsNullOrWhiteSpace($ans)){
+    $Roots = $defaults
   } else {
-    Write-Host "Unidades detectadas:" -ForegroundColor Cyan
-    $i=0; $table | ForEach-Object { $script:i++; Write-Host ("[{0}] {1}: {2}  {3}GB ({4}GB libres)" -f $i,$_.Letter,$_.Label,$_.SizeGB,$_.FreeGB) }
-    $ans = Read-Host "Escribe índices separados por coma (ej: 1,3)"
-    $idx = $ans -split '\s*,\s*' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
-    $pick = $idx | ForEach-Object { $table[$_-1].Letter } | Where-Object { $_ } | Select-Object -Unique
-    if(-not $pick){ Write-Warning "No se seleccionó nada."; return }
-  }
-}
-
-# --- 3) Extensiones multimedia ---
-$media = @(
-  '.mp4','.mkv','.avi','.mov','.wmv','.flv','.m4v',
-  '.jpg','.jpeg','.png','.gif','.bmp','.tif','.tiff','.webp','.heic',
-  '.mp3','.wav','.flac','.aac','.ogg','.m4a',
-  '.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.txt','.rtf'
-)
-
-# --- 4) Función de escaneo por unidad ---
-function Scan-Drive([string]$letter,[string]$outDir){
-  $root = "$letter`:\"
-  if(-not (Test-Path $root)){ Write-Warning "Unidad $letter: no existe, salto."; return $null }
-  Write-Host ">>> Escaneando $root ..." -ForegroundColor Green
-  $rows = Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue |
-    Where-Object { $media -contains $_.Extension.ToLowerInvariant() } |
-    ForEach-Object {
-      $hash=$null; $err=$null
-      try   { $hash=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256 -ErrorAction Stop).Hash }
-      catch { $err=$_.Exception.Message }
-      [pscustomobject]@{
-        FullName  = $_.FullName
-        Hash      = $hash
-        Length    = $_.Length
-        Extension = $_.Extension
-        Error     = $err
-      }
-    }
-  if(-not (Test-Path $outDir)){ New-Item -ItemType Directory -Path $outDir | Out-Null }
-  $outCsv = Join-Path $outDir ("scan_{0}.csv" -f $letter)
-  $rows | Export-Csv -NoTypeInformation -Encoding UTF8 -LiteralPath $outCsv
-  Write-Host ("OK {0}: {1} ficheros -> {2}" -f $letter,$rows.Count,$outCsv)
-  return $outCsv
-}
-
-# --- 5) Escanear o cargar guardados ---
-$perDriveCsv = New-Object System.Collections.Generic.List[string]
-if($UseAllStored){
-  if(Test-Path $OutDir){
-    Get-ChildItem -LiteralPath $OutDir -Filter 'scan_*.csv' | ForEach-Object { $perDriveCsv.Add($_.FullName) }
-    if(-not $perDriveCsv.Count){ Write-Warning "No hay scans guardados en $OutDir"; return }
-  } else {
-    Write-Warning "No existe $OutDir"; return
+    $Roots = $ans -split ',' | ForEach-Object { Normalize-Root $_ } | Where-Object { $_ }
   }
 } else {
-  foreach($d in $pick){ $p = Scan-Drive -letter $d -outDir $OutDir; if($p){ $perDriveCsv.Add($p) } }
-  if(-not $perDriveCsv.Count){ Write-Warning "Nada que fusionar."; return }
+  $Roots = $Roots | ForEach-Object { Normalize-Root $_ } | Where-Object { $_ }
 }
 
-# --- 6) Fusionar a docs\hash_data.csv ---
-$all = foreach($csv in $perDriveCsv){ Import-Csv -LiteralPath $csv }
-$all | Export-Csv -NoTypeInformation -Encoding UTF8 -LiteralPath $Merged
-Write-Host ("Fusionado -> {0} filas en {1}" -f ($all.Count), $Merged) -ForegroundColor Yellow
-
-# --- 7) Meta JSON por unidad y global ---
-$meta = [ordered]@{
-  generatedAt = (Get-Date).ToString('s')
-  drives = @{}
-  total  = $all.Count
-}
-$all | Group-Object { ($_.'FullName' -split '^[A-Za-z]:')[0]; (($_.FullName)[0]) } | Out-Null # no se usa, pero dejamos nota
-
-$byDrive = $all | ForEach-Object {
-  # intenta letra desde FullName
-  if($_.FullName -match '^([A-Za-z]):'){ $Matches[1].ToUpper() } else { 'OTROS' }
-} | Group-Object
-
-foreach($g in $byDrive){
-  $meta.drives[$g.Name] = @{ count = $g.Count }
+if(-not $Roots -or $Roots.Count -eq 0){
+  Write-Warning "No hay raíces válidas para escanear. Saliendo."
+  return
 }
 
-$metaPath = Join-Path $OutDir 'meta.json'
-($meta | ConvertTo-Json -Depth 6) | Set-Content -Encoding UTF8 -LiteralPath $metaPath
-Write-Host ("Meta -> {0}" -f $metaPath)
+$HeartbeatEvery = 500        # línea cada 500 archivos multimedia
+$ProgressEvery  = 100        # update de Write-Progress cada 100 archivos multimedia
 
-# --- 8) Reinyectar a la página ---
-$html = "docs\inventario_interactivo_offline.html"
-if(Test-Path $html){
-  pwsh -NoProfile -ExecutionPolicy Bypass `
-    -File .\tools\inventory-inject-from-csv.ps1 `
-    -CsvPath $Merged -HtmlPath $html
+foreach($root in $Roots){
+  if(-not (Test-Path -LiteralPath $root)){
+    Write-Warning "Raíz no encontrada: $root"
+    continue
+  }
+
+  Write-Host ""
+  Write-Host (">>> Escaneando SOLO multimedia en $root ...") -ForegroundColor Green
+
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  $count = 0
+  $activity = "Escaneando $root (multimedia)"
+  $spinner  = @('|','/','-','\')
+  $spinIdx  = 0
+
+  try {
+    Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue |
+      Where-Object { Is-MediaFile $_ } |
+      ForEach-Object {
+        $count++
+
+        if(($count % $HeartbeatEvery) -eq 0){
+          $rate = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
+          Write-Host ("  · Multimedia procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $sw.Elapsed, $rate)
+        }
+
+        if(($count % $ProgressEvery) -eq 0){
+          $spinIdx = ($spinIdx + 1) % $spinner.Count
+          Write-Progress -Activity $activity `
+                         -Status "$($spinner[$spinIdx]) Multimedia: $count  |  $($sw.Elapsed.ToString())" `
+                         -PercentComplete 0
+        }
+
+        # (Lugar para lógica adicional por archivo si la necesitas)
+      }
+
+    Write-Progress -Activity $activity -Completed -Status "Completado"
+    $sw.Stop()
+    $rateFinal = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
+    Write-Host ("✔ Finalizado {0} → {1:n0} archivos multimedia en {2:c} ({3})" -f $root, $count, $sw.Elapsed, $rateFinal) -ForegroundColor Cyan
+
+  } catch {
+    Write-Warning ("Error durante el escaneo de {0}: {1}" -f $root, $_.Exception.Message)
+  }
 }
-Write-Host "Listo. Abriendo página..."
-Start-Process $html
+
+Write-Host ""
+Write-Host "Todo listo. Puedes pasarlo con -Roots 'C:\','F:\' para seleccionar unidades." -ForegroundColor Yellow
