@@ -1,10 +1,7 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
   [string[]]$Roots
 )
-
-# Importa el filtro multimedia compartido
-. "$PSScriptRoot\common\media-filter.ps1"
 
 function Get-DefaultRoots {
   try {
@@ -42,8 +39,8 @@ if(-not $Roots -or $Roots.Count -eq 0){
   return
 }
 
-$HeartbeatEvery = 500        # línea cada 500 archivos multimedia
-$ProgressEvery  = 100        # update de Write-Progress cada 100 archivos multimedia
+$HeartbeatEvery = 500        # línea cada 500 archivos
+$ProgressEvery  = 100        # update de Write-Progress cada 100 archivos
 
 foreach($root in $Roots){
   if(-not (Test-Path -LiteralPath $root)){
@@ -52,39 +49,38 @@ foreach($root in $Roots){
   }
 
   Write-Host ""
-  Write-Host (">>> Escaneando SOLO multimedia en $root ...") -ForegroundColor Green
+  Write-Host (">>> Escaneando $root ...") -ForegroundColor Green
 
   $sw = [System.Diagnostics.Stopwatch]::StartNew()
   $count = 0
-  $activity = "Escaneando $root (multimedia)"
+  $activity = "Escaneando $root"
   $spinner  = @('|','/','-','\')
   $spinIdx  = 0
 
   try {
     Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue |
-      Where-Object { Is-MediaFile $_ } |
-      ForEach-Object {
-        $count++
+    ForEach-Object {
+      $count++
 
-        if(($count % $HeartbeatEvery) -eq 0){
-          $rate = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
-          Write-Host ("  · Multimedia procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $sw.Elapsed, $rate)
-        }
-
-        if(($count % $ProgressEvery) -eq 0){
-          $spinIdx = ($spinIdx + 1) % $spinner.Count
-          Write-Progress -Activity $activity `
-                         -Status "$($spinner[$spinIdx]) Multimedia: $count  |  $($sw.Elapsed.ToString())" `
-                         -PercentComplete 0
-        }
-
-        # (Lugar para lógica adicional por archivo si la necesitas)
+      if(($count % $HeartbeatEvery) -eq 0){
+        $rate = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
+        Write-Host ("  · Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $sw.Elapsed, $rate)
       }
+
+      if(($count % $ProgressEvery) -eq 0){
+        $spinIdx = ($spinIdx + 1) % $spinner.Count
+        Write-Progress -Activity $activity `
+                       -Status "$($spinner[$spinIdx]) Procesados: $count  |  $($sw.Elapsed.ToString())" `
+                       -PercentComplete 0
+      }
+
+      # Aquí iría lógica adicional por archivo si la necesitas
+    }
 
     Write-Progress -Activity $activity -Completed -Status "Completado"
     $sw.Stop()
     $rateFinal = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
-    Write-Host ("✔ Finalizado {0} → {1:n0} archivos multimedia en {2:c} ({3})" -f $root, $count, $sw.Elapsed, $rateFinal) -ForegroundColor Cyan
+    Write-Host ("✔ Finalizado {0} → {1:n0} archivos en {2:c} ({3})" -f $root, $count, $sw.Elapsed, $rateFinal) -ForegroundColor Cyan
 
   } catch {
     Write-Warning ("Error durante el escaneo de {0}: {1}" -f $root, $_.Exception.Message)
@@ -93,3 +89,18 @@ foreach($root in $Roots){
 
 Write-Host ""
 Write-Host "Todo listo. Puedes pasarlo con -Roots 'C:\','F:\' para seleccionar unidades." -ForegroundColor Yellow
+
+# --- Auto: fusionar CSV y actualizar HTML ---
+try {
+  \ = Join-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools 'inventory-inject-from-csv.ps1'
+  if(Test-Path \){ & \ }
+  else { Write-Warning "No encontré inventory-inject-from-csv.ps1 para fusionar CSV" }
+} catch { Write-Warning ("Fallo al inyectar CSV: {0}" -f \.Exception.Message) }
+
+try {
+  # Abre HTML si existe
+  \ = Join-Path (Split-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools -Parent) 'docs\inventario_interactivo_offline.html'
+  \ = Join-Path (Split-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools -Parent) 'docs\index.html'
+  if(Test-Path \){ Start-Process \ }
+  elseif(Test-Path \){ Start-Process \ }
+} catch { Write-Warning ("No pude abrir la página: {0}" -f \.Exception.Message) }
