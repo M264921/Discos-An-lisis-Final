@@ -1,0 +1,29 @@
+﻿[
+    {
+        "sha":  null,
+        "tipo":  null,
+        "nombre":  null,
+        "ruta":  null,
+        "unidad":  "C:",
+        "tamano":  3925623,
+        "fecha":  "12/09/2021 2:20:14"
+    },
+    {
+        "sha":  null,
+        "tipo":  null,
+        "nombre":  null,
+        "ruta":  null,
+        "unidad":  "C:",
+        "tamano":  115372,
+        "fecha":  "27/09/2025 2:46:54"
+    },
+    {
+        "sha":  null,
+        "tipo":  null,
+        "nombre":  null,
+        "ruta":  null,
+        "unidad":  "C:",
+        "tamano":  199659,
+        "fecha":  "27/09/2025 2:32:05"
+    }
+]

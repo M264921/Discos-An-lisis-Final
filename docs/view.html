@@ -1,0 +1,49 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventario (viewer)</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Inter,Arial;background:#111;color:#eee;margin:16px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{border-bottom:1px solid #222;padding:8px} th{position:sticky;top:0;background:#0f0f0f}
+.muted{opacity:.75}
+</style>
+<h1>Inventario (viewer)</h1>
+<div><span id="count">0</span> archivos · <span id="size">0</span> (visibles) <input id="q" placeholder="Buscar (ruta/nombre/sha)" style="min-width:260px"></div>
+<table id="t"><thead><tr>
+  <th>SHA</th><th>Tipo</th><th>Nombre</th><th>Ruta/Carpeta</th><th>Unidad</th><th>Tamaño</th><th>Fecha</th>
+</tr></thead><tbody></tbody></table>
+<script>
+(async ()=>{
+  const human=n=>{if(!n||isNaN(n))return "0";const u=["B","KB","MB","GB","TB"];let i=0,x=Number(n);while(x>=1024&&i<u.length-1){x/=1024;i++;}return x.toFixed(1)+" "+u[i]};
+  const res = await fetch("data/inventory.json?ts="+Date.now());
+  const DATA = await res.json();
+  const tb=document.querySelector("#t tbody"), q=document.querySelector("#q");
+  const draw = (rows)=>{
+    tb.innerHTML=""; let total=0;
+    for(const r of rows){
+      total += Number(r.tamano||0);
+      const tr=document.createElement("tr");
+      tr.innerHTML = <td class="muted">\</td>
+                      <td>\</td>
+                      <td>\</td>
+                      <td class="muted">\</td>
+                      <td>\</td>
+                      <td>\</td>
+                      <td>\</td>;
+      tb.appendChild(tr);
+    }
+    document.querySelector("#count").textContent = rows.length.toLocaleString();
+    document.querySelector("#size").textContent = human(total);
+  };
+  const filter=()=>{
+    const s=(q.value||"").toLowerCase();
+    if(!s){ draw(DATA); return; }
+    draw(DATA.filter(r => 
+      (r.ruta||"").toLowerCase().includes(s) ||
+      (r.nombre||"").toLowerCase().includes(s) ||
+      (r.sha||"").toLowerCase().includes(s)
+    ));
+  };
+  q.addEventListener("input", filter);
+  draw(DATA);
+})();
+</script>
