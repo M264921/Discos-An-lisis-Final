@@ -1,4 +1,34 @@
-﻿(function(){
+﻿(()=> {
+  async function __loadFromEmbedded() {
+    const el = document.getElementById('inventory-data');
+    if (!el) return null;
+    try {
+      const txt = el.textContent?.trim() ?? '';
+      if (!txt) return [];
+      // Acepta array u objeto
+      const first = txt[0];
+      if (first === '[' || first === '{') return JSON.parse(txt);
+    } catch (e) {
+      console.warn('Embedded JSON parse error:', e);
+    }
+    return null;
+  }
+  async function __loadFromFile() {
+    // Solo intentar fetch si NO estamos en file://
+    if (location.protocol.startsWith('http')) {
+      const resp = await window.loadInventorySafe();
+    }
+    console.warn('file:// sin servidor http: no se intentará fetch de docs/data/inventory.json');
+    return [];
+  }
+  // Loader público
+  window.loadInventorySafe = async function() {
+    const emb = await __loadFromEmbedded();
+    if (emb && (Array.isArray(emb) ? emb.length : Object.keys(emb).length)) return emb;
+    return await __loadFromFile();
+  }
+})();
+(function(){
   const $ = s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
   const dataBlock=$("#inventory-data"), metaBlock=$("#inventory-meta");
   let ROWS=[]; try{ ROWS=JSON.parse(dataBlock?.textContent||"[]"); }catch{ ROWS=[]; }
@@ -211,3 +241,5 @@
     setTimeout(init, 0);
   });
 })();
+
+

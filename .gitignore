@@ -1,3 +1,5 @@
-logs/
-logs/*.log
-Dry run/
+﻿# artefactos grandes y temporales
+docs/inventory/*.csv
+docs/hash_data.csv
+docs/data/inventory.json
+*.log

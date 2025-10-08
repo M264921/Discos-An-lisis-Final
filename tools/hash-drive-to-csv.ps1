@@ -1,72 +1,33 @@
-﻿[CmdletBinding()]
-param(
-  [Parameter(Mandatory=$true)]
-  [string]$Drive,                 # ej: C:  o  D:
-  [Parameter(Mandatory=$true)]
-  [string]$OutCsv                 # ej: docs\inventory\scan_C.csv
-)
-
-# Importa filtro multimedia común
-. "$PSScriptRoot\common\media-filter.ps1"
-
-# Normaliza Drive a "X:\"
-if($Drive.Length -eq 2 -and $Drive[1] -eq ':'){ $Drive = "$Drive\" }
-elseif($Drive.Length -ge 2 -and $Drive[1] -eq ':' -and $Drive[-1] -ne '\'){ $Drive = "$Drive\" }
-
-if(-not (Test-Path -LiteralPath $Drive)){
-  throw "Unidad no encontrada: $Drive"
-}
-
-# Asegura carpeta destino
-$dir = Split-Path -Parent $OutCsv
-if($dir){ New-Item -ItemType Directory -Force -Path $dir | Out-Null }
-
-Write-Host (">>> Hasheando SOLO multimedia en $Drive → $OutCsv") -ForegroundColor Green
-
-$sw   = [System.Diagnostics.Stopwatch]::StartNew()
-$cnt  = 0
-$ok   = 0
-$fail = 0
-$heartbeatEvery = 250
-$progressEvery  = 100
-$spinner = @('|','/','-','\')
-$spinIdx = 0
-
-try{
-  Get-ChildItem -LiteralPath $Drive -Recurse -File -Force -ErrorAction SilentlyContinue |
-    Where-Object { Is-MediaFile $_ } |
-    ForEach-Object {
-      $cnt++
-
-      if(($cnt % $heartbeatEvery) -eq 0){
-        $rate = "{0:n0}/s" -f (($cnt) / [Math]::Max(1,$sw.Elapsed.TotalSeconds))
-        Write-Host ("  · Multimedia vistos: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $cnt, $sw.Elapsed, $rate)
-      }
-      if(($cnt % $progressEvery) -eq 0){
-        $spinIdx = ($spinIdx + 1) % $spinner.Count
-        Write-Progress -Activity "Hasheando $Drive (multimedia)" -Status "$($spinner[$spinIdx]) Archivos: $cnt" -PercentComplete 0
-      }
-
-      try{
-        $h = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName -ErrorAction Stop
-        $ok++
-        [pscustomobject]@{
-          Path           = $_.FullName
-          Length         = $_.Length
-          LastWriteTime  = $_.LastWriteTimeUtc
-          Hash           = $h.Hash
-          Drive          = $Drive.TrimEnd('\')
-          Ext            = $_.Extension
-        }
-      } catch {
-        $fail++
-        $null # saltar
-      }
-    } | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
-}
-finally{
-  Write-Progress -Activity "Hasheando $Drive (multimedia)" -Completed -Status "Completado"
-  $sw.Stop()
-  Write-Host ("✔ CSV listo: {0}" -f $OutCsv) -ForegroundColor Cyan
-  Write-Host ("   Vistos: {0:n0} | OK: {1:n0} | Fallidos: {2:n0} | Tiempo: {3:c}" -f $cnt, $ok, $fail, $sw.Elapsed)
-}
+﻿param([Parameter(Mandatory)][string]$Drive,[string]$OutCsv)
+$patterns = '\.(jpg|jpeg|png|gif|heic|tif|tiff|bmp|svg|mp4|m4v|mov|avi|mkv|webm|mp3|wav|flac|aac|ogg)$'
+$OutCsv = $OutCsv ?? "docs\inventory\scan_$((($Drive[0])).ToUpper()).csv"
+$progressEvery=500; $heartbeat=2000
+$rows = New-Object System.Collections.Generic.List[object]
+$sw=[diagnostics.stopwatch]::StartNew(); $c=0
+Get-ChildItem -LiteralPath $Drive -Recurse -Force -File -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -match $patterns } |
+  ForEach-Object {
+    $c++
+    if(($c % $progressEvery) -eq 0){
+      Write-Progress -Activity "Escaneando $Drive" -Status "$c archivos..." -PercentComplete 0
+    }
+    $sha = ""
+    try{
+      # SHA1 rápido (si tienes otra lib, cámbiala)
+      $stream = $_.OpenRead()
+      $sha1 = [System.Security.Cryptography.SHA1]::Create()
+      $hash = ($sha1.ComputeHash($stream) | ForEach-Object { $_.ToString("x2") }) -join ""
+      $sha = $hash.ToUpper()
+      $stream.Close()
+    }catch{}
+    $rows.Add([pscustomobject]@{
+      sha=$sha; tipo=(($_.Extension).TrimStart('.').ToLower()); nombre=$_.Name; ruta=$_.DirectoryName;
+      Drive=$Drive.Substring(0,2); tamano=[int64]$_.Length; fecha=($_.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ"))
+    })
+    if(($c % $heartbeat) -eq 0){
+      $rate = "{0:n0}/s" -f ($c/[math]::Max(1,$sw.Elapsed.TotalSeconds))
+      Write-Host ("  · Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $c,$sw.Elapsed,$rate)
+    }
+  }
+$rows | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
+Write-Host "CSV listo: $OutCsv" -ForegroundColor Green
