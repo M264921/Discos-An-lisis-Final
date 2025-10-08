@@ -12,7 +12,7 @@ Sistema de inventario interactivo y análisis multimedia multiunidad con hash, d
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
 ```
 
-Esto lanzará una ventana gráfica para seleccionar las unidades que quieras analizar (ejemplo: `C:`, `D:`, `J:`) y opcionalmente marcar el cálculo de hash SHA256.
+Esto lanzará una ventana gráfica para seleccionar las unidades que quieras analizar (ejemplo: `C:`, `D:`, `J:`) y ejecutará automáticamente el cálculo de hash SHA256.
 
 ### ⚙️ Flujo automático
 
@@ -30,13 +30,13 @@ El proceso completo está totalmente automatizado:
 
 ### 🧭 Ejemplos prácticos
 
-- **Escaneo rápido sin hash**
+- **Escaneo rápido**
   ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E" -OpenAfter
+  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E"
   ```
-- **Escaneo completo con hash**
+- **Escaneo con carpeta de salida personalizada**
   ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -ComputeHash -OpenAfter -VerboseLog
+  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -OutDir "custom\inventory" -Merged "custom\hash_data.csv"
   ```
 - **Solo actualizar la página (sin reescanear)**
   ```pwsh
