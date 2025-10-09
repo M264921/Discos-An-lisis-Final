@@ -3,3 +3,15 @@ docs/inventory/*.csv
 docs/hash_data.csv
 docs/data/inventory.json
 *.log
+
+# === inventory cleanup ===
+*.bak
+*.bak_*
+docs/inventario_*bak*.html
+docs/data/inventory.json.bak_*
+logs/
+
+docs/inventario_pro.html
+docs/inventario_pro.html.bak_*
+docs/inventario_pro.html
+docs/inventario_pro.html.bak_*

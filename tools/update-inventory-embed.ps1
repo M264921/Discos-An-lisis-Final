@@ -1,29 +1,46 @@
+[CmdletBinding()]
 param(
-  [Parameter(Mandatory=$true)] [string] $HtmlPath,
-  [Parameter(Mandatory=$true)] [string] $JsonPath
+  [Parameter(Mandatory)][string]$Html,
+  [Parameter(Mandatory)][string]$JsonPath,
+  [switch]$Backup
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if(!(Test-Path $HtmlPath)){ throw "No existe HTML: $HtmlPath" }
-if(!(Test-Path $JsonPath)){ throw "No existe JSON: $JsonPath" }
+$Html     = (Resolve-Path $Html).Path
+$JsonPath = (Resolve-Path $JsonPath).Path
 
-$doc = Get-Content -LiteralPath $HtmlPath -Raw
-$json = Get-Content -LiteralPath $JsonPath -Raw
+# 1) Backup opcional
+if($Backup){
+  $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $bak = "$Html.bak_$ts"
+  Copy-Item -LiteralPath $Html -Destination $bak -Force
+  Write-Host "↪ Backup: $bak" -ForegroundColor DarkGray
+}
 
-# Normaliza salto de línea en JSON
-$json = ($json -replace "\r\n","`n")
+# 2) Lee y minimiza JSON
+$rows = Get-Content -LiteralPath $JsonPath -Raw | ConvertFrom-Json
+$min  = ($rows | ConvertTo-Json -Depth 6 -Compress)
 
-# Reemplaza el bloque embebido (conserva 'type="application/json"')
-$rx = [regex]::new('<script\s+id=["'']inventory-data["'']\s+type=["'']application/json["'']\s*>([\s\S]*?)</script>', 'Singleline,IgnoreCase')
-if(!$rx.IsMatch($doc)){ throw "No encuentro <script id=""inventory-data""> en el HTML." }
+# 3) Sustituye/Inserta bloque embebido
+$doc = Get-Content -LiteralPath $Html -Raw
+$rx  = [regex]::new('<script[^>]+id=["'']inventory-data["''][^>]*>[\s\S]*?</script>',
+                    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-$new = '<script id="inventory-data" type="application/json">' + "`r`n" + $json + "`r`n" + '</script>'
-$doc = $rx.Replace($doc, $new, 1)
+$block = '<script id="inventory-data" type="application/json">' + $min + '</script>'
 
-# Backup y guardado
-$bak = "$HtmlPath.bak_$(Get-Date -Format yyyyMMddHHmmss)"
-Copy-Item -LiteralPath $HtmlPath -Destination $bak -Force
-Set-Content -LiteralPath $HtmlPath -Value $doc -Encoding UTF8
+if($rx.IsMatch($doc)){
+  $doc = $rx.Replace($doc, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block }, 1)
+}else{
+  # si no existe, intenta meterlo antes de </body>, o al final
+  if($doc -match '</body>'){
+    $doc = $doc -replace '</body>', ($block + "`r`n</body>")
+  }else{
+    $doc += "`r`n$block`r`n"
+  }
+}
 
-Write-Host "✔ Embebido actualizado. Backup: $bak"
+# 4) Guarda
+Set-Content -LiteralPath $Html -Encoding UTF8 -Value $doc
+Write-Host "✔ JSON embebido en $Html" -ForegroundColor Green
