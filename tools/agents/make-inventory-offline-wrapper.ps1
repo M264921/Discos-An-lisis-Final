@@ -163,6 +163,24 @@ try {
     $rows = Parse-JsonRows -Json $json
     $snapshot.Count = $rows.Count
     $driveCounts = Build-DriveCounts -Rows $rows
+    if ($rows.Count -le 0) {
+      $invB64Regex = [System.Text.RegularExpressions.Regex]::new(
+        '<script[^>]+id=["'']INV_B64["''][^>]*>(?<data>[\s\S]*?)</script>',
+        $options
+      )
+      $match = $invB64Regex.Match($content)
+      if ($match.Success) {
+        $b64Raw = ($match.Groups['data'].Value) -replace '\s+', ''
+        try {
+          $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64Raw))
+          $rows = Parse-JsonRows -Json $decoded
+          $snapshot.Count = $rows.Count
+          $driveCounts = Build-DriveCounts -Rows $rows
+        } catch {
+          Write-WrapperLog ("Fallo al decodificar INV_B64: {0}" -f $_.Exception.Message) 'WARN'
+        }
+      }
+    }
     $snapshot.Drives = $driveCounts
     $metaObj = $null
     if ($metaRaw) {

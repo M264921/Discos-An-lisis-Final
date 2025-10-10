@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Duplicados interactivos HIJ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+:root {
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 18px;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: #f7f9fc;
+  color: #0f172a;
+}
+h1 {
+  margin: 0;
+  font-size: 26px;
+  color: #0b2545;
+}
+p.summary {
+  margin: 6px 0 20px;
+  color: #4b5563;
+}
+.stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid #dce3f8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 180px;
+  box-shadow: 0 12px 30px -24px rgba(15, 23, 42, 0.45);
+}
+.stat-card .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #64748b;
+}
+.stat-card .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0b2545;
+}
+.stat-card .meta {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 4px;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.toolbar input[type=search] {
+  padding: 8px 10px;
+  border: 1px solid #d1d9f5;
+  border-radius: 8px;
+  min-width: 260px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #cbd5f5;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.filter-chip[data-active=true] {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.legend {
+  background: #fff;
+  border: 1px solid #dce3f8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 18px 36px -30px rgba(15, 23, 42, 0.4);
+}
+.legend h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #0b2545;
+}
+.legend ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  font-size: 13px;
+}
+.legend li {
+  margin-bottom: 6px;
+}
+.table-wrap {
+  border: 1px solid #dbe3ff;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 20px 44px -32px rgba(15, 23, 42, 0.4);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+th, td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 13px;
+}
+th {
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+th.sortable {
+  cursor: pointer;
+  position: relative;
+}
+th.sortable::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #64748b;
+}
+th.sortable[data-direction="asc"]::after {
+  content: '▲';
+}
+th.sortable[data-direction="desc"]::after {
+  content: '▼';
+}
+tr.group-row {
+  background: #f8faff;
+  font-weight: 600;
+  cursor: pointer;
+}
+tr.group-row:hover {
+  background: #eef4ff;
+}
+tr.entry-row:nth-child(odd) {
+  background: #fbfdff;
+}
+td.icon {
+  width: 32px;
+  text-align: center;
+  font-size: 18px;
+}
+td.path {
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 12px;
+}
+td.path a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+td.path a:hover {
+  text-decoration-style: solid;
+}
+td.actions {
+  white-space: nowrap;
+  display: flex;
+  gap: 6px;
+}
+td.actions a,
+td.actions button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  background: #f8fafc;
+  color: #1d4ed8;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+td.actions a:hover,
+td.actions button:hover {
+  background: #eef4ff;
+}
+tr.column-filters input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #dbe3ff;
+  border-radius: 6px;
+  font-size: 12px;
+}
+tr.column-filters input:focus {
+  outline: none;
+  border-color: #1d4ed8;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: #edf2ff;
+  color: #1d4ed8;
+}
+.badge.multi {
+  background: #fef3c7;
+  color: #b45309;
+}
+footer {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+@media (max-width: 720px) {
+  body { margin: 12px; }
+  .toolbar { gap: 6px; }
+  .toolbar input[type=search] { min-width: 200px; }
+  .table-wrap { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+<h1>Duplicados de los discos H · I · J</h1>
+<p class="summary">Generado: 2025-10-10 17:25:24 · 9 grupos · 18 entradas · 5,5 GB totales.</p>
+<div class="stats">
+  <div class="stat-card"><div class="label">Grupos</div><div class="value" id="stat-groups">9</div><div class="meta">Hashes con más de una copia</div></div>
+  <div class="stat-card"><div class="label">Entradas visibles</div><div class="value" id="stat-visible">-</div><div class="meta">Se actualiza con los filtros</div></div>
+  <div class="stat-card"><div class="label">Tamaño visible</div><div class="value" id="stat-size">-</div><div class="meta">Suma de duplicados filtrados</div></div>
+</div>
+<div class="toolbar">
+  <input id="search" type="search" placeholder="Filtrar por nombre, carpeta o hash..." />
+  <div class="controls">
+    <span class="filter-chip" data-drive="H" data-active="true">H:</span>
+    <span class="filter-chip" data-drive="I" data-active="true">I:</span>
+    <span class="filter-chip" data-drive="J" data-active="true">J:</span>
+  </div>
+  <div class="controls">
+    <label>Tipo:</label>
+    <span class="filter-chip" data-type="all" data-active="true">Todos</span>
+    <span class="filter-chip" data-type="video">Vídeo</span>
+    <span class="filter-chip" data-type="foto">Foto</span>
+    <span class="filter-chip" data-type="audio">Audio</span>
+    <span class="filter-chip" data-type="documento">Docs</span>
+    <span class="filter-chip" data-type="otro">Otros</span>
+  </div>
+  <label class="toggle"><input type="checkbox" id="multi" /> Solo multi-unidad</label>
+  <button id="download" class="filter-chip">Descargar CSV</button>
+  <button id="reset" class="filter-chip">Limpiar filtros</button>
+</div>
+<div class="legend">
+  <h2>Cómo leer las rutas</h2>
+  <ul>
+    <li><strong>H:\_quarantine_from_HIJ\*</strong> — cuarentena común antes de decidir el destino final.</li>
+    <li><strong>H:\offload\...</strong> — volcados rápidos para liberar espacio sin perder respaldo.</li>
+    <li><strong>_quarantine_from_H / _quarantine_from_I</strong> — indican la unidad de origen del fichero.</li>
+    <li><code>\migrated</code> — lotes ya revisados listos para archivar o compartir.</li>
+    <li><code>media_final</code> — biblioteca curada; toca moverla sólo tras validarlo con la familia.</li>
+  </ul>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th class="sortable" data-sort="sha">SHA256</th>
+        <th class="sortable" data-sort="role">Rol</th>
+        <th class="sortable" data-sort="type">Tipo</th>
+        <th class="sortable" data-sort="name">Nombre</th>
+        <th class="sortable" data-sort="path">Ubicación</th>
+        <th class="sortable" data-sort="drive">Unidad</th>
+        <th class="sortable" data-sort="size">Tamaño</th>
+        <th class="sortable" data-sort="last">Modificado</th>
+        <th>Acciones</th>
+      </tr>
+      <tr class="column-filters">
+        <td></td>
+        <td><input data-filter="sha" placeholder="Hash..." /></td>
+        <td><input data-filter="role" placeholder="Rol..." /></td>
+        <td><input data-filter="type" placeholder="Tipo..." /></td>
+        <td><input data-filter="name" placeholder="Nombre..." /></td>
+        <td><input data-filter="path" placeholder="Carpeta..." /></td>
+        <td><input data-filter="drive" placeholder="Unidad..." /></td>
+        <td><input data-filter="size" placeholder="Tamaño..." /></td>
+        <td><input data-filter="last" placeholder="Fecha..." /></td>
+        <td></td>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+</div>
+<footer>Pulsa cada cabecera de grupo para plegar o expandir duplicados. Usa los filtros para decidir qué copia conservar.</footer>
+<script id="duplicates-data" type="application/json">{"summary": {"generated": "2025-10-10 17:25:24", "groups": 9, "items": 18, "bytes": 5884325068, "bytesLabel": "5,5 GB"}, "groups": [{"group": 1, "sha": "8FC54056EFC2820368D5C28AFFC8553D71E114CCF4131A11273B6FD51F2BB539", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 2446823424, "totalLabel": "2,3 GB", "entries": [{"sha": "8FC54056EFC2820368D5C28AFFC8553D71E114CCF4131A11273B6FD51F2BB539", "path": "H:\\Media_Final\\BMW i8 (MEXICO).m2ts", "name": "BMW i8 (MEXICO).m2ts", "drive": "H", "bytes": 1223411712, "sizeLabel": "1,1 GB", "lastWrite": "2014-09-16 16:38:16", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28MEXICO%29.m2ts", "role": "Principal"}, {"sha": "8FC54056EFC2820368D5C28AFFC8553D71E114CCF4131A11273B6FD51F2BB539", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (MEXICO).m2ts", "name": "BMW i8 (MEXICO).m2ts", "drive": "H", "bytes": 1223411712, "sizeLabel": "1,1 GB", "lastWrite": "2014-09-16 16:38:16", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28MEXICO%29.m2ts", "role": "Duplicado"}]}, {"group": 2, "sha": "70FA3EFE7F91C4E1A20AF0324E6986CB5F880AC714760DE208766E38FAB47DCD", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 1345916928, "totalLabel": "1,3 GB", "entries": [{"sha": "70FA3EFE7F91C4E1A20AF0324E6986CB5F880AC714760DE208766E38FAB47DCD", "path": "H:\\Media_Final\\BMW i8 (ITALIANO).m2ts", "name": "BMW i8 (ITALIANO).m2ts", "drive": "H", "bytes": 672958464, "sizeLabel": "641,8 MB", "lastWrite": "2014-09-16 17:30:54", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28ITALIANO%29.m2ts", "role": "Principal"}, {"sha": "70FA3EFE7F91C4E1A20AF0324E6986CB5F880AC714760DE208766E38FAB47DCD", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (ITALIANO).m2ts", "name": "BMW i8 (ITALIANO).m2ts", "drive": "H", "bytes": 672958464, "sizeLabel": "641,8 MB", "lastWrite": "2014-09-16 17:30:54", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28ITALIANO%29.m2ts", "role": "Duplicado"}]}, {"group": 3, "sha": "4DB2DB0BE32F8775FE604EA0A0EA6DDB223E708663C95FABA07F848B63DD1B22", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 373628928, "totalLabel": "356,3 MB", "entries": [{"sha": "4DB2DB0BE32F8775FE604EA0A0EA6DDB223E708663C95FABA07F848B63DD1B22", "path": "H:\\Media_Final\\BMW i8 (ZONA MOTOR).m2ts", "name": "BMW i8 (ZONA MOTOR).m2ts", "drive": "H", "bytes": 186814464, "sizeLabel": "178,2 MB", "lastWrite": "2014-01-19 19:35:18", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28ZONA%20MOTOR%29.m2ts", "role": "Principal"}, {"sha": "4DB2DB0BE32F8775FE604EA0A0EA6DDB223E708663C95FABA07F848B63DD1B22", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (ZONA MOTOR).m2ts", "name": "BMW i8 (ZONA MOTOR).m2ts", "drive": "H", "bytes": 186814464, "sizeLabel": "178,2 MB", "lastWrite": "2014-01-19 19:35:18", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28ZONA%20MOTOR%29.m2ts", "role": "Duplicado"}]}, {"group": 4, "sha": "1B1D8F89B3D521DC202F1F33A7CA1A4F056A19FE4F4DFA716C858782462D6946", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 339996672, "totalLabel": "324,2 MB", "entries": [{"sha": "1B1D8F89B3D521DC202F1F33A7CA1A4F056A19FE4F4DFA716C858782462D6946", "path": "H:\\Media_Final\\BMW VISION FUTURE LUXE CONCEPT (MAS QUE COCHES).m2ts", "name": "BMW VISION FUTURE LUXE CONCEPT (MAS QUE COCHES).m2ts", "drive": "H", "bytes": 169998336, "sizeLabel": "162,1 MB", "lastWrite": "2014-04-27 11:14:22", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20VISION%20FUTURE%20LUXE%20CONCEPT%20%28MAS%20QUE%20COCHES%29.m2ts", "role": "Principal"}, {"sha": "1B1D8F89B3D521DC202F1F33A7CA1A4F056A19FE4F4DFA716C858782462D6946", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW VISION FUTURE LUXE CONCEPT (MAS QUE COCHES).m2ts", "name": "BMW VISION FUTURE LUXE CONCEPT (MAS QUE COCHES).m2ts", "drive": "H", "bytes": 169998336, "sizeLabel": "162,1 MB", "lastWrite": "2014-04-27 11:14:22", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20VISION%20FUTURE%20LUXE%20CONCEPT%20%28MAS%20QUE%20COCHES%29.m2ts", "role": "Duplicado"}]}, {"group": 5, "sha": "F47584349947E4162A516E19CD510C9F6DCB38C6DF41FCAF5F6A6C3106ADED3E", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 336224256, "totalLabel": "320,6 MB", "entries": [{"sha": "F47584349947E4162A516E19CD510C9F6DCB38C6DF41FCAF5F6A6C3106ADED3E", "path": "H:\\Media_Final\\BMW i8 (MAS QUE COCHES) (2).m2ts", "name": "BMW i8 (MAS QUE COCHES) (2).m2ts", "drive": "H", "bytes": 168112128, "sizeLabel": "160,3 MB", "lastWrite": "2014-05-17 12:31:26", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28MAS%20QUE%20COCHES%29%20%282%29.m2ts", "role": "Principal"}, {"sha": "F47584349947E4162A516E19CD510C9F6DCB38C6DF41FCAF5F6A6C3106ADED3E", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (MAS QUE COCHES) (2).m2ts", "name": "BMW i8 (MAS QUE COCHES) (2).m2ts", "drive": "H", "bytes": 168112128, "sizeLabel": "160,3 MB", "lastWrite": "2014-05-17 12:31:26", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28MAS%20QUE%20COCHES%29%20%282%29.m2ts", "role": "Duplicado"}]}, {"group": 6, "sha": "CE8FAD8FFE41E615C6F7C363F85E708A4E1F8A82B5C1FC115AC75CC1D343F520", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 335818752, "totalLabel": "320,3 MB", "entries": [{"sha": "CE8FAD8FFE41E615C6F7C363F85E708A4E1F8A82B5C1FC115AC75CC1D343F520", "path": "H:\\Media_Final\\BMW M6 GRAN COUPE (MAS QUE COCHES) .m2ts", "name": "BMW M6 GRAN COUPE (MAS QUE COCHES) .m2ts", "drive": "H", "bytes": 167909376, "sizeLabel": "160,1 MB", "lastWrite": "2013-12-21 13:32:00", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20M6%20GRAN%20COUPE%20%28MAS%20QUE%20COCHES%29%20.m2ts", "role": "Principal"}, {"sha": "CE8FAD8FFE41E615C6F7C363F85E708A4E1F8A82B5C1FC115AC75CC1D343F520", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW M6 GRAN COUPE (MAS QUE COCHES) .m2ts", "name": "BMW M6 GRAN COUPE (MAS QUE COCHES) .m2ts", "drive": "H", "bytes": 167909376, "sizeLabel": "160,1 MB", "lastWrite": "2013-12-21 13:32:00", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20M6%20GRAN%20COUPE%20%28MAS%20QUE%20COCHES%29%20.m2ts", "role": "Duplicado"}]}, {"group": 7, "sha": "441B29A5E589696B1396624E0CF6D2386BEF505BA74CBDAB5EA05CB7D6D0BB11", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 292523212, "totalLabel": "279 MB", "entries": [{"sha": "441B29A5E589696B1396624E0CF6D2386BEF505BA74CBDAB5EA05CB7D6D0BB11", "path": "H:\\Media_Final\\BMW i8 (coches.net) .mp4", "name": "BMW i8 (coches.net) .mp4", "drive": "H", "bytes": 146261606, "sizeLabel": "139,5 MB", "lastWrite": "2015-01-16 13:27:22", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28coches.net%29%20.mp4", "role": "Principal"}, {"sha": "441B29A5E589696B1396624E0CF6D2386BEF505BA74CBDAB5EA05CB7D6D0BB11", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (coches.net) .mp4", "name": "BMW i8 (coches.net) .mp4", "drive": "H", "bytes": 146261606, "sizeLabel": "139,5 MB", "lastWrite": "2015-01-16 13:27:22", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28coches.net%29%20.mp4", "role": "Duplicado"}]}, {"group": 8, "sha": "0FFC37948CD781AB1E0E57A9284912F04B17DC9FDB5135EC8576F4426925014F", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 277585920, "totalLabel": "264,7 MB", "entries": [{"sha": "0FFC37948CD781AB1E0E57A9284912F04B17DC9FDB5135EC8576F4426925014F", "path": "H:\\Media_Final\\BMW i8 (CENTIMETROS CUBICOS).m2ts", "name": "BMW i8 (CENTIMETROS CUBICOS).m2ts", "drive": "H", "bytes": 138792960, "sizeLabel": "132,4 MB", "lastWrite": "2014-09-16 17:20:18", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28CENTIMETROS%20CUBICOS%29.m2ts", "role": "Principal"}, {"sha": "0FFC37948CD781AB1E0E57A9284912F04B17DC9FDB5135EC8576F4426925014F", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (CENTIMETROS CUBICOS).m2ts", "name": "BMW i8 (CENTIMETROS CUBICOS).m2ts", "drive": "H", "bytes": 138792960, "sizeLabel": "132,4 MB", "lastWrite": "2014-09-16 17:20:18", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28CENTIMETROS%20CUBICOS%29.m2ts", "role": "Duplicado"}]}, {"group": 9, "sha": "0350919617BDDDF0EF6906E89B70DFB9CAE3361DBB23C30D3F1A0D0C7149FF34", "count": 2, "drives": ["H"], "multiDrive": false, "totalBytes": 135806976, "totalLabel": "129,5 MB", "entries": [{"sha": "0350919617BDDDF0EF6906E89B70DFB9CAE3361DBB23C30D3F1A0D0C7149FF34", "path": "H:\\Media_Final\\BMW i8 (MAS QUE COCHES).m2ts", "name": "BMW i8 (MAS QUE COCHES).m2ts", "drive": "H", "bytes": 67903488, "sizeLabel": "64,8 MB", "lastWrite": "2013-09-14 14:34:14", "category": "video", "icon": "🎬", "openUri": "file:///H:/Media_Final/BMW%20i8%20%28MAS%20QUE%20COCHES%29.m2ts", "role": "Principal"}, {"sha": "0350919617BDDDF0EF6906E89B70DFB9CAE3361DBB23C30D3F1A0D0C7149FF34", "path": "H:\\offload\\_quarantine_from_I\\migrated\\VIDEOS CIENCIA Y TECNOLOGIA\\BMW i8 (MAS QUE COCHES).m2ts", "name": "BMW i8 (MAS QUE COCHES).m2ts", "drive": "H", "bytes": 67903488, "sizeLabel": "64,8 MB", "lastWrite": "2013-09-14 14:34:14", "category": "video", "icon": "🎬", "openUri": "file:///H:/offload/_quarantine_from_I/migrated/VIDEOS%20CIENCIA%20Y%20TECNOLOGIA/BMW%20i8%20%28MAS%20QUE%20COCHES%29.m2ts", "role": "Duplicado"}]}]}</script>
+<script>
+(() => {
+  const raw = JSON.parse(document.getElementById('duplicates-data').textContent);
+  const groups = raw.groups;
+  const drives = new Set(['H','I','J']);
+  let typeFilter = 'all';
+  let searchTerm = '';
+  let multiOnly = false;
+  const columnFilters = { sha:'', role:'', type:'', name:'', path:'', drive:'', size:'', last:'' };
+  const sortConfig = { field: null, direction: 'asc' };
+  let lastFilteredGroups = [];
+
+  const searchInput = document.getElementById('search');
+  const chips = document.querySelectorAll('.filter-chip[data-drive], .filter-chip[data-type]');
+  const multiToggle = document.getElementById('multi');
+  const resetBtn = document.getElementById('reset');
+  const tbody = document.getElementById('results');
+  const statVisible = document.getElementById('stat-visible');
+  const statSize = document.getElementById('stat-size');
+  const headers = document.querySelectorAll('th[data-sort]');
+  const columnInputs = document.querySelectorAll('tr.column-filters input[data-filter]');
+  const downloadBtn = document.getElementById('download');
+
+  document.getElementById('stat-groups').textContent = groups.length.toLocaleString('es-ES');
+
+  function escapeHtml(value) {
+    return value.replace(/[&<>"']/g, (char) => {
+      switch(char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return char;
+      }
+    });
+  }
+
+  function escapeAttribute(value) {
+    return (value || '').toString().replace(/[&<>"']/g, (char) => {
+      switch(char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return char;
+      }
+    });
+  }
+
+  function formatBytes(value) {
+    if(!value) return '0 B';
+    const units = ['B','KB','MB','GB','TB','PB'];
+    let amount = value;
+    for(const unit of units) {
+      if(amount < 1024 || unit === units[units.length - 1]) {
+        if(unit === 'B') return `${Math.round(amount)} ${unit}`;
+        return new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(amount) + ` ${unit}`;
+      }
+      amount /= 1024;
+    }
+  }
+
+  function normalise(value) {
+    return (value || '').toString().toLowerCase();
+  }
+
+  function csvCell(value) {
+    const string = value == null ? '' : value.toString();
+    const escaped = string.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+
+  function getEntryField(entry, field) {
+    switch(field) {
+      case 'sha': return entry.sha;
+      case 'role': return entry.role;
+      case 'type': return entry.category;
+      case 'name': return entry.name;
+      case 'path': return entry.path;
+      case 'drive': return entry.drive;
+      case 'size': return entry.bytes;
+      case 'last': return entry.lastWrite;
+      default: return '';
+    }
+  }
+
+  function compareEntries(a, b, field) {
+    if(field === 'size') {
+      return (a.bytes || 0) - (b.bytes || 0);
+    }
+    if(field === 'last') {
+      return Date.parse(a.lastWrite || '') - Date.parse(b.lastWrite || '');
+    }
+    return normalise(getEntryField(a, field)).localeCompare(normalise(getEntryField(b, field)), 'es');
+  }
+
+  function compareGroups(a, b) {
+    const field = sortConfig.field;
+    if(!field) {
+      return a.groupInfo.group - b.groupInfo.group;
+    }
+    if(field === 'sha') {
+      return a.groupInfo.sha.localeCompare(b.groupInfo.sha, 'es');
+    }
+    const entryA = a.entries[0] || {};
+    const entryB = b.entries[0] || {};
+    if(field === 'size') {
+      return (entryA.bytes || 0) - (entryB.bytes || 0);
+    }
+    if(field === 'last') {
+      return Date.parse(entryA.lastWrite || '') - Date.parse(entryB.lastWrite || '');
+    }
+    return normalise(getEntryField(entryA, field)).localeCompare(normalise(getEntryField(entryB, field)), 'es');
+  }
+
+  function matchesEntry(entry) {
+    if(!drives.has(entry.drive)) return false;
+    if(typeFilter !== 'all' && entry.category !== typeFilter) return false;
+    if(columnFilters.role && !normalise(entry.role).includes(columnFilters.role)) return false;
+    if(columnFilters.type && !normalise(entry.category).includes(columnFilters.type)) return false;
+    if(columnFilters.name && !normalise(entry.name).includes(columnFilters.name)) return false;
+    if(columnFilters.path && !normalise(entry.path).includes(columnFilters.path)) return false;
+    if(columnFilters.drive && !normalise(entry.drive).includes(columnFilters.drive)) return false;
+    if(columnFilters.size && !normalise(entry.sizeLabel).includes(columnFilters.size)) return false;
+    if(columnFilters.last && !normalise(entry.lastWrite).includes(columnFilters.last)) return false;
+    if(searchTerm) {
+      const blob = `${entry.name} ${entry.path} ${entry.sha}`.toLowerCase();
+      return blob.includes(searchTerm);
+    }
+    return true;
+  }
+
+  function render() {
+    const rendered = [];
+    let visibleEntries = 0;
+    let visibleBytes = 0;
+
+    const filteredGroups = groups.map((group) => {
+      const entries = group.entries.filter(matchesEntry);
+      return { groupInfo: group, entries };
+    }).filter((item) => item.entries.length > 0 && (!multiOnly || item.groupInfo.multiDrive));
+
+    filteredGroups.sort(compareGroups);
+
+    const snapshot = filteredGroups.map((groupWrapper) => {
+      const sortedEntries = [...groupWrapper.entries];
+      if(sortConfig.field && sortConfig.field !== 'sha') {
+        const factor = sortConfig.direction === 'desc' ? -1 : 1;
+        sortedEntries.sort((a, b) => compareEntries(a, b, sortConfig.field) * factor);
+      }
+      return { groupInfo: groupWrapper.groupInfo, entries: sortedEntries };
+    });
+
+    snapshot.forEach((groupWrapper) => {
+      const info = groupWrapper.groupInfo;
+      rendered.push(`
+        <tr class="group-row" data-group="${info.group}" data-open="true">
+          <td>${info.group}</td>
+          <td colspan="9">
+            <span class="badge${info.multiDrive ? ' multi' : ''}">${info.count} copia(s) · ${escapeHtml(info.totalLabel)}</span>
+            <span class="badge">Unidades: ${info.drives.join(', ')}</span>
+            <span class="badge">SHA: ${escapeHtml(info.sha)}</span>
+          </td>
+        </tr>`);
+      groupWrapper.entries.forEach((entry) => {
+        visibleEntries += 1;
+        visibleBytes += entry.bytes || 0;
+        const openAttr = entry.openUri ? escapeAttribute(entry.openUri) : '';
+        const pathContent = entry.openUri
+          ? `<a href="${openAttr}" target="_blank" rel="noopener">${escapeHtml(entry.path)}</a>`
+          : escapeHtml(entry.path);
+        rendered.push(`
+          <tr class="entry-row" data-group="${info.group}">
+            <td>${info.group}</td>
+            <td>${escapeHtml(entry.sha)}</td>
+            <td>${entry.role}</td>
+            <td><span class="icon">${entry.icon}</span> ${entry.category}</td>
+            <td>${escapeHtml(entry.name)}</td>
+            <td class="path">${pathContent}</td>
+            <td>${entry.drive}</td>
+            <td>${escapeHtml(entry.sizeLabel)}</td>
+            <td>${escapeHtml(entry.lastWrite || '')}</td>
+            <td class="actions">
+              ${entry.openUri ? `<a href="${openAttr}" target="_blank" rel="noopener">Abrir</a>` : '<span style="opacity:.5">Sin acceso</span>'}
+              <button type="button" data-copy="${escapeHtml(entry.path)}">Copiar ruta</button>
+            </td>
+          </tr>`);
+      });
+    });
+
+    tbody.innerHTML = rendered.join('');
+    statVisible.textContent = visibleEntries.toLocaleString('es-ES');
+    statSize.textContent = formatBytes(visibleBytes);
+    lastFilteredGroups = snapshot;
+  }
+
+  tbody.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-copy]');
+    if(button) {
+      navigator.clipboard?.writeText(button.dataset.copy).then(() => {
+        button.textContent = 'Copiado ✔';
+        setTimeout(() => button.textContent = 'Copiar ruta', 1500);
+      }).catch(() => {
+        button.textContent = 'Error';
+        setTimeout(() => button.textContent = 'Copiar ruta', 1500);
+      });
+      event.stopPropagation();
+      return;
+    }
+    const groupRow = event.target.closest('tr.group-row');
+    if(groupRow) {
+      const isOpen = groupRow.dataset.open === 'true';
+      groupRow.dataset.open = (!isOpen).toString();
+      tbody.querySelectorAll(`tr.entry-row[data-group="${groupRow.dataset.group}"]`).forEach((row) => {
+        row.style.display = isOpen ? 'none' : '';
+      });
+    }
+  });
+
+  searchInput.addEventListener('input', (event) => {
+    searchTerm = event.target.value.trim().toLowerCase();
+    render();
+  });
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if(chip.dataset.drive) {
+        const drive = chip.dataset.drive;
+        if(drives.has(drive)) {
+          drives.delete(drive);
+          chip.dataset.active = 'false';
+        } else {
+          drives.add(drive);
+          chip.dataset.active = 'true';
+        }
+      } else if(chip.dataset.type) {
+        typeFilter = chip.dataset.type;
+        document.querySelectorAll('.filter-chip[data-type]').forEach((item) => item.dataset.active = 'false');
+        chip.dataset.active = 'true';
+      }
+      render();
+    });
+  });
+
+  multiToggle.addEventListener('change', (event) => {
+    multiOnly = event.target.checked;
+    render();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    drives.clear();
+    ['H','I','J'].forEach((drive) => drives.add(drive));
+    document.querySelectorAll('.filter-chip[data-drive]').forEach((chip) => chip.dataset.active = 'true');
+    document.querySelector('.filter-chip[data-type="all"]').dataset.active = 'true';
+    document.querySelectorAll('.filter-chip[data-type]').forEach((chip) => {
+      if(chip.dataset.type !== 'all') chip.dataset.active = 'false';
+    });
+    typeFilter = 'all';
+    searchInput.value = '';
+    searchTerm = '';
+    multiToggle.checked = false;
+    multiOnly = false;
+    Object.keys(columnFilters).forEach((key) => columnFilters[key] = '');
+    columnInputs.forEach((input) => input.value = '');
+    render();
+  });
+
+  if(downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      if(downloadBtn.disabled) return;
+      const originalText = downloadBtn.textContent;
+      const hasRows = lastFilteredGroups.some((group) => group.entries.length > 0);
+      if(!hasRows) {
+        downloadBtn.textContent = 'Sin resultados visibles';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+        return;
+      }
+
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Generando CSV...';
+
+      try {
+        const headers = ['Grupo', 'SHA256', 'Rol', 'Tipo', 'Nombre', 'Ubicación', 'Unidad', 'Tamaño', 'Modificado'];
+        const rows = [];
+        lastFilteredGroups.forEach((groupWrapper) => {
+          groupWrapper.entries.forEach((entry) => {
+            rows.push([
+              groupWrapper.groupInfo.group,
+              entry.sha,
+              entry.role,
+              entry.category,
+              entry.name,
+              entry.path,
+              entry.drive,
+              entry.sizeLabel,
+              entry.lastWrite || ''
+            ]);
+          });
+        });
+        const lines = [headers, ...rows].map((row) => row.map(csvCell).join(';'));
+        const csvContent = lines.join('
+');
+        const blob = new Blob([`﻿${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const timestamp = new Date().toISOString().replace(/[:T]/g, '-').split('.')[0];
+        link.download = `duplicados-filtrados-${timestamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        downloadBtn.textContent = 'CSV descargado ✓';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+      } catch (error) {
+        console.error(error);
+        downloadBtn.textContent = 'Error al generar';
+        setTimeout(() => downloadBtn.textContent = originalText, 2000);
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    });
+  }
+
+  headers.forEach((header) => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if(sortConfig.field === field) {
+        sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortConfig.field = field;
+        sortConfig.direction = 'asc';
+      }
+      headers.forEach((item) => item.removeAttribute('data-direction'));
+      header.dataset.direction = sortConfig.direction;
+      render();
+    });
+  });
+
+  columnInputs.forEach((input) => {
+    input.addEventListener('input', (event) => {
+      const key = event.target.dataset.filter;
+      columnFilters[key] = event.target.value.trim().toLowerCase();
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

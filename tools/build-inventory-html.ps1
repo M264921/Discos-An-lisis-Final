@@ -6,7 +6,7 @@ $bytes = [IO.File]::ReadAllBytes($JsonPath)
 $b64   = [Convert]::ToBase64String($bytes)
 
 # HTML: corregido chips() y render(); filtros completos
-$tpl = @"
+$tpl = @'
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inventario (standalone)</title>
@@ -91,7 +91,7 @@ __B64__
   chips(DATA); render();
 })();
 </script></body></html>
-"@
+'@
 
 $tpl = $tpl -replace "__B64__", [Regex]::Escape($b64) -replace "\\Q|\\E",""
 Set-Content -Encoding UTF8 $HtmlPath $tpl

@@ -15,12 +15,12 @@ $options = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [Syste
 
 function Remove-Pattern {
   param(
-    [string]$Input,
+    [string]$Content,
     [string]$Pattern,
     [System.Text.RegularExpressions.RegexOptions]$Options
   )
   $regex = [System.Text.RegularExpressions.Regex]::new($Pattern, $Options)
-  return $regex.Replace($Input, '')
+  return $regex.Replace($Content, '')
 }
 
 $externalPatterns = @(
@@ -35,14 +35,14 @@ $externalPatterns = @(
 )
 
 foreach ($pattern in $externalPatterns) {
-  $html = Remove-Pattern -Input $html -Pattern $pattern -Options $options
+  $html = Remove-Pattern -Content $html -Pattern $pattern -Options $options
 }
 
 $blockList = '(?:acestream|yandex|metrika|tiktok|facebook|doubleclick|googletag|google-analytics|mc\.yandex|vk\.com)'
 $scriptBlockPattern = "<script[^>]*$blockList[^>]*>[\s\S]*?</script>"
 $iframeBlockPattern = "<iframe[^>]*$blockList[^>]*>[\s\S]*?</iframe>"
-$html = Remove-Pattern -Input $html -Pattern $scriptBlockPattern -Options $options
-$html = Remove-Pattern -Input $html -Pattern $iframeBlockPattern -Options $options
+$html = Remove-Pattern -Content $html -Pattern $scriptBlockPattern -Options $options
+$html = Remove-Pattern -Content $html -Pattern $iframeBlockPattern -Options $options
 
 $html = [System.Text.RegularExpressions.Regex]::Replace(
   $html,
