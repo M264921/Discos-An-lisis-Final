@@ -4,7 +4,8 @@ param(
   [switch]$ComputeHash,
   [switch]$OpenAfter,
   [switch]$VerboseLog,
-  [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Media'
+  [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Media',
+  [switch]$SkipPublish
 )
 
 $ErrorActionPreference = 'Stop'
@@ -140,3 +141,26 @@ if (Test-Path -LiteralPath $finalHtml) {
 Write-Host ""
 Write-Host "Todo listo. Puedes volver a ejecutarlo con -Roots 'C:\','F:\' para seleccionar unidades concretas." -ForegroundColor Yellow
 Log-Info "Proceso completado."
+
+if ($SkipPublish) {
+  Write-Host "Publicacion omitida (SkipPublish especificado)." -ForegroundColor Yellow
+  return
+}
+
+$syncScript = Join-Path $repoRoot 'tools\sync-to-github.ps1'
+if (-not (Test-Path -LiteralPath $syncScript)) {
+  Write-Warning "No se encontro tools\sync-to-github.ps1; omitiendo push automatico."
+  return
+}
+
+Write-Host ""
+Write-Host "Publicando inventario en GitHub (commit + push)..." -ForegroundColor Cyan
+Log-Info "Lanzando sync-to-github.ps1"
+$commitMessage = "Auto update inventory ({0}) filtro {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm'), $filterChoice
+try {
+  & pwsh -NoProfile -ExecutionPolicy Bypass -File $syncScript -Message $commitMessage
+  Log-Info "sync-to-github.ps1 finalizado"
+} catch {
+  Write-Warning ("Fallo al publicar cambios en GitHub: {0}" -f $_.Exception.Message)
+  Log-Info ("sync-to-github.ps1 fallo: {0}" -f $_.Exception.Message)
+}

@@ -22,6 +22,7 @@ Guia operativa para mantener el flujo autonomo de inventario multimedia.
 | Refrescar solo `docs/hash_data.csv`     | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
 | Regenerar analitica de duplicados       | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
 | Escaneo guiado (con filtro)             | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -ContentFilter Media` |
+| Escaneo (sin publicar)                  | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -SkipPublish` |
 | Generar paquete + `.exe`                | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/make-inventory-package.ps1` |
 
 Manten los scripts idempotentes y sin rutas absolutas codificadas.
@@ -52,5 +53,6 @@ Manten los scripts idempotentes y sin rutas absolutas codificadas.
 - Los sanitizadores bloquean protocolos externos (acestream, http); amplia la blocklist si aparecen nuevos protocolos en lugar de deshabilitarla.
 - El merge de scans conserva por defecto la ultima ruta vista por SHA/tamano; revisa `tools/merge-scans.ps1 -KeepDuplicates` si necesitas diagnosticar historicos.
 - `releases/` almacena los artefactos listos para GitHub Releases (exe + zip). Regenera tras cada cambio relevante ejecutando `tools/make-inventory-package.ps1`.
+- `tools/scan-drives-interactive.ps1` publica automaticamente los cambios en GitHub Pages al terminar. Usa `-SkipPublish` si necesitas revisar el diff antes del push.
 - Manten bajo control el repositorio: sin rutas absolutas, sin side-effects fuera de `RepoRoot`, y logs siempre en `logs/`.
 

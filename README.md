@@ -13,6 +13,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
 ```
 
 El asistente detecta las unidades disponibles, permite elegirlas y pregunta el filtro de contenido (`Media`, `Otros`, `Todo`) antes de iniciar el escaneo.
+Al finalizar la fusión y regeneración del inventario, el script lanza `tools\sync-to-github.ps1` para publicar en GitHub Pages de inmediato (commit + push + build). Usa `-SkipPublish` si quieres omitir el push automático.
 
 Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, si lo deseas, activar el calculo de hash SHA256.
 
