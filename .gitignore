@@ -10,6 +10,7 @@ docs/data/inventory.json
 docs/inventario_*bak*.html
 docs/data/inventory.json.bak_*
 logs/
+dist/
 
 docs/inventario_pro.html
 docs/inventario_pro.html.bak_*
