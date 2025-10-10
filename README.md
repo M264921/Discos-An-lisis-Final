@@ -12,6 +12,8 @@ Escanea, calcula hashes (opcional) y actualiza el inventario con un unico comand
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
 ```
 
+El asistente detecta las unidades disponibles, permite elegirlas y pregunta el filtro de contenido (`Media`, `Otros`, `Todo`) antes de iniciar el escaneo.
+
 Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, si lo deseas, activar el calculo de hash SHA256.
 
 ### Flujo automatizado
@@ -19,7 +21,8 @@ Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, 
 | Etapa                   | Descripcion                                                                 |
 | ----------------------- | --------------------------------------------------------------------------- |
 | Seleccion de unidades   | Popup que detecta discos y permite elegir cuales procesar                   |
-| Escaneo de archivos     | Recorre fotos, videos, audios y documentos en las unidades elegidas         |
+| Filtro de contenido     | Selector `Media` / `Otros` / `Todo` para limitar los tipos de archivo        |
+| Escaneo de archivos     | Recorre las carpetas aplicando el filtro y captura extension/tipo           |
 | Calculo de hash         | (Opcional) SHA256 para identificar duplicados y cambios                     |
 | Generacion de inventario| Exporta resultados a `docs/hash_data.csv` en lotes de 400 archivos          |
 | Inyeccion HTML          | Actualiza `docs/inventario_interactivo_offline.html` con los datos nuevos   |
@@ -30,16 +33,24 @@ Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, 
 
 - Escaneo rapido sin hash:
   ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E" -OpenAfter
+  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E" -ContentFilter Todo -OpenAfter
   ```
 - Escaneo completo con hash:
   ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -ComputeHash -OpenAfter -VerboseLog
+  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -ComputeHash -ContentFilter Media -OpenAfter -VerboseLog
   ```
 - Solo regenerar la pagina (sin escanear de nuevo):
   ```pwsh
   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\sync-to-github.ps1
   ```
+
+### Inventario interactivo
+
+- Columnas arrastrables y con ancho ajustable; usa `Reiniciar columnas` para volver a la configuracion por defecto.
+- Iconos de tipo (`📷`, `🎬`, `🎧`, `📄`) segun la categoria detectada o la extension.
+- Selector de paginacion (25, 50, 100, 250, Todo) y contador de rango visible.
+- Boton `Descargar CSV` exporta los resultados filtrados respetando el orden de columnas.
+- Clic en `Nombre` abre el archivo local (`file:///...`) y clic en `Ruta` abre la carpeta de Windows Explorer.
 
 ---
 
@@ -66,6 +77,18 @@ Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, 
 | `docs/hash_data.csv`                  | Datos de inventario                 |
 | `docs/inventario_interactivo_offline.html` | Vista interactiva final          |
 | `AGENTS.md`                           | Documentacion tecnica avanzada      |
+
+---
+
+## Distribucion
+
+Construye un paquete autocontenido (scripts + docs basicos) listo para redistribuir:
+
+```pwsh
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools\build-dist.ps1
+```
+
+El resultado queda en `dist\latest\` (o `dist\yyyyMMdd-HHmmss\` si usas `-Timestamp`) con `tools\`, `docs\` y `logs\` minimos listos para empaquetar via PS2EXE/MSIX.
 
 ---
 

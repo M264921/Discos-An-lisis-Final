@@ -67,7 +67,7 @@ if ($KeepDuplicates) {
     }
   }
   $buffer | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
-  Write-Host ("Combinado (sin depuración) -> {0} ({1} filas)" -f $OutCsv, $totalRows) -ForegroundColor Cyan
+  Write-Host ("Combinado (sin depuracion) -> {0} ({1} filas)" -f $OutCsv, $totalRows) -ForegroundColor Cyan
   exit 0
 }
 
@@ -124,4 +124,5 @@ foreach ($scan in $scans) {
 $uniqueRows = $map.Values | ForEach-Object { $_.Row }
 $uniqueRows | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
 $duplicates = $totalRows - $map.Count
-Write-Host ("Combinado -> {0} (original: {1} filas, finales únicas: {2}, duplicados descartados: {3})" -f $OutCsv, $totalRows, $map.Count, $duplicates) -ForegroundColor Cyan
+Write-Host ("Combinado -> {0} (original: {1} filas, finales unicas: {2}, duplicados descartados: {3})" -f $OutCsv, $totalRows, $map.Count, $duplicates) -ForegroundColor Cyan
+

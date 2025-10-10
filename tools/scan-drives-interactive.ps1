@@ -3,7 +3,8 @@ param(
   [string[]]$Roots,
   [switch]$ComputeHash,
   [switch]$OpenAfter,
-  [switch]$VerboseLog
+  [switch]$VerboseLog,
+  [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Media'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,6 +43,7 @@ function Confirm-Roots([string[]]$candidates) {
 }
 
 $targetRoots = @()
+$filterChoice = $ContentFilter
 if (-not $Roots -or $Roots.Count -eq 0) {
   $defaults = Get-DefaultRoots
   Write-Host ("Unidades detectadas: {0}" -f ($defaults -join ', '))
@@ -50,6 +52,17 @@ if (-not $Roots -or $Roots.Count -eq 0) {
     $targetRoots = $defaults | ForEach-Object { Normalize-Root $_ }
   } else {
     $targetRoots = $answer -split ',' | ForEach-Object { Normalize-Root $_ }
+  }
+  if (-not $PSBoundParameters.ContainsKey('ContentFilter')) {
+    $filterInput = Read-Host "Filtro de contenido (Media/Otros/Todo) [Media]"
+    if (-not [string]::IsNullOrWhiteSpace($filterInput)) {
+      switch ($filterInput.Trim().ToLowerInvariant()) {
+        'media' { $filterChoice = 'Media' }
+        'otros' { $filterChoice = 'Otros' }
+        'todo'  { $filterChoice = 'Todo' }
+        default { Write-Warning ("Opcion no reconocida ({0}); se mantiene {1}" -f $filterInput, $filterChoice) }
+      }
+    }
   }
 } else {
   $targetRoots = $Roots | ForEach-Object { Normalize-Root $_ }
@@ -84,6 +97,7 @@ function Log-Info {
 }
 
 Log-Info "Usando ComputeHash=$ComputeHash"
+Log-Info ("ContentFilter={0}" -f $filterChoice)
 
 $hashScript = Join-Path $repoRoot 'tools\hash-drive-to-csv.ps1'
 if (-not (Test-Path -LiteralPath $hashScript)) {
@@ -100,12 +114,12 @@ foreach ($root in $targetRoots) {
   $csvPath = Join-Path $inventoryDir ("scan_{0}.csv" -f ([char]::ToUpper($letter)))
   $algorithm = if ($ComputeHash) { 'SHA256' } else { 'None' }
 
-  & $hashScript -Drive $root -OutCsv $csvPath -Algorithm $algorithm
-  Log-Info ("Generado {0}" -f $csvPath)
+  & $hashScript -Drive $root -OutCsv $csvPath -Algorithm $algorithm -ContentFilter $filterChoice
+  Log-Info ("Generado {0} (filtro {1})" -f $csvPath, $filterChoice)
 }
 
 Write-Host ""
-Write-Host "Fusionando resultados y regenerando HTML..." -ForegroundColor Cyan
+Write-Host ("Fusionando resultados y regenerando HTML... (Filtro: {0})" -f $filterChoice) -ForegroundColor Cyan
 Log-Info "Lanzando make_inventory_offline.ps1"
 
 $makeScript = Join-Path $repoRoot 'tools\make_inventory_offline.ps1'

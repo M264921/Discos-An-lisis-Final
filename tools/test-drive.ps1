@@ -2,6 +2,7 @@
 param(
   [string]$Path,                                  # C:\  o D:\Carpeta
   [ValidateSet('Auto','Hash','Quick')][string]$Mode = 'Auto',
+  [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Todo',
   [switch]$NoOpen
 )
 
@@ -51,6 +52,33 @@ Write-Host ("-> Archivos candidatos: {0}" -f $files.Count)
 
 # --- Recorre archivos sin Split-Path (usa .NET) ---
 $rows = New-Object System.Collections.Generic.List[object]
+$imageExt = @('jpg','jpeg','png','gif','bmp','tif','tiff','heic','webp','svg','raw','nef','cr2')
+$videoExt = @('mp4','m4v','mov','avi','mkv','webm','wmv','flv','mpg','mpeg','ts')
+$audioExt = @('mp3','wav','flac','aac','ogg','m4a','opus','wma','aiff')
+$docExt   = @('pdf','doc','docx','xls','xlsx','ppt','pptx','txt','rtf','csv','json','xml','psd','ai')
+
+function Get-TestCategory {
+  param([string]$Extension)
+  if ([string]::IsNullOrWhiteSpace($Extension)) { return 'archivo' }
+  $ext = $Extension.ToLowerInvariant()
+  if ($imageExt -contains $ext) { return 'foto' }
+  if ($videoExt -contains $ext) { return 'video' }
+  if ($audioExt -contains $ext) { return 'audio' }
+  if ($docExt   -contains $ext) { return 'documento' }
+  return 'archivo'
+}
+
+function Should-Keep {
+  param(
+    [string]$Category,
+    [string]$Filter
+  )
+  switch ($Filter) {
+    'Media' { return $Category -in @('foto','video','audio') }
+    'Otros' { return $Category -notin @('foto','video','audio') }
+    default { return $true }
+  }
+}
 
 foreach ($f in $files) {
   try {
@@ -70,9 +98,17 @@ foreach ($f in $files) {
     }
     if ($sha) { $idx[$key] = $sha }
 
+    $extension = ""
+    if ($f.Extension) {
+      $extension = $f.Extension.ToString().TrimStart('.')
+    }
+    $category = Get-TestCategory $extension
+    if (-not (Should-Keep $category $ContentFilter)) { continue }
+
     $rows.Add([pscustomobject]@{
       sha     = $sha
-      tipo    = ''
+      tipo    = $category
+      extension = $extension.ToLower()
       nombre  = $f.Name
       ruta    = [System.IO.Path]::GetDirectoryName($p)   # <- sin Split-Path
       unidad  = ($driveLetter + ':')
@@ -135,3 +171,4 @@ Write-Host ("OK HTML embebido: {0}" -f $html)
 
 if (-not $NoOpen) { Start-Process $html }
 exit 0
+

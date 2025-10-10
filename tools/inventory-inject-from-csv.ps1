@@ -36,8 +36,24 @@ function Infer-Type {
     '\.(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic)$' { return 'foto' }
     '\.(mp3|wav|flac|aac|ogg|m4a|opus)$' { return 'audio' }
     '\.(pdf|docx?|xlsx?|pptx?|txt|rtf)$' { return 'documento' }
-    default { return 'otro' }
+    default { return 'archivo' }
   }
+}
+
+$imageExt = @('jpg','jpeg','png','gif','bmp','tif','tiff','heic','webp','svg','raw','nef','cr2')
+$videoExt = @('mp4','m4v','mov','avi','mkv','webm','wmv','flv','mpg','mpeg','ts')
+$audioExt = @('mp3','wav','flac','aac','ogg','m4a','opus','wma','aiff')
+$docExt   = @('pdf','doc','docx','xls','xlsx','ppt','pptx','txt','rtf','csv','json','xml','psd','ai')
+
+function Get-CategoryByExt {
+  param([string]$Extension)
+  if ([string]::IsNullOrWhiteSpace($Extension)) { return 'archivo' }
+  $ext = $Extension.ToLowerInvariant()
+  if ($imageExt -contains $ext) { return 'foto' }
+  if ($videoExt -contains $ext) { return 'video' }
+  if ($audioExt -contains $ext) { return 'audio' }
+  if ($docExt   -contains $ext) { return 'documento' }
+  return 'archivo'
 }
 
 $csvFull = (Get-Item -LiteralPath $CsvPath).FullName
@@ -59,18 +75,28 @@ $normalized = $rows | ForEach-Object {
   if (-not $drive) { $drive = Drive-From-Path $path }
   $drive = $drive.TrimEnd(':').ToUpper()
 
-  $type = First-NonEmpty @($_.type,$_.category,$_.tipo,(Infer-Type $name))
+  $extension = First-NonEmpty @($_.extension,$_.ext)
+  if ($null -eq $extension -or ("$extension").Trim().Length -eq 0) {
+    $extension = [IO.Path]::GetExtension($name)
+  }
+  $extension = ("$extension").Trim().TrimStart('.').ToLower()
+
+  $category = Get-CategoryByExt $extension
+  $type = First-NonEmpty @($_.type,$_.category,$_.tipo,$category,(Infer-Type $name))
+  if (-not $type) { $type = $category }
+
   $hash = First-NonEmpty @($_.sha,$_.hash,$_.md5,$_.sha1,$_.sha256)
   $last = First-NonEmpty @($_.last,$_.modified,$_.mtime,$_.date,$_.fecha)
 
   [pscustomobject]@{
-    sha   = $hash
-    type  = $type
-    name  = $name
-    path  = $path
-    drive = $drive
-    size  = [int64]$size
-    last  = $last
+    sha        = $hash
+    type       = $type
+    extension  = $extension
+    name       = $name
+    path       = $path
+    drive      = $drive
+    size       = [int64]$size
+    last       = $last
   }
 }
 

@@ -13,7 +13,21 @@ if (!(Test-Path $JsonPath)) {
 $bytes = [IO.File]::ReadAllBytes($JsonPath)
 $b64   = [Convert]::ToBase64String($bytes)
 
-# HTML interactivo con paginación, columnas reorganizables y enlaces locales
+function Format-Base64Block {
+  param(
+    [string]$Value,
+    [int]$Width = 120
+  )
+  if ([string]::IsNullOrEmpty($Value)) { return "" }
+  $lines = New-Object System.Collections.Generic.List[string]
+  for ($i = 0; $i -lt $Value.Length; $i += $Width) {
+    $slice = $Value.Substring($i, [Math]::Min($Width, $Value.Length - $i))
+    $lines.Add($slice) | Out-Null
+  }
+  return [string]::Join([Environment]::NewLine, $lines)
+}
+
+# HTML interactivo con paginacion, columnas reorganizables y enlaces locales
 $tpl = @'
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -84,10 +98,10 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
   <div class="summary"><span id="count">0</span> archivos <span class="sep">&middot;</span> <span id="size">0</span> visibles</div>
   <div class="search"><input id="q" type="search" placeholder="Buscar por ruta, nombre o hash"/></div>
   <select id="pageSize">
-    <option value="25">25 por página</option>
-    <option value="50" selected>50 por página</option>
-    <option value="100">100 por página</option>
-    <option value="250">250 por página</option>
+    <option value="25">25 por p&aacute;gina</option>
+    <option value="50" selected>50 por p&aacute;gina</option>
+    <option value="100">100 por p&aacute;gina</option>
+    <option value="250">250 por p&aacute;gina</option>
     <option value="0">Todos</option>
   </select>
   <button class="btn-secondary" id="resetColumns">Reset columnas</button>
@@ -180,6 +194,7 @@ __B64__
       return {
         sha:row.sha||"",
         tipo:row.tipo||row.type||"",
+        extension:(row.extension||row.ext||"").toString().trim(),
         nombre:row.nombre||row.name||"",
         ruta:row.ruta||row.dir||row.path||"",
         unidad:(row.unidad||row.drive||"").toString().trim(),
@@ -209,12 +224,13 @@ __B64__
   pathSummary:document.getElementById("pathSummary")
 };
 
-  const defaultOrder=["sha","tipo","nombre","ruta","unidad","tamano","fecha"];
-  const defaultWidths={sha:240,tipo:120,nombre:260,ruta:320,unidad:90,tamano:130,fecha:160};
+  const defaultOrder=["sha","tipo","extension","nombre","ruta","unidad","tamano","fecha"];
+  const defaultWidths={sha:240,tipo:130,extension:110,nombre:260,ruta:320,unidad:90,tamano:130,fecha:160};
 
   const columns={
     sha:{id:"sha",label:"SHA",type:"text",className:"muted wrap",get:r=>r.sha||"",filterPlaceholder:"Filtrar hash",csv:r=>r.sha||""},
-    tipo:{id:"tipo",label:"Tipo",type:"text",get:r=>r.tipo||"",filterPlaceholder:"Filtrar tipo"},
+    tipo:{id:"tipo",label:"Tipo",type:"text",get:r=>r.tipo||"",render:r=>formatType(r),filterPlaceholder:"Filtrar tipo",csv:r=>r.tipo||""},
+    extension:{id:"extension",label:"Ext.",type:"text",className:"muted",get:r=>r.extension||"",filterPlaceholder:"Filtrar extensi&oacute;n",csv:r=>r.extension||""},
     nombre:{id:"nombre",label:"Nombre",type:"text",get:r=>r.nombre||"",render:r=>cellFileLink(r),filterPlaceholder:"Filtrar nombre",csv:r=>r.nombre||""},
     ruta:{id:"ruta",label:"Ruta/Carpeta",type:"text",get:r=>r.ruta||"",render:r=>cellFolderLink(r),filterPlaceholder:"Filtrar ruta",csv:r=>r.ruta||""},
     unidad:{id:"unidad",label:"Unidad",type:"text",get:r=>r.unidad||"",filterPlaceholder:"Filtrar unidad"},
@@ -235,6 +251,18 @@ __B64__
   }
   function formatDate(value){return value?(value.replace("T"," ").replace("Z","")):"";}
   function escapeHtml(text){return (text??"").toString().replace(/[&<>"]/g,function(ch){switch(ch){case"&":return"&amp;";case"<":return"&lt;";case">":return"&gt;";case"\"":return"&quot;";default:return ch;}});}
+  const TYPE_ICONS={foto:"📷",video:"🎬",audio:"🎵",documento:"📄",archivo:"📦",otros:"📦",otro:"📦"};
+  function capitalize(text){
+    if(!text){return "";}
+    return text.charAt(0).toUpperCase()+text.slice(1);
+  }
+  function formatType(row){
+    const category=(row.tipo||row.type||"").toString().trim().toLowerCase();
+    const icon=TYPE_ICONS[category]||"";
+    const label=category?capitalize(category):(row.extension||"").toUpperCase();
+    if(icon&&label){return icon+" "+label;}
+    return label||icon;
+  }
   function joinWinPath(dir,name){if(!dir){return name||"";}if(!name){return dir;}const sep=(dir.endsWith("\\")||dir.endsWith("/"))?"":"\\";return dir+sep+name;}
   function toFileUrl(path){
     if(!path){return"";}
@@ -459,7 +487,7 @@ __B64__
       byUnit.set(unit,unitStats);
 
       const name=row.nombre||"";
-      const ext=name.includes(".")?name.split(".").pop().toLowerCase():"(sin extensión)";
+      const ext=name.includes(".")?name.split(".").pop().toLowerCase():"(sin extensi&oacute;n)";
       const extStats=byExt.get(ext)||{count:0};
       extStats.count+=1;
       byExt.set(ext,extStats);
@@ -521,7 +549,7 @@ __B64__
   }
   function downloadCsv(rows){
     if(!rows.length){return;}
-    const headers=state.order.map(colId=>columns[colId].label.replace(/&ntilde;/g,"ñ").replace(/<[^>]+>/g,""));
+    const headers=state.order.map(colId=>columns[colId].label.replace(/&ntilde;/g,String.fromCharCode(241)).replace(/<[^>]+>/g,""));
     const lines=[headers.join(";")];
     rows.forEach(function(row){
       const values=state.order.map(function(colId){
@@ -567,17 +595,23 @@ __B64__
 '@
 
 $payload = if ($EmbedBase64) {
-  [Regex]::Escape($b64) -replace "\\Q|\\E",""
+  Format-Base64Block -Value $b64
 } else {
   ""
 }
 
 $tpl = $tpl.Replace("__B64__", $payload)
-Set-Content -Encoding UTF8 $HtmlPath $tpl
+Set-Content -Encoding UTF8 -LiteralPath $HtmlPath -Value $tpl
 Write-Host "? HTML: $HtmlPath" -ForegroundColor Green
 
 if (-not $NoOpen) {
   Start-Process $HtmlPath
 }
+
+
+
+
+
+
 
 

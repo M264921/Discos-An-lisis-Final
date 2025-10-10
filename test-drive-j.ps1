@@ -5,6 +5,7 @@ param(
   [string]$Drive = 'J:',
   [string]$ScanOut = '.\docs\inventory\scan_J.csv',
   [string]$JsonOut = '.\docs\data\inventory.json',
+  [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Media',
   [switch]$SkipOpen
 )
 
@@ -16,8 +17,8 @@ Set-Location $here
 
 $combinedCsv = '.\docs\hash_data.csv'
 
-Write-Host "[*] Hashing $Drive ..." -ForegroundColor Cyan
-pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\hash-drive-to-csv.ps1 -Drive $Drive -OutCsv $ScanOut
+Write-Host ("[*] Hashing {0} (filtro {1}) ..." -f $Drive, $ContentFilter) -ForegroundColor Cyan
+pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\hash-drive-to-csv.ps1 -Drive $Drive -OutCsv $ScanOut -ContentFilter $ContentFilter
 
 # Recolecta todos los scans disponibles
 $scans = Get-ChildItem .\docs\inventory\scan_*.csv -ErrorAction SilentlyContinue | Select-Object -Expand FullName
