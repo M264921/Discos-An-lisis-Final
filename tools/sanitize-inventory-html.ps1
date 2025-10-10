@@ -13,6 +13,41 @@ $html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
 
 $options = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
 
+if ($html -match 'id="INV_B64"' -or $html -match 'id="inventory-data"') {
+  [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
+  Write-Host ("OK: HTML sanitizado -> {0} (skip placeholders)" -f $HtmlPath) -ForegroundColor Green
+  return
+}
+
+$options = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+
+function Protect-Blocks {
+  param(
+    [string]$Input,
+    [System.Collections.Hashtable]$Store
+  )
+  $regex = [System.Text.RegularExpressions.Regex]::new('<script[^>]+id=["''](?:INV_B64|inventory-data)["''][^>]*>[\s\S]*?</script>', $options)
+  $index = 0
+  return $regex.Replace($Input, {
+      param($match)
+      $key = "__SAN_PLACEHOLDER_{0}__" -f $index
+      $Store[$key] = $match.Value
+      $index++
+      return $key
+    })
+}
+
+function Restore-Blocks {
+  param(
+    [string]$Input,
+    [System.Collections.Hashtable]$Store
+  )
+  foreach ($entry in $Store.GetEnumerator()) {
+    $Input = $Input.Replace($entry.Key, $entry.Value)
+  }
+  return $Input
+}
+
 function Remove-Pattern {
   param(
     [string]$Content,
@@ -22,6 +57,9 @@ function Remove-Pattern {
   $regex = [System.Text.RegularExpressions.Regex]::new($Pattern, $Options)
   return $regex.Replace($Content, '')
 }
+
+$protected = @{}
+$html = Protect-Blocks -Input $html -Store $protected
 
 $externalPatterns = @(
   '<script[^>]*\bsrc\s*=\s*"(?:(?:https?|ftp):)?//[^"]*"[^>]*>\s*</script>',
@@ -67,6 +105,8 @@ $html = [System.Text.RegularExpressions.Regex]::Replace(
   '\s+data-sanitized="#"',
   ' data-sanitized="#"'
 )
+
+$html = Restore-Blocks -Input $html -Store $protected
 
 [IO.File]::WriteAllText($HtmlPath, $html, [Text.Encoding]::UTF8)
 Write-Host ("OK: HTML sanitizado -> {0}" -f $HtmlPath) -ForegroundColor Green
