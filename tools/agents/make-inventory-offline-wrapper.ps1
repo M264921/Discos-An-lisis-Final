@@ -164,6 +164,16 @@ try {
     $snapshot.Count = $rows.Count
     $driveCounts = Build-DriveCounts -Rows $rows
     if ($rows.Count -le 0) {
+      $inlineJsonRegex = [System.Text.RegularExpressions.Regex]::new('<script[^>]+id=["'']inventory-data["''][^>]*>(?<data>[\s\S]*?)</script>', $options)
+      $jsonMatch = $inlineJsonRegex.Match($content)
+      if ($jsonMatch.Success) {
+        $jsonInline = $jsonMatch.Groups['data'].Value
+        $rows = Parse-JsonRows -Json $jsonInline
+        $snapshot.Count = $rows.Count
+        $driveCounts = Build-DriveCounts -Rows $rows
+      }
+    }
+    if ($rows.Count -le 0) {
       $invB64Regex = [System.Text.RegularExpressions.Regex]::new(
         '<script[^>]+id=["'']INV_B64["''][^>]*>(?<data>[\s\S]*?)</script>',
         $options
@@ -171,13 +181,15 @@ try {
       $match = $invB64Regex.Match($content)
       if ($match.Success) {
         $b64Raw = ($match.Groups['data'].Value) -replace '\s+', ''
-        try {
-          $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64Raw))
-          $rows = Parse-JsonRows -Json $decoded
-          $snapshot.Count = $rows.Count
-          $driveCounts = Build-DriveCounts -Rows $rows
-        } catch {
-          Write-WrapperLog ("Fallo al decodificar INV_B64: {0}" -f $_.Exception.Message) 'WARN'
+        if ($b64Raw -and ($b64Raw -match '^[A-Za-z0-9+/=]+$')) {
+          try {
+            $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64Raw))
+            $rows = Parse-JsonRows -Json $decoded
+            $snapshot.Count = $rows.Count
+            $driveCounts = Build-DriveCounts -Rows $rows
+          } catch {
+            Write-WrapperLog ("Fallo al decodificar INV_B64: {0}" -f $_.Exception.Message) 'WARN'
+          }
         }
       }
     }
