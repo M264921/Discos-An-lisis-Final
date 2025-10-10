@@ -82,13 +82,27 @@ Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, 
 
 ## Distribucion
 
-Construye un paquete autocontenido (scripts + docs basicos) listo para redistribuir:
+1. **Paquete base (`dist/`)**  
+   ```pwsh
+   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\build-dist.ps1
+   ```  
+   Genera `dist\latest\` con `tools\`, `docs\` y `logs\` minimos (o `dist\yyyyMMdd-HHmmss\` con `-Timestamp`).
 
-```pwsh
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools\build-dist.ps1
-```
+2. **Ejecutable Windows listo para compartir**  
+   ```pwsh
+   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\make-inventory-package.ps1
+   ```  
+   Este script orquesta `build-dist`, crea un lanzador `InventoryCleaner.ps1` y lo compila a `InventoryCleaner.exe` con PS2EXE.  
+   Los artefactos resultantes se copian a:
+   - `dist\latest\InventoryCleaner.exe` (ejecutable standalone, requiere PowerShell 7 instalado en el equipo destino).  
+   - `releases\InventoryCleaner.exe` y `releases\InventoryCleaner-package.zip` (lista para adjuntar en GitHub Releases).
 
-El resultado queda en `dist\latest\` (o `dist\yyyyMMdd-HHmmss\` si usas `-Timestamp`) con `tools\`, `docs\` y `logs\` minimos listos para empaquetar via PS2EXE/MSIX.
+3. **Uso en otro equipo**  
+   - Descomprime `InventoryCleaner-package.zip` o copia la carpeta `dist\latest`.  
+   - Ejecuta `InventoryCleaner.exe` (opcional: `InventoryCleaner.exe -SweepMode DryRun` para validar sin aplicar).  
+   - El ejecutable invoca internamente `tools\agents\inventory-cleaner.ps1` manteniendo la estructura del paquete.
+
+> **Notas**: PS2EXE se instala automáticamente la primera vez. Si prefieres producir un instalador MSI/MSIX, reutiliza la carpeta `dist\latest` como payload.
 
 ---
 

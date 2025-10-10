@@ -22,6 +22,7 @@ Guia operativa para mantener el flujo autonomo de inventario multimedia.
 | Refrescar solo `docs/hash_data.csv`     | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
 | Regenerar analitica de duplicados       | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
 | Escaneo guiado (con filtro)             | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -ContentFilter Media` |
+| Generar paquete + `.exe`                | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/make-inventory-package.ps1` |
 
 Manten los scripts idempotentes y sin rutas absolutas codificadas.
 
@@ -41,6 +42,7 @@ Manten los scripts idempotentes y sin rutas absolutas codificadas.
 2. Cambios de normalizacion -> `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html` como smoke test.
 3. Ajustes de hash o duplicados -> inspecciona `docs/hash_data.csv` y verifica columnas `FullName`, `Hash`, `Length`, `Extension`, `Tipo`.
 4. Diferencias de visualizacion -> abre el HTML regenerado y valida iconos de tipo, enlaces locales, selector de pagina y exportacion CSV.
+5. Antes de publicar un release -> ejecuta `tools\make-inventory-package.ps1`, prueba `InventoryCleaner.exe` con `-SweepMode DryRun` y comprueba que `releases/InventoryCleaner-package.zip` contiene `tools/`, `docs/` y README.
 
 ---
 
@@ -49,5 +51,6 @@ Manten los scripts idempotentes y sin rutas absolutas codificadas.
 - `docs/hash_data.csv` contiene rutas absolutas y tamanos: compartelo solo con colaboradores de confianza.
 - Los sanitizadores bloquean protocolos externos (acestream, http); amplia la blocklist si aparecen nuevos protocolos en lugar de deshabilitarla.
 - El merge de scans conserva por defecto la ultima ruta vista por SHA/tamano; revisa `tools/merge-scans.ps1 -KeepDuplicates` si necesitas diagnosticar historicos.
+- `releases/` almacena los artefactos listos para GitHub Releases (exe + zip). Regenera tras cada cambio relevante ejecutando `tools/make-inventory-package.ps1`.
 - Manten bajo control el repositorio: sin rutas absolutas, sin side-effects fuera de `RepoRoot`, y logs siempre en `logs/`.
 
