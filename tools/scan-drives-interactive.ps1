@@ -1,106 +1,128 @@
 [CmdletBinding()]
 param(
-  [string[]]$Roots
+  [string[]]$Roots,
+  [switch]$ComputeHash,
+  [switch]$OpenAfter,
+  [switch]$VerboseLog
 )
+
+$ErrorActionPreference = 'Stop'
 
 function Get-DefaultRoots {
   try {
     $fixed = Get-PSDrive -PSProvider FileSystem |
       Where-Object { $_.DisplayRoot -eq $null -and $_.Free -ne $null } |
       ForEach-Object { ($_.Root).TrimEnd('\') }
-  } catch { $fixed = @("C:") }
-  if(-not $fixed -or $fixed.Count -eq 0){ $fixed = @("C:") }
-  return $fixed
+    if (-not $fixed -or $fixed.Count -eq 0) { return @('C:') }
+    return $fixed
+  } catch {
+    return @('C:')
+  }
 }
 
-function Normalize-Root([string]$r){
-  if([string]::IsNullOrWhiteSpace($r)){ return $null }
-  $r = $r.Trim().Trim('"').Trim("'")
-  if($r.Length -eq 2 -and $r[1] -eq ':'){ return "$r\" }
-  if($r.Length -ge 2 -and $r[1] -eq ':' -and $r[-1] -ne '\'){ return "$r\" }
-  return $r
+function Normalize-Root([string]$value) {
+  if ([string]::IsNullOrWhiteSpace($value)) { return $null }
+  $trimmed = $value.Trim().Trim('"').Trim("'")
+  if ($trimmed.Length -eq 2 -and $trimmed[1] -eq ':') { return "$trimmed\" }
+  if ($trimmed.Length -ge 2 -and $trimmed[1] -eq ':' -and $trimmed[-1] -ne '\') { return "$trimmed\" }
+  return $trimmed
 }
 
-if(-not $Roots -or $Roots.Count -eq 0){
+function Confirm-Roots([string[]]$candidates) {
+  $resolved = @()
+  foreach ($root in $candidates) {
+    if (-not $root) { continue }
+    if (-not (Test-Path -LiteralPath $root)) {
+      Write-Warning ("Raiz no encontrada: {0}" -f $root)
+      continue
+    }
+    $resolved += $root
+  }
+  return ($resolved | Select-Object -Unique)
+}
+
+$targetRoots = @()
+if (-not $Roots -or $Roots.Count -eq 0) {
   $defaults = Get-DefaultRoots
-  Write-Host "Unidades detectadas: $($defaults -join ', ')"
-  $ans = Read-Host "¿Qué quieres escanear? (enter = todas; o ej. C:\,F:\,G:\)"
-  if([string]::IsNullOrWhiteSpace($ans)){
-    $Roots = $defaults
+  Write-Host ("Unidades detectadas: {0}" -f ($defaults -join ', '))
+  $answer = Read-Host "Que quieres escanear? (enter = todas; por ejemplo C:\,F:\,G:\)"
+  if ([string]::IsNullOrWhiteSpace($answer)) {
+    $targetRoots = $defaults | ForEach-Object { Normalize-Root $_ }
   } else {
-    $Roots = $ans -split ',' | ForEach-Object { Normalize-Root $_ } | Where-Object { $_ }
+    $targetRoots = $answer -split ',' | ForEach-Object { Normalize-Root $_ }
   }
 } else {
-  $Roots = $Roots | ForEach-Object { Normalize-Root $_ } | Where-Object { $_ }
+  $targetRoots = $Roots | ForEach-Object { Normalize-Root $_ }
 }
 
-if(-not $Roots -or $Roots.Count -eq 0){
-  Write-Warning "No hay raíces válidas para escanear. Saliendo."
+$targetRoots = Confirm-Roots $targetRoots
+if (-not $targetRoots -or $targetRoots.Count -eq 0) {
+  Write-Warning "No hay raices validas para escanear. Saliendo."
   return
 }
 
-$HeartbeatEvery = 500        # línea cada 500 archivos
-$ProgressEvery  = 100        # update de Write-Progress cada 100 archivos
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+$inventoryDir = Join-Path $repoRoot 'docs\inventory'
+New-Item -ItemType Directory -Force -Path $inventoryDir | Out-Null
 
-foreach($root in $Roots){
-  if(-not (Test-Path -LiteralPath $root)){
-    Write-Warning "Raíz no encontrada: $root"
-    continue
+$script:LogSink = $null
+if ($VerboseLog) {
+  $logDir = Join-Path $repoRoot 'logs'
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $logPath = Join-Path $logDir ("scan-{0}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+  $script:LogSink = {
+    param($message)
+    $line = "[{0}] {1}" -f (Get-Date -Format 'u'), $message
+    $line | Tee-Object -FilePath $logPath -Append | Out-Null
   }
+  & $script:LogSink "Iniciando escaneo en $($targetRoots -join ', ')"
+}
 
+function Log-Info {
+  param([string]$Message)
+  if ($script:LogSink) { & $script:LogSink $Message }
+}
+
+Log-Info "Usando ComputeHash=$ComputeHash"
+
+$hashScript = Join-Path $repoRoot 'tools\hash-drive-to-csv.ps1'
+if (-not (Test-Path -LiteralPath $hashScript)) {
+  throw "No se encuentra $hashScript"
+}
+
+foreach ($root in $targetRoots) {
   Write-Host ""
-  Write-Host (">>> Escaneando $root ...") -ForegroundColor Green
+  Write-Host (">>> Escaneando {0} ..." -f $root) -ForegroundColor Green
+  Log-Info ("Escaneando {0}" -f $root)
 
-  $sw = [System.Diagnostics.Stopwatch]::StartNew()
-  $count = 0
-  $activity = "Escaneando $root"
-  $spinner  = @('|','/','-','\')
-  $spinIdx  = 0
+  $letter = ($root.TrimEnd('\'))[0]
+  if (-not $letter) { $letter = 'X' }
+  $csvPath = Join-Path $inventoryDir ("scan_{0}.csv" -f ([char]::ToUpper($letter)))
+  $algorithm = if ($ComputeHash) { 'SHA256' } else { 'None' }
 
-  try {
-    Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue |
-    ForEach-Object {
-      $count++
-
-      if(($count % $HeartbeatEvery) -eq 0){
-        $rate = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
-        Write-Host ("  · Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $sw.Elapsed, $rate)
-      }
-
-      if(($count % $ProgressEvery) -eq 0){
-        $spinIdx = ($spinIdx + 1) % $spinner.Count
-        Write-Progress -Activity $activity `
-                       -Status "$($spinner[$spinIdx]) Procesados: $count  |  $($sw.Elapsed.ToString())" `
-                       -PercentComplete 0
-      }
-
-      # Aquí iría lógica adicional por archivo si la necesitas
-    }
-
-    Write-Progress -Activity $activity -Completed -Status "Completado"
-    $sw.Stop()
-    $rateFinal = "{0:n0}/s" -f (($count) / [math]::Max(1, $sw.Elapsed.TotalSeconds))
-    Write-Host ("✔ Finalizado {0} → {1:n0} archivos en {2:c} ({3})" -f $root, $count, $sw.Elapsed, $rateFinal) -ForegroundColor Cyan
-
-  } catch {
-    Write-Warning ("Error durante el escaneo de {0}: {1}" -f $root, $_.Exception.Message)
-  }
+  & $hashScript -Drive $root -OutCsv $csvPath -Algorithm $algorithm
+  Log-Info ("Generado {0}" -f $csvPath)
 }
 
 Write-Host ""
-Write-Host "Todo listo. Puedes pasarlo con -Roots 'C:\','F:\' para seleccionar unidades." -ForegroundColor Yellow
+Write-Host "Fusionando resultados y regenerando HTML..." -ForegroundColor Cyan
+Log-Info "Lanzando make_inventory_offline.ps1"
 
-# --- Auto: fusionar CSV y actualizar HTML ---
-try {
-  \ = Join-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools 'inventory-inject-from-csv.ps1'
-  if(Test-Path \){ & \ }
-  else { Write-Warning "No encontré inventory-inject-from-csv.ps1 para fusionar CSV" }
-} catch { Write-Warning ("Fallo al inyectar CSV: {0}" -f \.Exception.Message) }
+$makeScript = Join-Path $repoRoot 'tools\make_inventory_offline.ps1'
+& $makeScript -RepoRoot $repoRoot | Out-Null
 
-try {
-  # Abre HTML si existe
-  \ = Join-Path (Split-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools -Parent) 'docs\inventario_interactivo_offline.html'
-  \ = Join-Path (Split-Path \C:\Users\Antonio\Documents\GitHub\Discos-An-lisis-Final\tools -Parent) 'docs\index.html'
-  if(Test-Path \){ Start-Process \ }
-  elseif(Test-Path \){ Start-Process \ }
-} catch { Write-Warning ("No pude abrir la página: {0}" -f \.Exception.Message) }
+$finalHtml = Join-Path $repoRoot 'docs\inventario_interactivo_offline.html'
+if (Test-Path -LiteralPath $finalHtml) {
+  Write-Host ("Inventario listo: {0}" -f $finalHtml) -ForegroundColor Green
+  Log-Info ("Inventario listo: {0}" -f $finalHtml)
+  if ($OpenAfter) {
+    Start-Process $finalHtml
+  }
+} else {
+  Write-Warning "No se encontro el HTML final."
+  Log-Info "No se encontro el HTML final."
+}
+
+Write-Host ""
+Write-Host "Todo listo. Puedes volver a ejecutarlo con -Roots 'C:\','F:\' para seleccionar unidades concretas." -ForegroundColor Yellow
+Log-Info "Proceso completado."

@@ -105,7 +105,7 @@ try {
   function Format-MetaSummary {
     param(
       [object[]]$Rows,
-      [ordered]$DriveCounts,
+      [System.Collections.Specialized.OrderedDictionary]$DriveCounts,
       [string]$ExistingSummary
     )
     if ($ExistingSummary) { return $ExistingSummary }
@@ -115,17 +115,17 @@ try {
     $hiParts = New-Object System.Collections.Generic.List[string]
     foreach ($letter in @('H','I','J')) {
       $count = if ($DriveCounts.Contains($letter)) { $DriveCounts[$letter] } else { 0 }
-      $hiParts.Add("{0}: {1}" -f $letter, $count) | Out-Null
+      $null = $hiParts.Add([string]::Format("{0}: {1}", $letter, $count))
     }
     if ($hiParts.Count -gt 0) {
-      $segments.Add(($hiParts -join ' · ')) | Out-Null
+      $segments.Add(($hiParts -join ' / ')) | Out-Null
     }
 
     $others = $DriveCounts.Keys | Where-Object { $_ -notin @('H','I','J') } | Sort-Object
     if ($others) {
-      $extraParts = $others | ForEach-Object { "{0}: {1}" -f $_, $DriveCounts[$_] }
+      $extraParts = $others | ForEach-Object { [string]::Format("{0}: {1}", $_, $DriveCounts[$_]) }
       if ($extraParts) {
-        $segments.Add(($extraParts -join ' · ')) | Out-Null
+        $segments.Add(($extraParts -join ' / ')) | Out-Null
       }
     }
 
@@ -163,6 +163,24 @@ try {
     $rows = Parse-JsonRows -Json $json
     $snapshot.Count = $rows.Count
     $driveCounts = Build-DriveCounts -Rows $rows
+    if ($rows.Count -le 0) {
+      $invB64Regex = [System.Text.RegularExpressions.Regex]::new(
+        '<script[^>]+id=["'']INV_B64["''][^>]*>(?<data>[\s\S]*?)</script>',
+        $options
+      )
+      $match = $invB64Regex.Match($content)
+      if ($match.Success) {
+        $b64Raw = ($match.Groups['data'].Value) -replace '\s+', ''
+        try {
+          $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64Raw))
+          $rows = Parse-JsonRows -Json $decoded
+          $snapshot.Count = $rows.Count
+          $driveCounts = Build-DriveCounts -Rows $rows
+        } catch {
+          Write-WrapperLog ("Fallo al decodificar INV_B64: {0}" -f $_.Exception.Message) 'WARN'
+        }
+      }
+    }
     $snapshot.Drives = $driveCounts
     $metaObj = $null
     if ($metaRaw) {
@@ -222,3 +240,6 @@ try {
 } finally {
   Pop-Location
 }
+
+
+

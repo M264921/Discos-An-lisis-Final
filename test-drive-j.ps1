@@ -3,44 +3,59 @@
 param(
   [ValidatePattern('^[A-Za-z]:$')]
   [string]$Drive = 'J:',
-  [string]$ScanOut   = ".\docs\inventory\scan_J.csv",
-  [string]$JsonOut   = ".\docs\data\inventory.json",
+  [string]$ScanOut = '.\docs\inventory\scan_J.csv',
+  [string]$JsonOut = '.\docs\data\inventory.json',
   [switch]$SkipOpen
 )
 
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
 $here = Split-Path -Parent $PSCommandPath
 Set-Location $here
 
-Write-Host "→ Hashing $Drive ..." -ForegroundColor Cyan
-pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\hash-drive-to-csv.ps1 -Drive $Drive -Out $ScanOut
+$combinedCsv = '.\docs\hash_data.csv'
 
-# Recolecta todos los scans
+Write-Host "[*] Hashing $Drive ..." -ForegroundColor Cyan
+pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\hash-drive-to-csv.ps1 -Drive $Drive -OutCsv $ScanOut
+
+# Recolecta todos los scans disponibles
 $scans = Get-ChildItem .\docs\inventory\scan_*.csv -ErrorAction SilentlyContinue | Select-Object -Expand FullName
-if(-not $scans){ throw "No hay scans en .\docs\inventory." }
-
-Write-Host "→ Merging scans → $JsonOut" -ForegroundColor Cyan
-pwsh -NoLogo -File .\tools\merge-scans.ps1 -Input $scans -Out $JsonOut
-
-Write-Host "→ Fix JSON ..." -ForegroundColor Cyan
-pwsh -NoLogo -File .\tools\fix-inventory-json.ps1 -Path $JsonOut
-
-Write-Host "→ Refresh HTML (normalize + embed) ..." -ForegroundColor Cyan
-pwsh -NoLogo -File .\tools\refresh-inventory.ps1
-
-# Verificaciones rápidas
-$rows  = Get-Content $JsonOut -Raw | ConvertFrom-Json
-$jRows = $rows | Where-Object { ($_.unidad -eq $Drive) }
-
-Write-Host ("✔ Total filas: {0} | En {1} = {2}" -f $rows.Count, $Drive, $jRows.Count) -ForegroundColor Green
-
-$nullHashes = $rows | Where-Object { [string]::IsNullOrWhiteSpace($_.sha) }
-if($nullHashes.Count -gt 0){
-  Write-Warning ("Hay {0} filas sin hash." -f $nullHashes.Count)
-}else{
-  Write-Host "✔ Sin hashes vacíos" -ForegroundColor Green
+if (-not $scans) {
+  throw "No hay scans en .\docs\inventory."
 }
 
-if(-not $SkipOpen){
-  Start-Process ".\docs\inventario_pro_offline.html"
+Write-Host "[*] Merging scans -> $combinedCsv" -ForegroundColor Cyan
+pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\merge-scans.ps1 -InventoryDir .\docs\inventory -OutCsv $combinedCsv
+
+Write-Host "[*] Generating JSON -> $JsonOut" -ForegroundColor Cyan
+pwsh -NoLogo -ExecutionPolicy Bypass -File .\tools\csv-to-inventory-json.ps1 -CsvPath $combinedCsv -JsonPath $JsonOut
+
+Write-Host "[*] Refresh HTML (normalize + embed) ..." -ForegroundColor Cyan
+$refreshArgs = @(
+  '-NoLogo',
+  '-ExecutionPolicy','Bypass',
+  '-File','.\tools\refresh-inventory.ps1',
+  '-Json',$JsonOut
+)
+if ($SkipOpen) { $refreshArgs += '-NoOpen' }
+pwsh @refreshArgs
+
+# Quick checks
+$rows = Get-Content -LiteralPath $JsonOut -Raw | ConvertFrom-Json
+if ($null -eq $rows) { $rows = @() }
+if ($rows -isnot [System.Collections.IEnumerable]) { $rows = @($rows) }
+$jRows = $rows | Where-Object { $_.unidad -eq $Drive }
+
+Write-Host ("[+] Total filas: {0} | En {1} = {2}" -f $rows.Count, $Drive, $jRows.Count) -ForegroundColor Green
+
+$nullHashes = @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.sha) })
+if ($nullHashes.Count -gt 0) {
+  Write-Warning ("Hay {0} filas sin hash." -f $nullHashes.Count)
+} else {
+  Write-Host "[+] Sin hashes vacios" -ForegroundColor Green
+}
+
+if ($SkipOpen) {
+  Write-Host "[i] SkipOpen activado: visor no abierto." -ForegroundColor Yellow
 }

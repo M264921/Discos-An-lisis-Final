@@ -1,33 +1,89 @@
-﻿param([Parameter(Mandatory)][string]$Drive,[string]$OutCsv)
+[CmdletBinding()]
+param(
+  [Parameter(Mandatory)][string]$Drive,
+  [string]$OutCsv,
+  [ValidateSet('SHA256','SHA1','None')][string]$Algorithm = 'SHA256'
+)
+
 $patterns = '\.(jpg|jpeg|png|gif|heic|tif|tiff|bmp|svg|mp4|m4v|mov|avi|mkv|webm|mp3|wav|flac|aac|ogg)$'
-$OutCsv = $OutCsv ?? "docs\inventory\scan_$((($Drive[0])).ToUpper()).csv"
-$progressEvery=500; $heartbeat=2000
+
+$drivePath = $Drive.Trim()
+if ($drivePath.Length -eq 2 -and $drivePath[1] -eq ':') {
+  $drivePath += '\'
+}
+if (-not (Test-Path -LiteralPath $drivePath)) {
+  throw "No se encuentra la raiz $drivePath"
+}
+
+if ([string]::IsNullOrWhiteSpace($OutCsv)) {
+  $letter = ($drivePath.TrimEnd('\'))[0]
+  if (-not $letter) { $letter = 'X' }
+  $OutCsv = "docs\inventory\scan_{0}.csv" -f ([char]::ToUpper($letter))
+}
+
+$progressEvery = 500
+$heartbeat = 2000
 $rows = New-Object System.Collections.Generic.List[object]
-$sw=[diagnostics.stopwatch]::StartNew(); $c=0
-Get-ChildItem -LiteralPath $Drive -Recurse -Force -File -ErrorAction SilentlyContinue |
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+$count = 0
+$computeHash = $Algorithm -ne 'None'
+
+function New-Hasher([string]$Name){
+  switch ($Name) {
+    'SHA256' { return [System.Security.Cryptography.SHA256]::Create() }
+    'SHA1'   { return [System.Security.Cryptography.SHA1]::Create() }
+    default  { return $null }
+  }
+}
+
+$hasher = if ($computeHash) { New-Hasher $Algorithm } else { $null }
+
+Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -ErrorAction SilentlyContinue |
   Where-Object { $_.Name -match $patterns } |
   ForEach-Object {
-    $c++
-    if(($c % $progressEvery) -eq 0){
-      Write-Progress -Activity "Escaneando $Drive" -Status "$c archivos..." -PercentComplete 0
+    $count++
+
+    if (($count % $progressEvery) -eq 0) {
+      Write-Progress -Activity ("Escaneando {0}" -f $drivePath) -Status ("{0} archivos..." -f $count) -PercentComplete 0
     }
+
     $sha = ""
-    try{
-      # SHA1 rápido (si tienes otra lib, cámbiala)
-      $stream = $_.OpenRead()
-      $sha1 = [System.Security.Cryptography.SHA1]::Create()
-      $hash = ($sha1.ComputeHash($stream) | ForEach-Object { $_.ToString("x2") }) -join ""
-      $sha = $hash.ToUpper()
-      $stream.Close()
-    }catch{}
+    if ($computeHash -and $hasher) {
+      try {
+        $stream = $_.OpenRead()
+        $hashBytes = $hasher.ComputeHash($stream)
+        $stream.Dispose()
+        $sha = -join ($hashBytes | ForEach-Object { $_.ToString("x2") })
+        $sha = $sha.ToUpperInvariant()
+      } catch {
+        Write-Warning ("No se pudo hashear {0}: {1}" -f $_.FullName, $_.Exception.Message)
+      }
+    }
+
+    $unit = $drivePath.Substring(0, [Math]::Min(2, $drivePath.Length)).TrimEnd('\')
+    if (-not $unit.EndsWith(':')) {
+      $unit = ($unit.TrimEnd(':')) + ':'
+    }
+    $unit = $unit.ToUpperInvariant()
+
     $rows.Add([pscustomobject]@{
-      sha=$sha; tipo=(($_.Extension).TrimStart('.').ToLower()); nombre=$_.Name; ruta=$_.DirectoryName;
-      Drive=$Drive.Substring(0,2); tamano=[int64]$_.Length; fecha=($_.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ"))
+      sha    = $sha
+      tipo   = ($_.Extension).TrimStart('.').ToLowerInvariant()
+      nombre = $_.Name
+      ruta   = $_.DirectoryName
+      unidad = $unit
+      drive  = $unit
+      tamano = [int64]$_.Length
+      fecha  = $_.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")
     })
-    if(($c % $heartbeat) -eq 0){
-      $rate = "{0:n0}/s" -f ($c/[math]::Max(1,$sw.Elapsed.TotalSeconds))
-      Write-Host ("  · Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $c,$sw.Elapsed,$rate)
+
+    if (($count % $heartbeat) -eq 0) {
+      $rate = "{0:n0}/s" -f ($count / [Math]::Max(1, $stopwatch.Elapsed.TotalSeconds))
+      Write-Host ("  Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $stopwatch.Elapsed, $rate)
     }
   }
+
 $rows | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
-Write-Host "CSV listo: $OutCsv" -ForegroundColor Green
+Write-Host ("CSV listo: {0} ({1} filas)" -f $OutCsv, $rows.Count) -ForegroundColor Green
+
+if ($hasher) { $hasher.Dispose() }
