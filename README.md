@@ -1,86 +1,78 @@
-﻿# ðŸ§  Discos-AnÃ¡lisis-Final
+# Discos-Analisis-Final
 
-Sistema de inventario interactivo y anÃ¡lisis multimedia multiunidad con hash, duplicados y publicaciÃ³n automÃ¡tica en GitHub Pages.
+Sistema de inventario interactivo y analisis multimedia multiunidad con deteccion de duplicados, hashes opcionales y publicacion en GitHub Pages.
 
 ---
 
-## ðŸš€ Quickstart
+## Inicio rapido
 
-**Escanear, hashear y actualizar inventario automÃ¡ticamente**
+Escanea, calcula hashes (opcional) y actualiza el inventario con un unico comando:
 
 ```pwsh
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
 ```
 
-Esto lanzarÃ¡ una ventana grÃ¡fica para seleccionar las unidades que quieras analizar (ejemplo: `C:`, `D:`, `J:`) y opcionalmente marcar el cÃ¡lculo de hash SHA256.
+Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, si lo deseas, activar el calculo de hash SHA256.
 
-### âš™ï¸ Flujo automÃ¡tico
+### Flujo automatizado
 
-El proceso completo estÃ¡ totalmente automatizado:
+| Etapa                   | Descripcion                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| Seleccion de unidades   | Popup que detecta discos y permite elegir cuales procesar                   |
+| Escaneo de archivos     | Recorre fotos, videos, audios y documentos en las unidades elegidas         |
+| Calculo de hash         | (Opcional) SHA256 para identificar duplicados y cambios                     |
+| Generacion de inventario| Exporta resultados a `docs/hash_data.csv` en lotes de 400 archivos          |
+| Inyeccion HTML          | Actualiza `docs/inventario_interactivo_offline.html` con los datos nuevos   |
+| Sincronizacion          | Ejecuta `tools/sync-to-github.ps1` -> pull con rebase seguro, commit y push |
+| Publicacion             | Abre el inventario actualizado en el navegador y refresca GitHub Pages      |
 
-| Etapa | DescripciÃ³n |
-| --- | --- |
-| ðŸ—‚ï¸ SelecciÃ³n de unidades | Popup interactivo que detecta discos y permite elegir cuÃ¡les analizar |
-| ðŸ” Escaneo de archivos | Busca fotos, vÃ­deos, audios y documentos en cada unidad seleccionada |
-| ðŸ”¢ CÃ¡lculo de hash (opcional) | SHA256 para identificar duplicados y cambios |
-| ðŸ“Š GeneraciÃ³n de inventario | Exporta resultados a `docs/hash_data.csv` (en bloques de 400 archivos) |
-| ðŸ§© InyecciÃ³n HTML | Actualiza automÃ¡ticamente `docs/inventario_interactivo_offline.html` |
-| â˜ï¸ SincronizaciÃ³n | Ejecuta `tools/sync-to-github.ps1` â†’ pull (rebase seguro) + commit + push + rebuild de Pages |
-| ðŸŒ PublicaciÃ³n | Se abre automÃ¡ticamente el inventario actualizado en tu navegador |
+### Casos de uso
 
-### ðŸ§­ Ejemplos prÃ¡cticos
-
-- **Escaneo rÃ¡pido sin hash**
+- Escaneo rapido sin hash:
   ```pwsh
   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E" -OpenAfter
   ```
-- **Escaneo completo con hash**
+- Escaneo completo con hash:
   ```pwsh
   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -ComputeHash -OpenAfter -VerboseLog
   ```
-- **Solo actualizar la pÃ¡gina (sin reescanear)**
+- Solo regenerar la pagina (sin escanear de nuevo):
   ```pwsh
   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\sync-to-github.ps1
   ```
 
 ---
 
-## ðŸ“‚ Estructura del repositorio
+## Estructura del repositorio
 
-```
-Discos-An-lisis-Final/
-â”œâ”€ docs/
-â”‚  â”œâ”€ inventario_interactivo_offline.html   # Inventario visual (GitHub Pages)
-â”‚  â”œâ”€ hash_data.csv                         # Datos de archivos escaneados
-â”‚  â””â”€ assets/                               # CSS/JS del inventario
-â”œâ”€ tools/
-â”‚  â”œâ”€ scan-drives-interactive.ps1           # Script autÃ³nomo principal
-â”‚  â”œâ”€ inventory-inject-from-csv.ps1         # Inyector CSV â†’ HTML
-â”‚  â”œâ”€ sync-to-github.ps1                    # Commit + push + rebuild Pages
-â”‚  â””â”€ agents/                               # Herramientas auxiliares
-â””â”€ AGENTS.md                                # GuÃ­a avanzada y ejemplos
-```
+- `docs/`
+  - `inventario_interactivo_offline.html` (inventario visual)
+  - `hash_data.csv` (datos de archivos escaneados)
+  - `assets/` (CSS y JS del inventario)
+- `tools/`
+  - `scan-drives-interactive.ps1` (script principal)
+  - `inventory-inject-from-csv.ps1` (inyector CSV -> HTML)
+  - `sync-to-github.ps1` (commit + push + rebuild Pages)
+  - `agents/` (herramientas auxiliares)
+- `AGENTS.md` (guia operativa extendida)
 
-### ðŸ§© Archivos clave
+### Archivos clave
 
-| Archivo | Rol principal |
-| --- | --- |
-| `tools/scan-drives-interactive.ps1` | Escaneo y flujo completo |
-| `tools/inventory-inject-from-csv.ps1` | Inserta datos CSV en HTML |
-| `tools/sync-to-github.ps1` | Sube los cambios y fuerza rebuild |
-| `docs/hash_data.csv` | Base de datos de resultados |
-| `docs/inventario_interactivo_offline.html` | Vista interactiva final |
-| `AGENTS.md` | DocumentaciÃ³n tÃ©cnica extendida |
+| Archivo                               | Rol principal                       |
+| ------------------------------------- | ----------------------------------- |
+| `tools/scan-drives-interactive.ps1`   | Escaneo y orquestacion completa    |
+| `tools/inventory-inject-from-csv.ps1` | Inserta datos CSV en el HTML       |
+| `tools/sync-to-github.ps1`            | Sube los cambios y fuerza rebuild  |
+| `docs/hash_data.csv`                  | Datos de inventario                 |
+| `docs/inventario_interactivo_offline.html` | Vista interactiva final          |
+| `AGENTS.md`                           | Documentacion tecnica avanzada      |
 
 ---
 
-## ðŸ§  Concepto
+## Concepto
 
-El sistema combina automatizaciÃ³n PowerShell + GitHub Pages para crear una vista web interactiva de los archivos multimedia de tus discos, detectando duplicados, rutas, tamaÃ±os y tipos en tiempo real.
+El sistema combina automatizacion PowerShell con GitHub Pages para ofrecer una vista web interactiva de los archivos multimedia de multiples unidades, identificando duplicados, rutas, tamanos y tipos en tiempo real.
 
-## ðŸ§° Autor
+## Autor
 
-Desarrollado por **Antonio DurÃ¡n Mingorance**.
-
-ðŸ’¡ Inspirado en la idea de un inventario multimedia universal multiplataforma y autosincronizado.
-
+Desarrollado por **Antonio Duran Mingorance**. Inspirado en la idea de un inventario multimedia universal, multiplataforma y autosincronizado.

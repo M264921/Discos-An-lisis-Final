@@ -74,8 +74,13 @@ if (Test-Path $PyRemove) {
 }
 
 if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
-  Log "Running Move-I-Duplicates.ps1 ..."
-  & $MoveDupes -CsvPath "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  $targetDrive = 'I:\'
+  if (Test-Path -LiteralPath $targetDrive) {
+    Log "Running Move-I-Duplicates.ps1 ..."
+    & $MoveDupes -CsvPath "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  } else {
+    Log "SKIP: unidad I:\ no disponible; se omite Move-I-Duplicates.ps1"
+  }
 } else {
   Log "SKIP: falta Move-I-Duplicates.ps1 o $DupesCsvPath"
 }
@@ -99,7 +104,11 @@ $csvDefault = Join-Path $RepoRoot "docs/hash_data.csv"
 $htmlGenerado = $false
 if (Test-Path $MakeInv) {
   Log "Generando inventario base con make_inventory_offline.ps1 ..."
-  & $MakeInv -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  try {
+    & $MakeInv -RepoRoot "$RepoRoot" -Output "$ExpectedHtml" 2>&1 | Tee-Object -FilePath $LogFile -Append
+  } catch {
+    Log ("ERROR: make_inventory_offline.ps1 fallo: {0}" -f $_.Exception.Message)
+  }
   if (Test-Path $ExpectedHtml) {
     $htmlGenerado = $true
   } else {
