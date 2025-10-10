@@ -17,6 +17,7 @@ if (-not $branch) {
 }
 $branch = $branch.Trim()
 
+# git status outputs nothing (null) when tree is clean; skip trim to avoid null method calls
 $dirty = git status --porcelain
 $stashed = $false
 if ($dirty) {
@@ -36,6 +37,7 @@ if ($stashed) {
 Write-Host "== Pull OK ==" -ForegroundColor Green
 
 git add -A
+# git diff --cached also yields null when nothing is staged; guard before checking
 $pending = git diff --cached --name-only
 if (-not $pending) {
   Write-Host "== No hay cambios para publicar (working tree limpio) ==" -ForegroundColor Yellow
