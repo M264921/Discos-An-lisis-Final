@@ -11,12 +11,13 @@ if (-not $Message) {
 }
 
 Write-Host "== Sync: pull previo ==" -ForegroundColor Cyan
-$branch = (git rev-parse --abbrev-ref HEAD).Trim()
+$branch = git rev-parse --abbrev-ref HEAD | Select-Object -First 1
 if (-not $branch) {
   throw "No se pudo detectar la rama actual."
 }
+$branch = $branch.Trim()
 
-$dirty = (git status --porcelain).Trim()
+$dirty = git status --porcelain
 $stashed = $false
 if ($dirty) {
   git stash push -k -u -m ("sync-autostash {0}" -f (Get-Date -Format s)) | Out-Null
@@ -35,7 +36,7 @@ if ($stashed) {
 Write-Host "== Pull OK ==" -ForegroundColor Green
 
 git add -A
-$pending = (git diff --cached --name-only).Trim()
+$pending = git diff --cached --name-only
 if (-not $pending) {
   Write-Host "== No hay cambios para publicar (working tree limpio) ==" -ForegroundColor Yellow
   return
