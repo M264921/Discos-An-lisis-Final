@@ -60,12 +60,19 @@ Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -ErrorAction Silentl
       }
     }
 
+    $unit = $drivePath.Substring(0, [Math]::Min(2, $drivePath.Length)).TrimEnd('\')
+    if (-not $unit.EndsWith(':')) {
+      $unit = ($unit.TrimEnd(':')) + ':'
+    }
+    $unit = $unit.ToUpperInvariant()
+
     $rows.Add([pscustomobject]@{
       sha    = $sha
       tipo   = ($_.Extension).TrimStart('.').ToLowerInvariant()
       nombre = $_.Name
       ruta   = $_.DirectoryName
-      drive  = $drivePath.Substring(0, [Math]::Min(2, $drivePath.Length))
+      unidad = $unit
+      drive  = $unit
       tamano = [int64]$_.Length
       fecha  = $_.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")
     })
