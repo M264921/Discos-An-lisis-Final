@@ -43,6 +43,9 @@ Mantén los scripts idempotentes y sin rutas absolutas codificadas.
 - El orden y ancho de columnas, filas ocultas, alturas personalizadas y la selección se persisten en `localStorage` con prefijo `view.storagePrefix` + usuario normalizado.
 - Los overlays (`texto`, `audio`, `video`) pueden cerrarse con botón o clic fuera.
 - `data-no-intercept` en cualquier contenedor evita que el listener global abra el modal.
+- La barra superior incluye botón **Vista…** para ocultar/mostrar columnas, listar filas ocultas y resetear la vista completa.
+- El banner bajo la tabla avisa de filas ocultas; desde ahí pueden restaurarse todas.
+- Las filas tienen tirador vertical en la primera columna (drag) y doble clic para resetear altura; se puede trazar un recuadro para seleccionar (Ctrl/Cmd suma, Alt resta).
 
 ---
 

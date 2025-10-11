@@ -109,6 +109,17 @@
       defaultWidths: Object.assign({}, defaultWidths)
     };
 
+    const defaults = {
+      hiddenColumns: new Set(state.hiddenColumns),
+      hiddenRows: new Set(state.hiddenRows),
+      rowHeights: Object.assign({}, state.rowHeights),
+      filters: Object.assign({}, state.filters),
+      search: state.search,
+      pageSize: state.pageSize,
+      page: state.page,
+      activeUnit: state.activeUnit
+    };
+
     if (!state.selectionOrder.length && state.selectedRows.size) {
       state.selectionOrder = Array.from(state.selectedRows);
     }
@@ -299,6 +310,30 @@
         emit("columns:order", { order: state.order.slice() });
         emit("columns:hidden", { hidden: [] });
         emit("columns:width", { widths: Object.assign({}, state.widths) });
+        emitChange();
+      },
+      resetView: function(){
+        state.order = state.defaultOrder.slice();
+        state.widths = sanitizeWidths(state.defaultWidths, availableColumns, state.defaultWidths, minColumnWidth);
+        state.hiddenColumns = new Set(defaults.hiddenColumns);
+        state.hiddenRows = new Set(defaults.hiddenRows);
+        state.rowHeights = sanitizeRowHeights(defaults.rowHeights);
+        state.filters = Object.assign({}, defaults.filters);
+        state.search = defaults.search;
+        state.pageSize = defaults.pageSize;
+        state.page = defaults.page;
+        state.activeUnit = defaults.activeUnit;
+        state.selectedRows.clear();
+        state.selectionOrder = [];
+        persistView();
+        emit("columns:order", { order: state.order.slice() });
+        emit("columns:hidden", { hidden: Array.from(state.hiddenColumns) });
+        emit("columns:width", { widths: Object.assign({}, state.widths) });
+        emit("rows:hidden", { hidden: Array.from(state.hiddenRows) });
+        emit("rows:height", { heights: Object.assign({}, state.rowHeights) });
+        emit("filters:change", { filters: Object.assign({}, state.filters), search: state.search, page: state.page, activeUnit: state.activeUnit });
+        emit("page:change", { pageSize: state.pageSize, page: state.page });
+        emit("selection:change", { selected: [], order: [] });
         emitChange();
       },
       setColumnOrder: function(order){

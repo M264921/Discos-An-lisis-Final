@@ -51,6 +51,7 @@
     pathSummary: document.getElementById("pathSummary"),
     selectionIndicator: document.getElementById("selectionIndicator"),
     selectionCount: document.getElementById("selectionCount"),
+    hideSelected: document.getElementById("hideSelectedBtn"),
     accessGate: document.getElementById("accessGate"),
     accessMessage: document.getElementById("accessMessage"),
     accessForm: document.getElementById("accessForm"),
@@ -58,7 +59,18 @@
     accessPin: document.getElementById("accessPin"),
     accessPinLabel: document.getElementById("accessPinLabel"),
     accessError: document.getElementById("accessError"),
-    accessSubmit: document.getElementById("accessSubmit")
+    accessSubmit: document.getElementById("accessSubmit"),
+    viewBtn: document.getElementById("viewManagerBtn"),
+    viewPanel: document.getElementById("viewPanel"),
+    viewColumnList: document.getElementById("columnToggleList"),
+    viewClose: document.getElementById("closeViewPanel"),
+    viewReset: document.getElementById("resetViewBtn"),
+    viewHiddenMessage: document.getElementById("hiddenRowsMessage"),
+    hiddenRowsList: document.getElementById("hiddenRowsList"),
+    showHiddenRows: document.getElementById("showHiddenRowsBtn"),
+    hiddenRowsBanner: document.getElementById("hiddenRowsBanner"),
+    hiddenRowsCount: document.getElementById("hiddenRowsCount"),
+    hiddenRowsShow: document.getElementById("hiddenRowsShowBtn")
   };
 
   const baseNode = document.getElementById("INV_B64");
@@ -68,6 +80,9 @@
   let dragSource = null;
   let renderPending = false;
   let lastRenderedRowIds = [];
+  let viewPanelOpen = false;
+  let viewPanelOutsideHandler = null;
+  let dragSelectionState = null;
 
   ensureInventoryLoader();
 
@@ -439,6 +454,37 @@
         store.resetColumns();
       });
     }
+    if (elements.hideSelected) {
+      elements.hideSelected.addEventListener("click", () => {
+        hideSelectedRows();
+      });
+    }
+    if (elements.viewBtn) {
+      elements.viewBtn.addEventListener("click", toggleViewPanel);
+    }
+    if (elements.viewClose) {
+      elements.viewClose.addEventListener("click", () => {
+        closeViewPanel();
+      });
+    }
+    if (elements.viewReset) {
+      elements.viewReset.addEventListener("click", () => {
+        store.resetView();
+      });
+    }
+    if (elements.showHiddenRows) {
+      elements.showHiddenRows.addEventListener("click", () => {
+        showAllHiddenRows();
+      });
+    }
+    if (elements.hiddenRowsShow) {
+      elements.hiddenRowsShow.addEventListener("click", () => {
+        showAllHiddenRows();
+      });
+    }
+    if (elements.tableShell) {
+      elements.tableShell.addEventListener("pointerdown", handleTablePointerDown);
+    }
   }
   function ensureAccess(config) {
     return new Promise((resolve) => {
@@ -679,6 +725,399 @@
     }
   }
 
+  function hideSelectedRows() {
+    const snapshot = store.getState();
+    const selected = Array.isArray(snapshot.selectedRows) ? snapshot.selectedRows.filter(Boolean) : [];
+    if (!selected.length) {
+      return;
+    }
+    hideRows(selected);
+    store.clearSelection();
+  }
+
+  function hideRows(rowIds) {
+    const list = Array.isArray(rowIds) ? rowIds.map(id => String(id)).filter(Boolean) : [];
+    if (!list.length) {
+      return;
+    }
+    const snapshot = store.getState();
+    const hidden = new Set((snapshot.hiddenRows || []).map(id => String(id)));
+    let changed = false;
+    list.forEach(id => {
+      if (!hidden.has(id)) {
+        hidden.add(id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      store.setHiddenRows(Array.from(hidden));
+    }
+    store.updateSelection({ remove: list });
+  }
+
+  function showAllHiddenRows() {
+    const snapshot = store.getState();
+    if (Array.isArray(snapshot.hiddenRows) && snapshot.hiddenRows.length) {
+      store.setHiddenRows([]);
+    }
+  }
+
+  function renderHiddenRowsBanner(snapshot) {
+    if (!elements.hiddenRowsBanner) {
+      return;
+    }
+    const hiddenRows = Array.isArray(snapshot.hiddenRows) ? snapshot.hiddenRows.filter(Boolean) : [];
+    if (hiddenRows.length) {
+      elements.hiddenRowsBanner.hidden = false;
+      if (elements.hiddenRowsCount) {
+        elements.hiddenRowsCount.textContent = hiddenRows.length.toLocaleString("es-ES");
+      }
+    } else {
+      elements.hiddenRowsBanner.hidden = true;
+    }
+    if (elements.hiddenRowsShow) {
+      elements.hiddenRowsShow.disabled = hiddenRows.length === 0;
+    }
+    if (elements.showHiddenRows) {
+      elements.showHiddenRows.disabled = hiddenRows.length === 0;
+    }
+  }
+
+  function renderViewControls(snapshot) {
+    if (elements.viewColumnList) {
+      const hidden = new Set((snapshot.hiddenColumns || []).map(id => String(id)));
+      const rendered = new Set();
+      const combined = Array.isArray(snapshot.order) ? snapshot.order.slice() : [];
+      Object.keys(columns).forEach(colId => {
+        if (!combined.includes(colId)) {
+          combined.push(colId);
+        }
+      });
+      elements.viewColumnList.innerHTML = "";
+      combined.forEach(colId => {
+        if (!columns[colId] || rendered.has(colId)) {
+          return;
+        }
+        rendered.add(colId);
+        const li = document.createElement("li");
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !hidden.has(colId);
+        checkbox.addEventListener("change", event => {
+          if (event.target.checked) {
+            store.showColumn(colId);
+          } else {
+            store.hideColumn(colId);
+          }
+        });
+        const text = document.createElement("span");
+        text.textContent = columns[colId].label || colId;
+        label.appendChild(checkbox);
+        label.appendChild(text);
+        li.appendChild(label);
+        elements.viewColumnList.appendChild(li);
+      });
+    }
+
+    const hiddenRows = Array.isArray(snapshot.hiddenRows) ? snapshot.hiddenRows.filter(Boolean) : [];
+    if (elements.viewHiddenMessage) {
+      elements.viewHiddenMessage.textContent = hiddenRows.length ? `${hiddenRows.length.toLocaleString("es-ES")} filas ocultas.` : "No hay filas ocultas.";
+    }
+    if (elements.showHiddenRows) {
+      elements.showHiddenRows.disabled = hiddenRows.length === 0;
+    }
+    if (elements.hiddenRowsList) {
+      elements.hiddenRowsList.innerHTML = "";
+      if (hiddenRows.length) {
+        const maxRows = 8;
+        hiddenRows.slice(0, maxRows).forEach(rowId => {
+          const row = rowLookup.get(rowId);
+          const li = document.createElement("li");
+          const label = document.createElement("span");
+          label.className = "hidden-row-label";
+          label.textContent = row && (row.nombre || row.ruta) ? `${row.nombre || row.ruta}` : rowId;
+          li.appendChild(label);
+          const showBtn = document.createElement("button");
+          showBtn.type = "button";
+          showBtn.className = "link-button";
+          showBtn.textContent = "Mostrar";
+          showBtn.addEventListener("click", () => {
+            const current = new Set((store.getState().hiddenRows || []).map(id => String(id)));
+            if (current.delete(rowId)) {
+              store.setHiddenRows(Array.from(current));
+            }
+          });
+          li.appendChild(showBtn);
+          elements.hiddenRowsList.appendChild(li);
+        });
+        if (hiddenRows.length > maxRows) {
+          const remaining = hiddenRows.length - maxRows;
+          const more = document.createElement("li");
+          more.className = "muted";
+          more.textContent = `… y ${remaining.toLocaleString("es-ES")} más`;
+          elements.hiddenRowsList.appendChild(more);
+        }
+      }
+    }
+  }
+
+  function toggleViewPanel() {
+    if (!elements.viewPanel) {
+      return;
+    }
+    if (viewPanelOpen) {
+      closeViewPanel();
+    } else {
+      openViewPanel();
+    }
+  }
+
+  function openViewPanel() {
+    if (!elements.viewPanel) {
+      return;
+    }
+    viewPanelOpen = true;
+    elements.viewPanel.hidden = false;
+    if (elements.viewBtn) {
+      elements.viewBtn.setAttribute("aria-expanded", "true");
+    }
+    renderViewControls(store.getState());
+    if (!viewPanelOutsideHandler) {
+      viewPanelOutsideHandler = event => {
+        if (!elements.viewPanel.contains(event.target) && (!elements.viewBtn || !elements.viewBtn.contains(event.target))) {
+          closeViewPanel();
+        }
+      };
+      document.addEventListener("mousedown", viewPanelOutsideHandler);
+      document.addEventListener("touchstart", viewPanelOutsideHandler);
+    }
+    window.addEventListener("keydown", handleViewPanelKeydown);
+  }
+
+  function closeViewPanel() {
+    if (!elements.viewPanel) {
+      return;
+    }
+    if (!viewPanelOpen) {
+      return;
+    }
+    viewPanelOpen = false;
+    elements.viewPanel.hidden = true;
+    if (elements.viewBtn) {
+      elements.viewBtn.setAttribute("aria-expanded", "false");
+    }
+    if (viewPanelOutsideHandler) {
+      document.removeEventListener("mousedown", viewPanelOutsideHandler);
+      document.removeEventListener("touchstart", viewPanelOutsideHandler);
+      viewPanelOutsideHandler = null;
+    }
+    window.removeEventListener("keydown", handleViewPanelKeydown);
+  }
+
+  function handleViewPanelKeydown(event) {
+    if (event.key === "Escape") {
+      closeViewPanel();
+    }
+  }
+
+  function handleTablePointerDown(event) {
+    if (event.button !== 0) {
+      return;
+    }
+    if (!elements.tableShell || !elements.tbody) {
+      return;
+    }
+    if (!elements.tableShell.contains(event.target)) {
+      return;
+    }
+    if (event.target.closest("input, button, select, textarea, label")) {
+      return;
+    }
+    if (event.target.closest(".resize-handle") || event.target.closest(".row-resize-handle") || event.target.closest(".row-selector-wrap")) {
+      return;
+    }
+    if (!event.target.closest("tbody")) {
+      return;
+    }
+    const snapshot = store.getState();
+    dragSelectionState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      mode: event.altKey ? "remove" : ((event.ctrlKey || event.metaKey || event.shiftKey) ? "add" : "replace"),
+      started: false,
+      overlay: null,
+      rows: Array.from(elements.tbody.querySelectorAll("tr"), tr => ({ tr, id: tr.getAttribute("data-row-id") })),
+      baseOrder: Array.isArray(snapshot.selectionOrder) ? snapshot.selectionOrder.slice() : Array.from(snapshot.selectedRows || []),
+      current: [],
+      currentSet: new Set()
+    };
+    window.addEventListener("pointermove", handleTablePointerMove);
+    window.addEventListener("pointerup", handleTablePointerUp);
+  }
+
+  function handleTablePointerMove(event) {
+    if (!dragSelectionState) {
+      return;
+    }
+    const dx = Math.abs(event.clientX - dragSelectionState.startX);
+    const dy = Math.abs(event.clientY - dragSelectionState.startY);
+    if (!dragSelectionState.started) {
+      if (dx < 5 && dy < 5) {
+        return;
+      }
+      dragSelectionState.started = true;
+      dragSelectionState.overlay = document.createElement("div");
+      dragSelectionState.overlay.className = "selection-rect";
+      dragSelectionState.overlay.style.left = "0px";
+      dragSelectionState.overlay.style.top = "0px";
+      dragSelectionState.overlay.style.width = "0px";
+      dragSelectionState.overlay.style.height = "0px";
+      elements.tableShell.appendChild(dragSelectionState.overlay);
+      if (elements.tableShell.setPointerCapture && dragSelectionState.pointerId !== undefined) {
+        try {
+          elements.tableShell.setPointerCapture(dragSelectionState.pointerId);
+        } catch (_) {
+          /* ignore */
+        }
+      }
+    }
+    if (!dragSelectionState.started) {
+      return;
+    }
+    event.preventDefault();
+    const bounds = elements.tableShell.getBoundingClientRect();
+    const leftBound = Math.min(Math.max(Math.min(dragSelectionState.startX, event.clientX), bounds.left), bounds.right);
+    const rightBound = Math.min(Math.max(Math.max(dragSelectionState.startX, event.clientX), bounds.left), bounds.right);
+    const topBound = Math.min(Math.max(Math.min(dragSelectionState.startY, event.clientY), bounds.top), bounds.bottom);
+    const bottomBound = Math.min(Math.max(Math.max(dragSelectionState.startY, event.clientY), bounds.top), bounds.bottom);
+    const relLeft = leftBound - bounds.left;
+    const relTop = topBound - bounds.top;
+    const relWidth = Math.max(0, rightBound - leftBound);
+    const relHeight = Math.max(0, bottomBound - topBound);
+    if (dragSelectionState.overlay) {
+      dragSelectionState.overlay.style.left = relLeft + "px";
+      dragSelectionState.overlay.style.top = relTop + "px";
+      dragSelectionState.overlay.style.width = relWidth + "px";
+      dragSelectionState.overlay.style.height = relHeight + "px";
+    }
+    const selectedIds = [];
+    const selectedSet = new Set();
+    dragSelectionState.rows.forEach(info => {
+      if (!info || !info.tr || !info.id) {
+        return;
+      }
+      const rect = info.tr.getBoundingClientRect();
+      const intersects = rect.bottom >= topBound && rect.top <= bottomBound && rect.right >= leftBound && rect.left <= rightBound;
+      if (intersects) {
+        if (!selectedSet.has(info.id)) {
+          selectedIds.push(info.id);
+          selectedSet.add(info.id);
+        }
+        info.tr.classList.add("row-drag-select");
+      } else {
+        info.tr.classList.remove("row-drag-select");
+      }
+    });
+    dragSelectionState.current = selectedIds;
+    dragSelectionState.currentSet = selectedSet;
+  }
+
+  function handleTablePointerUp() {
+    if (!dragSelectionState) {
+      return;
+    }
+    window.removeEventListener("pointermove", handleTablePointerMove);
+    window.removeEventListener("pointerup", handleTablePointerUp);
+    if (elements.tableShell.releasePointerCapture && dragSelectionState.pointerId !== undefined) {
+      try {
+        elements.tableShell.releasePointerCapture(dragSelectionState.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    if (!dragSelectionState.started) {
+      dragSelectionState = null;
+      return;
+    }
+    if (dragSelectionState.overlay && dragSelectionState.overlay.parentNode) {
+      dragSelectionState.overlay.parentNode.removeChild(dragSelectionState.overlay);
+    }
+    dragSelectionState.rows.forEach(info => {
+      if (info && info.tr) {
+        info.tr.classList.remove("row-drag-select");
+      }
+    });
+    const currentIds = dragSelectionState.current || [];
+    if (dragSelectionState.mode === "remove") {
+      if (currentIds.length) {
+        const removeSet = new Set(currentIds);
+        const nextOrder = dragSelectionState.baseOrder.filter(id => !removeSet.has(id));
+        store.setSelectedRows(nextOrder);
+      }
+      dragSelectionState = null;
+      return;
+    }
+    if (dragSelectionState.mode === "add") {
+      const nextOrder = dragSelectionState.baseOrder.slice();
+      const seen = new Set(nextOrder);
+      dragSelectionState.rows.forEach(info => {
+        if (!info || !info.id) {
+          return;
+        }
+        if (dragSelectionState.currentSet && dragSelectionState.currentSet.has(info.id) && !seen.has(info.id)) {
+          seen.add(info.id);
+          nextOrder.push(info.id);
+        }
+      });
+      store.setSelectedRows(nextOrder);
+      dragSelectionState = null;
+      return;
+    }
+    const next = [];
+    const seen = new Set();
+    dragSelectionState.rows.forEach(info => {
+      if (!info || !info.id) {
+        return;
+      }
+      if (dragSelectionState.currentSet && dragSelectionState.currentSet.has(info.id) && !seen.has(info.id)) {
+        seen.add(info.id);
+        next.push(info.id);
+      }
+    });
+    store.setSelectedRows(next);
+    dragSelectionState = null;
+  }
+
+  function startRowResize(event, rowElement, rowId) {
+    if (!rowElement || !rowId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const startY = event.clientY;
+    const startHeight = rowElement.getBoundingClientRect().height;
+    function onMove(moveEvent) {
+      const delta = moveEvent.clientY - startY;
+      const newHeight = Math.max(24, startHeight + delta);
+      rowElement.style.height = newHeight + "px";
+    }
+    function onUp(upEvent) {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      const delta = upEvent.clientY - startY;
+      const newHeight = Math.max(24, Math.round(startHeight + delta));
+      if (newHeight <= 24) {
+        store.setRowHeight(rowId, 24);
+      } else {
+        store.setRowHeight(rowId, newHeight);
+      }
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+  }
+
   function render() {
     const snapshot = store.getState();
     const filteredWithoutUnit = applyFilters(snapshot, true);
@@ -694,6 +1133,8 @@
     if (elements.download) {
       elements.download.disabled = filtered.length === 0;
     }
+    renderHiddenRowsBanner(snapshot);
+    renderViewControls(snapshot);
   }
 
   function applyFilters(snapshot, skipUnit) {
@@ -800,15 +1241,22 @@
     rows.forEach(row => {
       const tr = document.createElement("tr");
       const rowId = getRowId(row);
+      if (rowId) {
+        tr.dataset.rowId = rowId;
+      }
       if (selected.has(rowId)) {
         tr.classList.add("row-selected");
       }
       if (snapshot.rowHeights && snapshot.rowHeights[rowId]) {
         tr.style.height = snapshot.rowHeights[rowId] + "px";
+      } else {
+        tr.style.height = "";
       }
 
       const selectorCell = document.createElement("td");
       selectorCell.className = "row-selector-cell";
+      const selectorWrap = document.createElement("div");
+      selectorWrap.className = "row-selector-wrap";
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.checked = selected.has(rowId);
@@ -816,7 +1264,31 @@
         event.stopPropagation();
         store.toggleRowSelection(rowId, event.target.checked);
       });
-      selectorCell.appendChild(checkbox);
+      selectorWrap.appendChild(checkbox);
+      const hideBtn = document.createElement("button");
+      hideBtn.type = "button";
+      hideBtn.className = "row-hide-btn";
+      hideBtn.title = "Ocultar fila";
+      hideBtn.setAttribute("aria-label", "Ocultar fila");
+      hideBtn.textContent = "✕";
+      hideBtn.addEventListener("click", event => {
+        event.stopPropagation();
+        hideRows([rowId]);
+      });
+      selectorWrap.appendChild(hideBtn);
+      selectorCell.appendChild(selectorWrap);
+      const resizeHandle = document.createElement("span");
+      resizeHandle.className = "row-resize-handle";
+      resizeHandle.title = "Arrastra para ajustar la altura";
+      resizeHandle.addEventListener("pointerdown", event => {
+        startRowResize(event, tr, rowId);
+      });
+      resizeHandle.addEventListener("dblclick", event => {
+        event.stopPropagation();
+        tr.style.height = "";
+        store.setRowHeight(rowId, null);
+      });
+      selectorCell.appendChild(resizeHandle);
       tr.appendChild(selectorCell);
 
       tr.addEventListener("click", event => {
@@ -886,6 +1358,9 @@
         elements.selectionCount.textContent = selectedCount.toLocaleString("es-ES");
       } else {
         elements.selectionIndicator.hidden = true;
+      }
+      if (elements.hideSelected) {
+        elements.hideSelected.disabled = selectedCount === 0;
       }
     }
   }

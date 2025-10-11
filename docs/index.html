@@ -7,7 +7,7 @@ body{margin:0;padding:24px;font-family:"Inter","Segoe UI",Roboto,Ubuntu,Helvetic
 main{max-width:1280px;margin:0 auto}
 h1{margin:0 0 12px;font-size:28px;font-weight:700;color:#0b1733}
 #err{display:none;padding:12px 16px;border-radius:10px;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;margin-bottom:16px}
-.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;position:relative}
 .toolbar .summary{display:flex;align-items:center;gap:6px;font-weight:600;color:#1f2937}
 .toolbar .summary .sep{color:#94a3b8}
 .toolbar .search{flex:1;min-width:220px}
@@ -67,9 +67,12 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 .pagination button:hover:not(:disabled){border-color:#2563eb;color:#2563eb}
 .pagination button:disabled{opacity:.45;cursor:not-allowed}
 .pagination .info{font-size:13px;color:#475569}
-.selection-indicator{font-size:13px;color:#1f2937;display:flex;align-items:center;gap:4px}
+.selection-indicator{font-size:13px;color:#1f2937;display:flex;align-items:center;gap:8px}
 .selection-indicator[hidden]{display:none}
 .selection-indicator strong{font-weight:600;color:#2563eb}
+.selection-actions{display:flex;align-items:center;gap:6px}
+.link-button{border:none;background:none;padding:0;color:#2563eb;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline}
+.link-button:disabled{color:#94a3b8;cursor:not-allowed;text-decoration:none}
 .access-gate{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);z-index:9999}
 .access-gate[hidden]{display:none}
 .access-card{max-width:360px;width:100%;background:#fff;border-radius:18px;padding:24px;box-shadow:0 40px 90px -45px rgba(15,23,42,.6);display:flex;flex-direction:column;gap:18px}
@@ -84,6 +87,31 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 .access-form button{padding:10px 14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:background .15s ease,transform .15s ease}
 .access-form button:hover{background:#1d4ed8;transform:translateY(-1px)}
 .access-form button:disabled{background:#94a3b8;cursor:not-allowed;transform:none}
+.view-panel{position:absolute;top:110%;right:0;width:320px;max-width:90vw;background:#fff;border:1px solid #d7dff5;border-radius:16px;box-shadow:0 30px 80px -45px rgba(15,23,42,.55);padding:18px;display:flex;flex-direction:column;gap:16px;z-index:20}
+.view-panel[hidden]{display:none}
+.view-panel-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.view-panel-header h3{margin:0;font-size:15px;font-weight:700;color:#0b1733}
+.view-panel-close{border:none;background:none;font-size:18px;line-height:1;color:#475569;cursor:pointer;padding:4px}
+.view-panel-section{display:flex;flex-direction:column;gap:10px}
+.view-panel-section h4{margin:0;font-size:13px;font-weight:600;color:#1f2937}
+.view-panel-columns{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow:auto}
+.view-panel-columns li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:#1f2937}
+.view-panel-columns label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.view-panel-columns input[type="checkbox"]{width:16px;height:16px}
+.view-panel-hidden-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:160px;overflow:auto}
+.view-panel-hidden-rows li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#475569}
+.view-panel-hidden-rows li .hidden-row-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.view-panel-footer{display:flex;justify-content:flex-end}
+.hidden-rows-banner{margin:12px 0;padding:10px 14px;border-radius:12px;background:#f1f5ff;color:#1f2937;border:1px solid #cbd5f5;display:flex;align-items:center;gap:12px;font-size:13px}
+.hidden-rows-banner[hidden]{display:none}
+.selection-rect{position:absolute;border:2px solid rgba(37,99,235,.6);background:rgba(37,99,235,.12);pointer-events:none;border-radius:8px;z-index:15}
+.row-selector-cell{position:sticky;left:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 6px}
+.row-selector-cell .row-selector-wrap{display:flex;align-items:center;justify-content:center;gap:6px}
+.row-selector-cell .row-selector-wrap button{border:none;background:none;padding:2px;color:#94a3b8;cursor:pointer;line-height:1}
+.row-selector-cell .row-selector-wrap button:hover{color:#2563eb}
+.row-resize-handle{display:block;width:100%;height:6px;cursor:ns-resize;margin-top:auto}
+.row-resize-handle::after{content:"";display:block;width:40%;height:2px;margin:2px auto 0;background:#9ca3af;border-radius:2px;opacity:.65}
+.row-drag-select{box-shadow:inset 0 0 0 2px rgba(37,99,235,.55);background:#e0ecff}
 </style><link rel="stylesheet" href="./assets/css/picker.css"/></head><body>
 <header class="site-header">
   <div class="brand">MingoMedia</div>
@@ -121,7 +149,12 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 <div id="err"></div>
 <div class="toolbar">
   <div class="summary"><span id="count">0</span> archivos <span class="sep">&middot;</span> <span id="size">0</span> visibles</div>
-  <div class="selection-indicator" id="selectionIndicator" hidden><strong id="selectionCount">0</strong> seleccionados</div>
+  <div class="selection-indicator" id="selectionIndicator" hidden>
+    <div class="selection-actions">
+      <strong id="selectionCount">0</strong> seleccionados
+      <button type="button" class="link-button" id="hideSelectedBtn">Ocultar</button>
+    </div>
+  </div>
   <div class="search"><input id="q" type="search" placeholder="Buscar por ruta, nombre o hash"/></div>
   <select id="pageSize">
     <option value="25">25 por página</option>
@@ -131,7 +164,27 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
     <option value="0">Todos</option>
   </select>
   <button class="btn-secondary" id="resetColumns">Reset columnas</button>
+  <button class="btn-secondary" id="viewManagerBtn" aria-haspopup="true" aria-expanded="false">Vista…</button>
   <button id="downloadBtn" disabled>Descargar CSV</button>
+  <div class="view-panel" id="viewPanel" hidden>
+    <div class="view-panel-header">
+      <h3>Preferencias de vista</h3>
+      <button type="button" class="view-panel-close" id="closeViewPanel" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="view-panel-section">
+      <h4>Columnas visibles</h4>
+      <ul class="view-panel-columns" id="columnToggleList"></ul>
+    </div>
+    <div class="view-panel-section">
+      <h4>Filas ocultas</h4>
+      <p id="hiddenRowsMessage" class="muted">No hay filas ocultas.</p>
+      <ul class="view-panel-hidden-rows" id="hiddenRowsList"></ul>
+      <button type="button" class="btn-secondary" id="showHiddenRowsBtn" disabled>Mostrar todas</button>
+    </div>
+    <div class="view-panel-footer">
+      <button type="button" id="resetViewBtn">Reset vista</button>
+    </div>
+  </div>
 </div>
 <div class="insights">
   <div class="card">
@@ -156,6 +209,10 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
     </thead>
     <tbody></tbody>
   </table>
+</div>
+<div class="hidden-rows-banner" id="hiddenRowsBanner" hidden>
+  <span><strong id="hiddenRowsCount">0</strong> filas ocultas en esta vista.</span>
+  <button type="button" class="btn-secondary" id="hiddenRowsShowBtn">Mostrar todas</button>
 </div>
 <div class="pagination">
   <div class="info" id="pageInfo"></div>

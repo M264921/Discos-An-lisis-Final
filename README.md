@@ -72,6 +72,10 @@ Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromec
   - Columnas arrastrables con ancho ajustable y filtros por columna.
   - Descarga CSV del resultado filtrado y paginación configurable.
   - Selección con casillas por fila (persistente por usuario) y contador en la barra.
+  - Recuadro de selección tipo hoja de cálculo (Ctrl/Cmd para sumar, Alt para restar) y casilla general.
+  - Altura de filas ajustable arrastrando el tirador de la primera columna (doble clic para restaurar).
+  - Panel "Vista…" para ocultar/mostrar columnas, revisar filas ocultas y reiniciar toda la vista.
+  - Banner con el número de filas ocultas y botón rápido para volver a mostrarlas.
   - `Ctrl/Cmd + clic` y botón medio mantienen el comportamiento nativo (sin modal).
 
 ### Configuración de acceso y preferencias
