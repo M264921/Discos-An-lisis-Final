@@ -80,11 +80,9 @@
 
   const preview = document.getElementById("localViewer");
 
-  const previewBody = document.getElementById("owPreviewBody");
+  removeLegacyPreviewMarkup();
 
-  const previewClose = preview ? preview.querySelector(".ow-preview-close") : null;
-
-  const airplayBtn = document.getElementById("airplayBtn");
+  let modalMessage = modal ? modal.querySelector(".ow-message") : null;
 
   let modalMessage = modal ? modal.querySelector(".ow-message") : null;
 
@@ -189,6 +187,10 @@
       activeOverlay = null;
     }
   }
+
+
+
+  const overlayStack = [];
 
 
 
