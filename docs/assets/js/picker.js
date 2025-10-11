@@ -166,6 +166,34 @@
 
   };
 
+  let activeOverlay = null;
+
+  function setActiveOverlay(node) {
+    if (activeOverlay && activeOverlay !== node) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    activeOverlay = node;
+  }
+
+  function closeActiveOverlay() {
+    if (activeOverlay) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+      activeOverlay = null;
+    }
+  }
+
+
+
+  const overlayStack = [];
+
 
 
   const overlayStack = [];
@@ -1215,8 +1243,7 @@
 
 
           document.body.appendChild(wrap);
-
-
+          setActiveOverlay(wrap);
 
           const closeButton = wrap.querySelector("#owTxtClose");
 
@@ -1238,7 +1265,7 @@
 
           wrap.addEventListener("click", function (event) {
 
-            if (event.target === wrap) { close(); }
+            if (event.target === wrap) { closeActiveOverlay(); }
 
           });
 
