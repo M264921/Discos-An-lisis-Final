@@ -78,6 +78,12 @@
 
   const owButtons = modal ? modal.querySelectorAll(".ow-actions button[data-action]") : [];
 
+  const preview = document.getElementById("localViewer");
+
+  const previewBody = document.getElementById("owPreviewBody");
+
+  const previewClose = preview ? preview.querySelector(".ow-preview-close") : null;
+
   const airplayBtn = document.getElementById("airplayBtn");
 
   let modalMessage = modal ? modal.querySelector(".ow-message") : null;
@@ -159,6 +165,38 @@
     dlnaWs: DLNA_WS || ""
 
   };
+
+  let activeOverlay = null;
+
+  function setActiveOverlay(node) {
+    if (activeOverlay && activeOverlay !== node) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    activeOverlay = node;
+  }
+
+  function closeActiveOverlay() {
+    if (activeOverlay) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+      activeOverlay = null;
+    }
+  }
+
+
+
+  const overlayStack = [];
+
+
+
+  const overlayStack = [];
 
 
 
@@ -365,6 +403,16 @@
         if (!modal.hidden) {
 
           closeModal();
+
+        } else if (overlayStack.length > 0) {
+
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
 
         } else if (overlayStack.length > 0) {
 
@@ -1080,6 +1128,12 @@
 
     const effectiveType = type || typeOf(abs);
 
+    if (!preview.hidden) {
+
+      closePreview();
+
+    }
+
     if (effectiveType === "image") {
 
       window.open(abs, "_blank", "noopener");
@@ -1179,8 +1233,7 @@
 
 
           document.body.appendChild(wrap);
-
-
+          setActiveOverlay(wrap);
 
           const closeButton = wrap.querySelector("#owTxtClose");
 
@@ -1202,7 +1255,7 @@
 
           wrap.addEventListener("click", function (event) {
 
-            if (event.target === wrap) { close(); }
+            if (event.target === wrap) { closeActiveOverlay(); }
 
           });
 
@@ -1507,6 +1560,77 @@
       modalDialog.insertBefore(node, actions);
 
     } else {
+
+      modalDialog.appendChild(node);
+
+    }
+
+    modalMessage = node;
+
+    return modalMessage;
+
+  }
+
+
+
+  function showMessage(text) {
+
+    const node = ensureModalMessage();
+
+    if (!node) {
+
+      return modalMessage;
+
+    }
+
+    node.textContent = text;
+
+    node.hidden = false;
+
+  }
+
+
+
+
+    if (modalMessage && modalMessage.isConnected) {
+
+      return null;
+
+    }
+
+
+
+    const existing = modalDialog.querySelector(".ow-message");
+
+    if (existing) {
+
+      modalMessage = existing;
+
+      return modalMessage;
+
+    }
+
+
+
+    const node = document.createElement("div");
+
+    node.className = "ow-message";
+
+      case "local": {
+
+        const opened = openLocal(context.href, context.type);
+
+        if (opened && !fromPreference) {
+
+          closeModal();
+
+        }
+
+        return Promise.resolve(Boolean(opened));
+
+      }
+
+      case "browser-picker":
 
       modalDialog.appendChild(node);
 
