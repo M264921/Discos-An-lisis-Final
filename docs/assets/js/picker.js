@@ -74,13 +74,9 @@
 
   const modalDialog = modal ? modal.querySelector(".ow-dialog") : null;
 
-  const modalMessage = document.getElementById("owMessage");
-
   const owFileName = document.getElementById("owFileName");
 
   const owButtons = modal ? modal.querySelectorAll(".ow-actions button[data-action]") : [];
-
-  const owClose = modal ? modal.querySelector(".ow-close") : null;
 
   const preview = document.getElementById("localViewer");
 
@@ -89,6 +85,8 @@
   const previewClose = preview ? preview.querySelector(".ow-preview-close") : null;
 
   const airplayBtn = document.getElementById("airplayBtn");
+
+  let modalMessage = modal ? modal.querySelector(".ow-message") : null;
 
   if (window.WebKitPlaybackTargetAvailabilityEvent && airplayBtn) {
 
@@ -170,6 +168,10 @@
 
 
 
+  const overlayStack = [];
+
+
+
   initialisePreference();
 
   wireUi();
@@ -180,7 +182,59 @@
 
   setupDlnaWebSocket();
 
+  function registerOverlay(element, onClose) {
 
+    if (!element) {
+
+      return function () {
+
+        /* noop */
+
+      };
+
+    }
+
+    let closed = false;
+
+    function closeOverlay() {
+
+      if (closed) {
+
+        return;
+
+      }
+
+      closed = true;
+
+      const index = overlayStack.indexOf(closeOverlay);
+
+      if (index >= 0) {
+
+        overlayStack.splice(index, 1);
+
+      }
+
+      if (typeof onClose === "function") {
+
+        try {
+
+          onClose();
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+      }
+
+    }
+
+    overlayStack.push(closeOverlay);
+
+    return closeOverlay;
+
+  }
 
   function initialisePreference() {
 
@@ -256,7 +310,7 @@
 
     }
 
-    if (value === "auto" || value === "local") {
+    if (value === "auto" || value === "local" || value === "choose") {
 
       return true;
 
@@ -290,19 +344,19 @@
 
 
 
-    if (owClose) {
-
-      owClose.addEventListener("click", hideModal);
-
-    }
-
-
-
     modal.addEventListener("click", function (event) {
 
-      if (event.target === modal) {
+      if (!(event.target instanceof Element)) {
 
-        hideModal();
+        return;
+
+      }
+
+      const closer = event.target.closest("[data-ow-close]");
+
+      if (closer) {
+
+        closeModal();
 
       }
 
@@ -321,6 +375,16 @@
         } else if (!preview.hidden) {
 
           closePreview();
+
+        } else if (overlayStack.length > 0) {
+
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
 
         }
 
@@ -374,9 +438,17 @@
 
             case "open-local":
 
-              openLocal(state.currentHref, state.currentType);
+              const openedLocally = openLocal(state.currentHref, state.currentType);
 
-              hideModal();
+              if (openedLocally) {
+
+                hideModal();
+
+              } else {
+
+                showMessage("No se pudo abrir en este navegador.");
+
+              }
 
               return;
 
@@ -536,9 +608,7 @@
 
 
 
-    const resourceType = typeOf(href);
-
-    if (!resourceType) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
 
       return;
 
@@ -546,7 +616,135 @@
 
 
 
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
+    const url = resolveUrl(href);
+
+    if (!url || !shouldIntercept(url)) {
+
+      return;
+
+    }
+
+
+
+    const context = buildContext(anchor, url);
+
+    if (!context) {
+
+      return;
+
+    }
+
+
+
+    const mode = state.preference || "auto";
+
+    if (mode === "choose") {
+
+      event.preventDefault();
+
+      showModal(context);
+
+      return;
+
+    }
+
+
+
+    if (mode === "auto" || mode === "local") {
+
+      event.preventDefault();
+
+      openLocal(context.href, context.type);
+
+      return;
+
+    }
+
+
+
+    if (mode === "browser-picker") {
+
+      event.preventDefault();
+
+      if (context.type && isMedia(context.type) && globalSupportsRemotePlayback()) {
+
+        launchBrowserPicker(context).then(function (success) {
+
+          if (!success) {
+
+            openLocal(context.href, context.type);
+
+          }
+
+        });
+
+      } else {
+
+        openLocal(context.href, context.type);
+
+      }
+
+      return;
+
+    }
+
+
+
+    if (typeof mode === "string" && mode.startsWith("dlna:")) {
+
+      event.preventDefault();
+
+      if (DLNA_API && context.type && isMedia(context.type)) {
+
+        const controlURL = getSelectedHeaderDlnaControlUrl();
+
+        if (controlURL) {
+
+          fetch(`${DLNA_API}/play`, {
+
+            method: "POST",
+
+            headers: {
+
+              "Content-Type": "application/json"
+
+            },
+
+            body: JSON.stringify({
+
+              controlURL,
+
+              mediaUrl: context.href,
+
+              position: 0
+
+            })
+
+          }).then(function (response) {
+
+            if (!response.ok) {
+
+              throw new Error("DLNA helper respondio con error");
+
+            }
+
+            return response;
+
+          }).catch(function (error) {
+
+            console.error("DLNA /play fallo", error);
+
+            openLocal(context.href, context.type);
+
+          });
+
+          return;
+
+        }
+
+      }
+
+      openLocal(context.href, context.type);
 
       return;
 
@@ -556,7 +754,7 @@
 
     event.preventDefault();
 
-    showModal(href);
+    showModal(context);
 
   }
 
@@ -712,9 +910,17 @@
 
     modal.hidden = false;
 
+    modal.setAttribute("aria-hidden", "false");
+
+    if (document && document.body) {
+
+      document.body.classList.add("ow-no-scroll");
+
+    }
+
     window.setTimeout(function () {
 
-      const first = modal.querySelector(".ow-actions button:not([hidden])");
+      const first = modal.querySelector(".ow-actions button:not([hidden]):not(:disabled)");
 
       if (first) {
 
@@ -731,6 +937,16 @@
   function closeModal() {
 
     modal.hidden = true;
+
+    modal.setAttribute("aria-hidden", "true");
+
+    if (document && document.body) {
+
+      document.body.classList.remove("ow-no-scroll");
+
+    }
+
+    hideMessage();
 
     state.current = null;
 
@@ -894,6 +1110,12 @@
 
     const effectiveType = type || typeOf(abs);
 
+    if (!preview.hidden) {
+
+      closePreview();
+
+    }
+
     if (effectiveType === "image") {
 
       window.open(abs, "_blank", "noopener");
@@ -1002,7 +1224,11 @@
 
 
 
-          const close = function () { wrap.remove(); };
+          const close = registerOverlay(wrap, function () {
+
+            wrap.remove();
+
+          });
 
           if (closeButton) {
 
@@ -1102,11 +1328,47 @@
 
       document.body.appendChild(wrap);
 
-      closeButton.addEventListener("click", function () { wrap.remove(); });
+      const close = registerOverlay(wrap, function () {
+
+        try {
+
+          if (typeof media.pause === "function") {
+
+            media.pause();
+
+          }
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+        try {
+
+          media.removeAttribute("src");
+
+          if (typeof media.load === "function") {
+
+            media.load();
+
+          }
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+        wrap.remove();
+
+      });
+
+      closeButton.addEventListener("click", close);
 
       wrap.addEventListener("click", function (event) {
 
-        if (event.target === wrap) { wrap.remove(); }
+        if (event.target === wrap) { close(); }
 
       });
 
@@ -1236,17 +1498,77 @@
 
 
 
+  function ensureModalMessage() {
+
+    if (modalMessage && modalMessage.isConnected) {
+
+      return modalMessage;
+
+    }
+
+
+
+    if (!modalDialog) {
+
+      return null;
+
+    }
+
+
+
+    const existing = modalDialog.querySelector(".ow-message");
+
+    if (existing) {
+
+      modalMessage = existing;
+
+      return modalMessage;
+
+    }
+
+
+
+    const node = document.createElement("div");
+
+    node.className = "ow-message";
+
+    node.hidden = true;
+
+
+
+    const actions = modalDialog.querySelector(".ow-actions");
+
+    if (actions && actions.parentNode === modalDialog) {
+
+      modalDialog.insertBefore(node, actions);
+
+    } else {
+
+      modalDialog.appendChild(node);
+
+    }
+
+    modalMessage = node;
+
+    return modalMessage;
+
+  }
+
+
+
   function showMessage(text) {
 
-    if (!modalMessage) {
+    const node = ensureModalMessage();
+
+    if (!node) {
 
       return;
 
     }
 
-    modalMessage.textContent = text;
+    node.textContent = text;
 
-    modalMessage.hidden = false;
+    node.hidden = false;
 
   }
 
@@ -1254,7 +1576,7 @@
 
   function hideMessage() {
 
-    if (modalMessage) {
+    if (modalMessage && modalMessage.isConnected) {
 
       modalMessage.hidden = true;
 
@@ -1282,19 +1604,19 @@
 
       case "open-local":
 
-      case "local":
+      case "local": {
 
-        return openInBrowser(context).then(function (done) {
+        const opened = openLocal(context.href, context.type);
 
-          if (done && !fromPreference) {
+        if (opened && !fromPreference) {
 
-            closeModal();
+          closeModal();
 
-          }
+        }
 
-          return done;
+        return Promise.resolve(Boolean(opened));
 
-        });
+      }
 
       case "browser-picker":
 
