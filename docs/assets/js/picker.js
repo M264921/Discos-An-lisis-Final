@@ -1317,19 +1317,25 @@
 
       case "open-local":
 
-      case "local":
+      case "local": {
 
-        return openInBrowser(context).then(function (done) {
+        const done = openLocal(context.href, context.type);
 
-          if (done && !fromPreference) {
+        if (!fromPreference && done) {
 
-            closeModal();
+          hideModal();
 
-          }
+        }
 
-          return done;
+        if (!done) {
 
-        });
+          showMessage('No se pudo abrir en el navegador local.');
+
+        }
+
+        return Promise.resolve(done);
+
+      }
 
       case "browser-picker":
 
