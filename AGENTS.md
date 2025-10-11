@@ -38,6 +38,9 @@ Mantén los scripts idempotentes y sin rutas absolutas codificadas.
 - Botón AirPlay en la cabecera sólo aparece en Safari cuando detecta destinos (`WebKitPlaybackTargetAvailabilityEvent`).
 - Selector global incluye opciones DLNA que llegan por `/devices` (HTTP o WebSocket) desde `tools/dlna-helper`.
 - El helper DLNA expone `/play` (HTTP) y espera `controlURL`, `mediaUrl`, `position` en el payload.
+- `docs/assets/js/mingomedia-config.js` controla la puerta de acceso (`access.*`) y el almacenamiento de vistas por usuario (`view.*`).
+- El store global `window.mingoInventory` expone `getState()`, `on(evento, handler)`, `setFilter()` y helpers similares; úsalo para integraciones o automatizaciones.
+- El orden y ancho de columnas, filas ocultas, alturas personalizadas y la selección se persisten en `localStorage` con prefijo `view.storagePrefix` + usuario normalizado.
 - Los overlays (`texto`, `audio`, `video`) pueden cerrarse con botón o clic fuera.
 - `data-no-intercept` en cualquier contenedor evita que el listener global abra el modal.
 
@@ -72,6 +75,7 @@ Mantén los scripts idempotentes y sin rutas absolutas codificadas.
 - Duplica `inventory.config.sample.json` a `inventory.config.json` para ajustar `publicBaseUrl`, `listenerPrefixes` y `driveMappings`.
 - El helper DLNA es opcional: si no se pasa `dlnaHelper/dlnaApi`, el UI oculta la acción.
 - Mantén el repo limpio: nada de rutas absolutas, sin efectos fuera de `RepoRoot`, logs en `logs/`.
+- Para cambiar el formulario de acceso o las listas permitidas edita `docs/assets/js/mingomedia-config.js`; no hardcodees credenciales en otros archivos.
 
 ---
 
