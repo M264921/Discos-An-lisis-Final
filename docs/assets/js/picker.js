@@ -168,6 +168,30 @@
 
   };
 
+  let activeOverlay = null;
+
+  function setActiveOverlay(node) {
+    if (activeOverlay && activeOverlay !== node) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    activeOverlay = node;
+  }
+
+  function closeActiveOverlay() {
+    if (activeOverlay) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+      activeOverlay = null;
+    }
+  }
+
 
 
   const overlayStack = [];
@@ -1073,8 +1097,7 @@
 
 
           document.body.appendChild(wrap);
-
-
+          setActiveOverlay(wrap);
 
           const closeButton = wrap.querySelector("#owTxtClose");
 
@@ -1082,11 +1105,7 @@
 
 
 
-          const close = registerOverlay(wrap, function () {
-
-            wrap.remove();
-
-          });
+          const close = function () { closeActiveOverlay(); };
 
           if (closeButton) {
 
@@ -1096,7 +1115,7 @@
 
           wrap.addEventListener("click", function (event) {
 
-            if (event.target === wrap) { close(); }
+            if (event.target === wrap) { closeActiveOverlay(); }
 
           });
 
@@ -1186,47 +1205,19 @@
 
       document.body.appendChild(wrap);
 
-      const close = registerOverlay(wrap, function () {
+      setActiveOverlay(wrap);
 
-        try {
+      const dismiss = function () {
 
-          if (typeof media.pause === "function") {
+        closeActiveOverlay();
 
-            media.pause();
+      };
 
-          }
-
-        } catch (_) {
-
-          /* ignore */
-
-        }
-
-        try {
-
-          media.removeAttribute("src");
-
-          if (typeof media.load === "function") {
-
-            media.load();
-
-          }
-
-        } catch (_) {
-
-          /* ignore */
-
-        }
-
-        wrap.remove();
-
-      });
-
-      closeButton.addEventListener("click", close);
+      closeButton.addEventListener("click", dismiss);
 
       wrap.addEventListener("click", function (event) {
 
-        if (event.target === wrap) { close(); }
+        if (event.target === wrap) { dismiss(); }
 
       });
 
@@ -1404,15 +1395,21 @@
 
       case "local": {
 
-        const opened = openLocal(context.href, context.type);
+        const done = openLocal(context.href, context.type);
 
-        if (opened && !fromPreference) {
+        if (!fromPreference && done) {
 
-          closeModal();
+          hideModal();
 
         }
 
-        return Promise.resolve(Boolean(opened));
+        if (!done) {
+
+          showMessage('No se pudo abrir en el navegador local.');
+
+        }
+
+        return Promise.resolve(done);
 
       }
 
