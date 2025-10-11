@@ -59,7 +59,43 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 .pagination button:hover:not(:disabled){border-color:#2563eb;color:#2563eb}
 .pagination button:disabled{opacity:.45;cursor:not-allowed}
 .pagination .info{font-size:13px;color:#475569}
-</style></head><body>
+</style><link rel="stylesheet" href="./assets/css/picker.css"/></head><body>
+<header class="site-header">
+  <div class="brand">Montana</div>
+  <div class="player-picker">
+    <label for="globalPlayerSelect">Reproductor:</label>
+    <select id="globalPlayerSelect">
+      <option value="auto">Auto (segun archivo)</option>
+      <option value="local">Este navegador</option>
+      <option value="browser-picker">Chromecast / AirPlay</option>
+    </select>
+    <button id="airplayBtn" type="button" hidden>AirPlay</button>
+  </div>
+</header>
+<div id="openWithModal" class="ow-modal" hidden>
+  <div class="ow-dialog" role="dialog" aria-modal="true">
+    <button type="button" class="ow-close" aria-label="Cerrar">&times;</button>
+    <h3 id="owDialogTitle">Abrir con</h3>
+    <p id="owFileName"></p>
+    <div id="owMessage" class="ow-message" hidden></div>
+    <div class="ow-actions">
+      <button type="button" data-action="open-local">Este navegador</button>
+      <button type="button" data-action="browser-picker">Chromecast / AirPlay</button>
+      <button type="button" data-action="dlna" hidden>DLNA de la red</button>
+      <button type="button" data-action="new-tab">Nueva pestaña</button>
+      <button type="button" data-action="download">Descargar</button>
+    </div>
+  </div>
+</div>
+<div id="localViewer" class="ow-preview" hidden>
+  <div class="ow-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="owViewerTitle">
+    <div class="ow-preview-header">
+      <h3 id="owViewerTitle">Vista previa</h3>
+      <button type="button" class="ow-preview-close" aria-label="Cerrar vista previa">&times;</button>
+    </div>
+    <div class="ow-preview-body" id="owPreviewBody"></div>
+  </div>
+</div>
 <main>
 <h1>Inventario interactivo</h1>
 <div id="err"></div>
@@ -546,4 +582,4 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
   }
 
 })();
-</script></main></body></html>
+</script></main><script defer src="./assets/js/picker.js"></script></body></html>

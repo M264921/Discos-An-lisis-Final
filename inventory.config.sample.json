@@ -1,0 +1,11 @@
+{
+  "publicBaseUrl": "http://inventario.local:8765",
+  "listenerPrefixes": [
+    "http://+:8765/"
+  ],
+  "driveMappings": {
+    "C": "C:\\",
+    "D": "D:\\",
+    "J": "J:\\"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "dlna-helper",
+  "version": "0.1.0",
+  "description": "Local helper bridge to expose DLNA/UPnP renderers to the inventory viewer.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}
