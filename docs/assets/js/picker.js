@@ -194,6 +194,10 @@
 
 
 
+  const overlayStack = [];
+
+
+
   initialisePreference();
 
   wireUi();
@@ -204,7 +208,59 @@
 
   setupDlnaWebSocket();
 
+  function registerOverlay(element, onClose) {
 
+    if (!element) {
+
+      return function () {
+
+        /* noop */
+
+      };
+
+    }
+
+    let closed = false;
+
+    function closeOverlay() {
+
+      if (closed) {
+
+        return;
+
+      }
+
+      closed = true;
+
+      const index = overlayStack.indexOf(closeOverlay);
+
+      if (index >= 0) {
+
+        overlayStack.splice(index, 1);
+
+      }
+
+      if (typeof onClose === "function") {
+
+        try {
+
+          onClose();
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+      }
+
+    }
+
+    overlayStack.push(closeOverlay);
+
+    return closeOverlay;
+
+  }
 
   function initialisePreference() {
 
@@ -346,9 +402,15 @@
 
           closePreview();
 
-        } else if (activeOverlay) {
+        } else if (overlayStack.length > 0) {
 
-          closeActiveOverlay();
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
 
         }
 
@@ -402,9 +464,17 @@
 
             case "open-local":
 
-              openLocal(state.currentHref, state.currentType);
+              const openedLocally = openLocal(state.currentHref, state.currentType);
 
-              hideModal();
+              if (openedLocally) {
+
+                hideModal();
+
+              } else {
+
+                showMessage("No se pudo abrir en este navegador.");
+
+              }
 
               return;
 
@@ -921,6 +991,12 @@
     const abs = new URL(href, location.href).href;
 
     const effectiveType = type || typeOf(abs);
+
+    if (!preview.hidden) {
+
+      closePreview();
+
+    }
 
     if (effectiveType === "image") {
 
