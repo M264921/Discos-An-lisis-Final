@@ -170,6 +170,10 @@
 
 
 
+  const overlayStack = [];
+
+
+
   initialisePreference();
 
   wireUi();
@@ -180,7 +184,59 @@
 
   setupDlnaWebSocket();
 
+  function registerOverlay(element, onClose) {
 
+    if (!element) {
+
+      return function () {
+
+        /* noop */
+
+      };
+
+    }
+
+    let closed = false;
+
+    function closeOverlay() {
+
+      if (closed) {
+
+        return;
+
+      }
+
+      closed = true;
+
+      const index = overlayStack.indexOf(closeOverlay);
+
+      if (index >= 0) {
+
+        overlayStack.splice(index, 1);
+
+      }
+
+      if (typeof onClose === "function") {
+
+        try {
+
+          onClose();
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+      }
+
+    }
+
+    overlayStack.push(closeOverlay);
+
+    return closeOverlay;
+
+  }
 
   function initialisePreference() {
 
@@ -322,6 +378,16 @@
 
           closePreview();
 
+        } else if (overlayStack.length > 0) {
+
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
+
         }
 
       }
@@ -374,9 +440,17 @@
 
             case "open-local":
 
-              openLocal(state.currentHref, state.currentType);
+              const openedLocally = openLocal(state.currentHref, state.currentType);
 
-              hideModal();
+              if (openedLocally) {
+
+                hideModal();
+
+              } else {
+
+                showMessage("No se pudo abrir en este navegador.");
+
+              }
 
               return;
 
@@ -894,6 +968,12 @@
 
     const effectiveType = type || typeOf(abs);
 
+    if (!preview.hidden) {
+
+      closePreview();
+
+    }
+
     if (effectiveType === "image") {
 
       window.open(abs, "_blank", "noopener");
@@ -1002,7 +1082,11 @@
 
 
 
-          const close = function () { wrap.remove(); };
+          const close = registerOverlay(wrap, function () {
+
+            wrap.remove();
+
+          });
 
           if (closeButton) {
 
@@ -1102,11 +1186,47 @@
 
       document.body.appendChild(wrap);
 
-      closeButton.addEventListener("click", function () { wrap.remove(); });
+      const close = registerOverlay(wrap, function () {
+
+        try {
+
+          if (typeof media.pause === "function") {
+
+            media.pause();
+
+          }
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+        try {
+
+          media.removeAttribute("src");
+
+          if (typeof media.load === "function") {
+
+            media.load();
+
+          }
+
+        } catch (_) {
+
+          /* ignore */
+
+        }
+
+        wrap.remove();
+
+      });
+
+      closeButton.addEventListener("click", close);
 
       wrap.addEventListener("click", function (event) {
 
-        if (event.target === wrap) { wrap.remove(); }
+        if (event.target === wrap) { close(); }
 
       });
 
@@ -1282,19 +1402,19 @@
 
       case "open-local":
 
-      case "local":
+      case "local": {
 
-        return openInBrowser(context).then(function (done) {
+        const opened = openLocal(context.href, context.type);
 
-          if (done && !fromPreference) {
+        if (opened && !fromPreference) {
 
-            closeModal();
+          closeModal();
 
-          }
+        }
 
-          return done;
+        return Promise.resolve(Boolean(opened));
 
-        });
+      }
 
       case "browser-picker":
 
