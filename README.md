@@ -55,6 +55,9 @@ Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromec
 - **Visor universal** (modal "Abrir con"):
   - Navegador local, Chromecast/AirPlay, DLNA, nueva pestaña y descarga directa.
   - Preferencia global guardada en `localStorage`.
+- **Acceso configurable**:
+  - `docs/assets/js/mingomedia-config.js` permite exigir correo y PIN antes de cargar el inventario.
+  - Sesiones opcionales en `localStorage` para no repetir el formulario.
 - **Visores integrados**:
   - Imagen / PDF / HTML → pestaña nueva u overlay según tipo.
   - Texto → overlay con `<pre>` + botón de descarga.
@@ -68,7 +71,39 @@ Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromec
 - **Tabla**:
   - Columnas arrastrables con ancho ajustable y filtros por columna.
   - Descarga CSV del resultado filtrado y paginación configurable.
+  - Selección con casillas por fila (persistente por usuario) y contador en la barra.
   - `Ctrl/Cmd + clic` y botón medio mantienen el comportamiento nativo (sin modal).
+
+### Configuración de acceso y preferencias
+
+`docs/assets/js/mingomedia-config.js` expone dos secciones:
+
+```js
+window.MingoMediaConfig = {
+  access: {
+    enabled: true,
+    requireEmail: true,
+    requirePin: true,
+    pin: "1234",             // PIN global opcional
+    allowedEmails: ["admin@mingomedia.local"],
+    allowedDomains: ["familia.local"],
+    users: [{ email: "ana@familia.local", pin: "7777" }],
+    rememberSession: true,
+    version: "2025-10-10"
+  },
+  view: {
+    storagePrefix: "mingomedia.inventory.view",
+    defaultUser: "public"
+  }
+};
+```
+
+- **`access`** controla la puerta de entrada (correo obligatorio, PIN global o por usuario y lista blanca de dominios/correos).
+- **`view`** define la clave base usada en `localStorage` para guardar el orden de columnas, anchos, filas ocultas, alturas y selección.
+- Los datos de vista se aíslan por usuario: el correo validado se normaliza y se usa como sufijo (`<prefijo>:<usuario>`).
+- El formulario respeta `rememberSession`; si es `false` se solicitarán credenciales en cada visita.
+
+El estado de la tabla y los filtros se exponen vía `window.mingoInventory`, un store con métodos como `getState()`, `on(evento, handler)` o `setFilter(columna, valor)`, útil para integraciones futuras.
 
 ---
 
