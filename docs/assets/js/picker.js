@@ -168,6 +168,30 @@
 
   };
 
+  let activeOverlay = null;
+
+  function setActiveOverlay(node) {
+    if (activeOverlay && activeOverlay !== node) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    activeOverlay = node;
+  }
+
+  function closeActiveOverlay() {
+    if (activeOverlay) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+      activeOverlay = null;
+    }
+  }
+
 
 
   initialisePreference();
@@ -321,6 +345,10 @@
         } else if (!preview.hidden) {
 
           closePreview();
+
+        } else if (activeOverlay) {
+
+          closeActiveOverlay();
 
         }
 
@@ -993,8 +1021,7 @@
 
 
           document.body.appendChild(wrap);
-
-
+          setActiveOverlay(wrap);
 
           const closeButton = wrap.querySelector("#owTxtClose");
 
@@ -1002,7 +1029,7 @@
 
 
 
-          const close = function () { wrap.remove(); };
+          const close = function () { closeActiveOverlay(); };
 
           if (closeButton) {
 
@@ -1012,7 +1039,7 @@
 
           wrap.addEventListener("click", function (event) {
 
-            if (event.target === wrap) { close(); }
+            if (event.target === wrap) { closeActiveOverlay(); }
 
           });
 
@@ -1102,11 +1129,19 @@
 
       document.body.appendChild(wrap);
 
-      closeButton.addEventListener("click", function () { wrap.remove(); });
+      setActiveOverlay(wrap);
+
+      const dismiss = function () {
+
+        closeActiveOverlay();
+
+      };
+
+      closeButton.addEventListener("click", dismiss);
 
       wrap.addEventListener("click", function (event) {
 
-        if (event.target === wrap) { wrap.remove(); }
+        if (event.target === wrap) { dismiss(); }
 
       });
 
