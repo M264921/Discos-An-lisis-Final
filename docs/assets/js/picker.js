@@ -126,7 +126,7 @@
 
 
 
-  if (!globalSelect || !modal || !modalDialog || !owFileName || !preview || !previewBody) {
+  if (!globalSelect || !modal || !modalDialog || !owFileName) {
 
     return;
 
@@ -189,6 +189,10 @@
       activeOverlay = null;
     }
   }
+
+
+
+  const overlayStack = [];
 
 
 
@@ -400,9 +404,15 @@
 
           closeModal();
 
-        } else if (!preview.hidden) {
+        } else if (overlayStack.length > 0) {
 
-          closePreview();
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
 
         } else if (overlayStack.length > 0) {
 
@@ -530,26 +540,6 @@
 
 
 
-    if (previewClose) {
-
-      previewClose.addEventListener("click", closePreview);
-
-    }
-
-
-
-    preview.addEventListener("click", function (event) {
-
-      if (event.target === preview) {
-
-        closePreview();
-
-      }
-
-    });
-
-
-
     if (airplayBtn) {
 
       airplayBtn.addEventListener("click", function () {
@@ -610,7 +600,7 @@
 
 
 
-    if (anchor.closest(".ow-modal") || anchor.closest(".ow-preview")) {
+    if (anchor.closest(".ow-modal")) {
 
       return;
 
@@ -1589,6 +1579,77 @@
 
     if (!node) {
 
+      return modalMessage;
+
+    }
+
+    node.textContent = text;
+
+    node.hidden = false;
+
+  }
+
+
+
+
+    if (modalMessage && modalMessage.isConnected) {
+
+      return null;
+
+    }
+
+
+
+    const existing = modalDialog.querySelector(".ow-message");
+
+    if (existing) {
+
+      modalMessage = existing;
+
+      return modalMessage;
+
+    }
+
+
+
+    const node = document.createElement("div");
+
+    node.className = "ow-message";
+
+      case "local": {
+
+        const opened = openLocal(context.href, context.type);
+
+        if (opened && !fromPreference) {
+
+          closeModal();
+
+        }
+
+        return Promise.resolve(Boolean(opened));
+
+      }
+
+      case "browser-picker":
+
+      modalDialog.appendChild(node);
+
+    }
+
+    modalMessage = node;
+
+    return modalMessage;
+
+  }
+
+
+
+  function showMessage(text) {
+
+    const node = ensureModalMessage();
+
+    if (!node) {
+
       return;
 
     }
@@ -1700,234 +1761,6 @@
         return Promise.resolve(false);
 
     }
-
-  }
-
-
-
-  function openInBrowser(context) {
-
-    if (!preview) {
-
-      return Promise.resolve(false);
-
-    }
-
-    closeModal();
-
-    preview.hidden = false;
-
-    renderPreviewPlaceholder("Cargando vista previa...");
-
-
-
-    return new Promise(function (resolve) {
-
-      switch (context.type) {
-
-        case "image":
-
-          renderImage(context.href);
-
-          resolve(true);
-
-          break;
-
-        case "audio":
-
-          renderMedia("audio", context.href);
-
-          resolve(true);
-
-          break;
-
-        case "video":
-
-          renderMedia("video", context.href);
-
-          resolve(true);
-
-          break;
-
-        case "pdf":
-
-        case "html":
-
-          renderFrame(context.href);
-
-          resolve(true);
-
-          break;
-
-        case "text":
-
-          fetch(context.href, { credentials: "same-origin" })
-
-            .then(function (response) {
-
-              if (!response.ok) {
-
-                throw new Error("Respuesta invalida");
-
-              }
-
-              return response.text();
-
-            })
-
-            .then(function (content) {
-
-              renderText(content);
-
-              resolve(true);
-
-            })
-
-            .catch(function () {
-
-              renderPreviewPlaceholder("No se pudo cargar como texto. Se abrira en una pestana nueva.");
-
-              window.open(context.href, "_blank", "noopener");
-
-              resolve(false);
-
-            });
-
-          break;
-
-        default:
-
-          window.location.href = context.href;
-
-          resolve(true);
-
-      }
-
-    });
-
-  }
-
-
-
-  function renderPreviewPlaceholder(text) {
-
-    clearPreview();
-
-    const paragraph = document.createElement("p");
-
-    paragraph.textContent = text;
-
-    previewBody.appendChild(paragraph);
-
-  }
-
-
-
-  function renderImage(src) {
-
-    clearPreview();
-
-    const img = document.createElement("img");
-
-    img.src = src;
-
-    img.alt = "";
-
-    previewBody.appendChild(img);
-
-  }
-
-
-
-  function renderMedia(tag, src) {
-
-    clearPreview();
-
-    const media = document.createElement(tag);
-
-    media.controls = true;
-
-    media.src = src;
-
-    media.style.maxHeight = "70vh";
-
-    media.style.width = "100%";
-
-    media.playsInline = true;
-
-    previewBody.appendChild(media);
-
-  }
-
-
-
-  function renderFrame(src) {
-
-    clearPreview();
-
-    const frame = document.createElement("iframe");
-
-    frame.src = src;
-
-    frame.title = "Vista previa";
-
-    frame.loading = "lazy";
-
-    previewBody.appendChild(frame);
-
-  }
-
-
-
-  function renderText(content) {
-
-    clearPreview();
-
-    const pre = document.createElement("pre");
-
-    pre.textContent = content;
-
-    previewBody.appendChild(pre);
-
-  }
-
-
-
-  function clearPreview() {
-
-    while (previewBody.firstChild) {
-
-      const node = previewBody.firstChild;
-
-      if (node.tagName === "VIDEO" || node.tagName === "AUDIO") {
-
-        try {
-
-          node.pause();
-
-          node.removeAttribute("src");
-
-        } catch (_) {
-
-          /* ignore */
-
-        }
-
-      }
-
-      previewBody.removeChild(node);
-
-    }
-
-  }
-
-
-
-  function closePreview() {
-
-    clearPreview();
-
-    preview.hidden = true;
 
   }
 

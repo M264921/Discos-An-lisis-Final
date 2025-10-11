@@ -186,39 +186,32 @@ body.ow-no-scroll {
   font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
-  color: #64748b;
 }
 
-.ow-preview-close:hover {
-  color: #0f172a;
+.ow-x:hover {
+  background: #e5e7eb;
 }
 
-.ow-preview-body {
-  padding: 1rem;
-  overflow: auto;
-  background: #0f172a0d;
+.ow-message {
+  font-size: 0.82rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.75rem;
 }
 
-.ow-preview-body img,
-.ow-preview-body video,
-.ow-preview-body audio,
-.ow-preview-body iframe {
-  display: block;
-  margin: 0 auto;
-  max-width: 100%;
-  max-height: 70vh;
-  border-radius: 10px;
-  box-shadow: 0 24px 55px -40px rgba(15, 23, 42, 0.6);
+.ow-actions button:focus-visible,
+.player-picker select:focus-visible,
+.player-picker button:focus-visible,
+.ow-x:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
-.ow-preview-body pre {
-  background: #0f172a;
-  color: #f8fafc;
-  padding: 1rem;
-  border-radius: 10px;
-  overflow-x: auto;
-  max-height: 70vh;
-  font-size: 0.85rem;
+body.ow-no-scroll {
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
