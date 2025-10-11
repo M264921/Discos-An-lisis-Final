@@ -1,116 +1,99 @@
-# Discos-Analisis-Final
+# MingoMedia · Multimedia Mingorance
 
-Sistema de inventario interactivo y analisis multimedia multiunidad con deteccion de duplicados, hashes opcionales y publicacion en GitHub Pages.
-
----
-
-## Inicio rapido
-
-Escanea, calcula hashes (opcional) y actualiza el inventario con un unico comando:
-
-```pwsh
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
-```
-
-El asistente detecta las unidades disponibles, permite elegirlas y pregunta el filtro de contenido (`Media`, `Otros`, `Todo`) antes de iniciar el escaneo.
-Al finalizar la fusión y regeneración del inventario, el script lanza `tools\sync-to-github.ps1` para publicar en GitHub Pages de inmediato (commit + push + build). Usa `-SkipPublish` si quieres omitir el push automático.
-
-Se abrira un dialogo para elegir las unidades (por ejemplo `C:`, `D:`, `J:`) y, si lo deseas, activar el calculo de hash SHA256.
-
-### Flujo automatizado
-
-| Etapa                   | Descripcion                                                                 |
-| ----------------------- | --------------------------------------------------------------------------- |
-| Seleccion de unidades   | Popup que detecta discos y permite elegir cuales procesar                   |
-| Filtro de contenido     | Selector `Media` / `Otros` / `Todo` para limitar los tipos de archivo        |
-| Escaneo de archivos     | Recorre las carpetas aplicando el filtro y captura extension/tipo           |
-| Calculo de hash         | (Opcional) SHA256 para identificar duplicados y cambios                     |
-| Generacion de inventario| Exporta resultados a `docs/hash_data.csv` en lotes de 400 archivos          |
-| Inyeccion HTML          | Actualiza `docs/inventario_interactivo_offline.html` con los datos nuevos   |
-| Sincronizacion          | Ejecuta `tools/sync-to-github.ps1` -> pull con rebase seguro, commit y push |
-| Publicacion             | Abre el inventario actualizado en el navegador y refresca GitHub Pages      |
-
-### Casos de uso
-
-- Escaneo rapido sin hash:
-  ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "D,E" -ContentFilter Todo -OpenAfter
-  ```
-- Escaneo completo con hash:
-  ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1 -Drives "C,F" -ComputeHash -ContentFilter Media -OpenAfter -VerboseLog
-  ```
-- Solo regenerar la pagina (sin escanear de nuevo):
-  ```pwsh
-  pwsh -NoProfile -ExecutionPolicy Bypass -File tools\sync-to-github.ps1
-  ```
-
-### Inventario interactivo
-
-- Columnas arrastrables y con ancho ajustable; usa `Reiniciar columnas` para volver a la configuracion por defecto.
-- Iconos de tipo (`📷`, `🎬`, `🎧`, `📄`) segun la categoria detectada o la extension.
-- Selector de paginacion (25, 50, 100, 250, Todo) y contador de rango visible.
-- Boton `Descargar CSV` exporta los resultados filtrados respetando el orden de columnas.
-- Clic en `Nombre` abre el archivo local (`file:///...`) y clic en `Ruta` abre la carpeta de Windows Explorer.
+Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromecast/AirPlay y publicación directa en GitHub Pages.
 
 ---
 
-## Estructura del repositorio
+## Panorama general
 
-- `docs/`
-  - `inventario_interactivo_offline.html` (inventario visual)
-  - `hash_data.csv` (datos de archivos escaneados)
-  - `assets/` (CSS y JS del inventario)
-- `tools/`
-  - `scan-drives-interactive.ps1` (script principal)
-  - `inventory-inject-from-csv.ps1` (inyector CSV -> HTML)
-  - `sync-to-github.ps1` (commit + push + rebuild Pages)
-  - `agents/` (herramientas auxiliares)
-- `AGENTS.md` (guia operativa extendida)
-
-### Archivos clave
-
-| Archivo                               | Rol principal                       |
-| ------------------------------------- | ----------------------------------- |
-| `tools/scan-drives-interactive.ps1`   | Escaneo y orquestacion completa    |
-| `tools/inventory-inject-from-csv.ps1` | Inserta datos CSV en el HTML       |
-| `tools/sync-to-github.ps1`            | Sube los cambios y fuerza rebuild  |
-| `docs/hash_data.csv`                  | Datos de inventario                 |
-| `docs/inventario_interactivo_offline.html` | Vista interactiva final          |
-| `AGENTS.md`                           | Documentacion tecnica avanzada      |
+| Recurso | Descripción |
+| --- | --- |
+| `docs/` | Sitio estático servido por Pages (HTML, CSS, JS y datos). |
+| `tools/` | Scripts PowerShell para escaneo, generación de datos y empaquetado. |
+| `tools/dlna-helper/` | Helper opcional (Node.js) para descubrir renderers DLNA y exponer `/play`. |
+| `inventory.config.sample.json` | Plantilla de configuración para `inventory-fileserver.ps1`. |
 
 ---
 
-## Distribucion
+## Flujo habitual
 
-1. **Paquete base (`dist/`)**  
+1. **Escaneo interactivo**
    ```pwsh
-   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\build-dist.ps1
-   ```  
-   Genera `dist\latest\` con `tools\`, `docs\` y `logs\` minimos (o `dist\yyyyMMdd-HHmmss\` con `-Timestamp`).
+   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
+   ```
+   - Detecta unidades y permite elegirlas.
+   - Opcionalmente calcula SHA256 por lote.
+   - Genera `docs/hash_data.csv` y actualiza el HTML.
+   - Puede lanzar `tools/sync-to-github.ps1` para publicar en Pages.
 
-2. **Ejecutable Windows listo para compartir**  
+2. **Sincronizar sin escanear**
    ```pwsh
-   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\make-inventory-package.ps1
-   ```  
-   Este script orquesta `build-dist`, crea un lanzador `InventoryCleaner.ps1` y lo compila a `InventoryCleaner.exe` con PS2EXE.  
-   Los artefactos resultantes se copian a:
-   - `dist\latest\InventoryCleaner.exe` (ejecutable standalone, requiere PowerShell 7 instalado en el equipo destino).  
-   - `releases\InventoryCleaner.exe` y `releases\InventoryCleaner-package.zip` (lista para adjuntar en GitHub Releases).
+   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\sync-to-github.ps1
+   ```
+   Reinyecta los datos existentes y realiza commit + push.
 
-3. **Uso en otro equipo**  
-   - Descomprime `InventoryCleaner-package.zip` o copia la carpeta `dist\latest`.  
-   - Ejecuta `InventoryCleaner.exe` (opcional: `InventoryCleaner.exe -SweepMode DryRun` para validar sin aplicar).  
-   - El ejecutable invoca internamente `tools\agents\inventory-cleaner.ps1` manteniendo la estructura del paquete.
+3. **Servir archivos en LAN** (opcional)
+   ```pwsh
+   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\inventory-fileserver.ps1
+   ```
+   - Configura `inventory.config.json` con `publicBaseUrl`, `driveMappings` y `listenerPrefixes`.
+   - Los enlaces de la columna **Nombre** pasan a usar `http://host/files/<unidad>/...` cuando el servidor responde.
 
-> **Notas**: PS2EXE se instala automáticamente la primera vez. Si prefieres producir un instalador MSI/MSIX, reutiliza la carpeta `dist\latest` como payload.
+4. **Helper DLNA** (opcional)
+   ```bash
+   cd tools/dlna-helper
+   npm install
+   node server.js
+   ```
+   Publica `/devices` y `/play` (HTTP + WS) para poblar el selector DLNA del UI.
 
 ---
 
-## Concepto
+## Inventario interactivo (Pages)
 
-El sistema combina automatizacion PowerShell con GitHub Pages para ofrecer una vista web interactiva de los archivos multimedia de multiples unidades, identificando duplicados, rutas, tamanos y tipos en tiempo real.
+- **Identidad**: el sitio se muestra como **MingoMedia** tanto en Pages como offline.
+- **Visor universal** (modal "Abrir con"):
+  - Navegador local, Chromecast/AirPlay, DLNA, nueva pestaña y descarga directa.
+  - Preferencia global guardada en `localStorage`.
+- **Visores integrados**:
+  - Imagen / PDF / HTML → pestaña nueva u overlay según tipo.
+  - Texto → overlay con `<pre>` + botón de descarga.
+  - Audio / vídeo → overlay ligero con `<audio>/<video>`.
+- **Cast**:
+  - Chromecast/AirPlay usa Remote Playback API; se oculta en navegadores sin soporte.
+  - Botón AirPlay visible sólo en Safari cuando hay destinos.
+- **DLNA**:
+  - Actívalo pasando `?dlnaHelper=ws://host:8787&dlnaApi=http://host:8787` o definiendo defaults en el UI.
+  - La acción DLNA dispara `POST /play` contra el helper opcional.
+- **Tabla**:
+  - Columnas arrastrables con ancho ajustable y filtros por columna.
+  - Descarga CSV del resultado filtrado y paginación configurable.
+  - `Ctrl/Cmd + clic` y botón medio mantienen el comportamiento nativo (sin modal).
 
-## Autor
+---
 
-Desarrollado por **Antonio Duran Mingorance**. Inspirado en la idea de un inventario multimedia universal, multiplataforma y autosincronizado.
+## Scripts principales
+
+| Script | Propósito |
+| --- | --- |
+| `tools/scan-drives-interactive.ps1` | Orquestador: escaneo, hash opcional, merge y regeneración de HTML. |
+| `tools/build-hash-data.ps1` | Reprocesa `index_by_hash.csv` a `docs/hash_data.csv`. |
+| `tools/inventory-fileserver.ps1` | Servidor HTTP para exponer archivos en LAN. |
+| `tools/make-inventory-package.ps1` | Construye paquete distribuible + `InventoryCleaner.exe`. |
+| `tools/dlna-helper/server.js` | Mini servicio DLNA (Node.js + HTTP/WS). |
+
+---
+
+## Tips operativos
+
+1. Tras tocar la tubería, ejecuta el cleaner y revisa los logs de PowerShell.
+2. Usa `tools/normalize-inventory-html.ps1` como smoke test del HTML.
+3. Revisa `docs/hash_data.csv` cuando modifiques hashing o duplicados.
+4. Antes de publicar un release, genera el paquete (`tools/make-inventory-package.ps1`) y prueba `InventoryCleaner.exe -SweepMode DryRun`.
+5. Mantén `docs/` sólo a través de scripts; evita ediciones manuales en Pages.
+
+---
+
+## Licencia y contacto
+
+Proyecto mantenido por **Antonio Durán Mingorance**. Preguntas y sugerencias vía issues o contacto directo.

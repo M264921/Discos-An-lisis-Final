@@ -1,58 +1,84 @@
 # Agent Playbook
 
-Guia operativa para mantener el flujo autonomo de inventario multimedia.
+Guía operativa para mantener el flujo autónomo del inventario **MingoMedia**.
 
 ---
 
 ## Arquitectura del repositorio
 
-| Zona   | Contenido                                                                                         | Notas                                                                                       |
-| ------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Raiz   | CSV y reportes generados (`index_by_hash.csv`, `inventory_by_folder.csv`) y orquestadores clave.  | Los artefactos se regeneran desde scripts; evita edits manuales.                            |
-| `tools/` | Automatizaciones reutilizables. Los entry points viven en `tools/agents/`; los modulos auxiliares (`build-hash-data.ps1`, `inventory-inject-from-csv.ps1`, `normalize-inventory-html.ps1`) implementan pasos individuales. |                                                                                             |
-| `docs/`  | Salida publica (`docs/hash_data.csv`, `docs/inventario_interactivo_offline.html`, tableros de duplicados). | Tratalos como read-only y usa scripts para actualizarlos.                                   |
+| Zona | Contenido | Notas |
+| --- | --- | --- |
+| Raíz | CSV y reportes (`index_by_hash.csv`, `inventory_by_folder.csv`) + scripts maestros. | Los artefactos se regeneran; evita ediciones manuales. |
+| `tools/` | Automatizaciones reutilizables: escaneo, inyección HTML, empaquetado, helper DLNA. | Los entry points viven en `tools/agents/`. |
+| `docs/` | Sitio público (HTML/JS/CSS, datos de hash y duplicados). | Trátalo como read-only; actualiza vía scripts. |
 
 ---
 
 ## Comandos esenciales
 
-| Objetivo                                | Comando                                                                                           |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Pipeline completo (hash -> HTML -> sanitizado) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/agents/inventory-cleaner.ps1 -RepoRoot . -SweepMode None` |
-| Refrescar solo `docs/hash_data.csv`     | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
-| Regenerar analitica de duplicados       | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
-| Escaneo guiado (con filtro)             | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -ContentFilter Media` |
-| Escaneo (sin publicar)                  | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -SkipPublish` |
-| Generar paquete + `.exe`                | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/make-inventory-package.ps1` |
+| Objetivo | Comando |
+| --- | --- |
+| Pipeline completo (hash → HTML → sanitize) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/agents/inventory-cleaner.ps1 -RepoRoot . -SweepMode None` |
+| Refrescar sólo `docs/hash_data.csv` | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
+| Regenerar analítica de duplicados | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
+| Escaneo guiado (con filtro) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -ContentFilter Media` |
+| Escaneo sin publicar | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -SkipPublish` |
+| Servir archivos vía HTTP (LAN) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/inventory-fileserver.ps1` |
+| Helper DLNA opcional | `cd tools/dlna-helper && npm install && node server.js` |
+| Generar paquete + `.exe` | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/make-inventory-package.ps1` |
 
-Manten los scripts idempotentes y sin rutas absolutas codificadas.
+Mantén los scripts idempotentes y sin rutas absolutas codificadas.
+
+---
+
+## Inventario MingoMedia
+
+- El HTML publica el modal **Abrir con** con soporte para navegador local, Chromecast/AirPlay, DLNA, nueva pestaña y descarga.
+- Preferencias de reproducción guardadas en `localStorage` (`auto`, `local`, `browser-picker`, `dlna:*`).
+- Botón AirPlay en la cabecera sólo aparece en Safari cuando detecta destinos (`WebKitPlaybackTargetAvailabilityEvent`).
+- Selector global incluye opciones DLNA que llegan por `/devices` (HTTP o WebSocket) desde `tools/dlna-helper`.
+- El helper DLNA expone `/play` (HTTP) y espera `controlURL`, `mediaUrl`, `position` en el payload.
+- Los overlays (`texto`, `audio`, `video`) pueden cerrarse con botón o clic fuera.
+- `data-no-intercept` en cualquier contenedor evita que el listener global abra el modal.
 
 ---
 
 ## Estilo y convenciones
 
-- **PowerShell**: Sangria de 2 espacios, comandos `Verbo-Nombre`, comillas simples para literales, ASCII puro.
-- **Python**: Sangria de 4 espacios, `snake_case`, sin dependencias externas.
-- **HTML/CSV generados**: nunca se editan a mano; actualiza usando los scripts correspondientes.
+- **PowerShell**: sangría 2 espacios, comandos `Verbo-Nombre`, ASCII puro.
+- **Python**: PE8, 4 espacios, sin dependencias externas.
+- **HTML/CSV generados**: nunca se editan a mano; usa los scripts.
+- **JS del picker**: evita dependencias externas; mantener funciones puras y proteger contra falta de APIs (`Remote Playback`, `fetch`).
 
 ---
 
 ## Verificaciones recomendadas
 
-1. Tras modificar la tuberia, ejecuta el cleaner y revisa el log para confirmar recuentos y el resumen H/I/J en el HTML generado.
-2. Cambios de normalizacion -> `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html` como smoke test.
-3. Ajustes de hash o duplicados -> inspecciona `docs/hash_data.csv` y verifica columnas `FullName`, `Hash`, `Length`, `Extension`, `Tipo`.
-4. Diferencias de visualizacion -> abre el HTML regenerado y valida iconos de tipo, enlaces locales, selector de pagina y exportacion CSV.
-5. Antes de publicar un release -> ejecuta `tools\make-inventory-package.ps1`, prueba `InventoryCleaner.exe` con `-SweepMode DryRun` y comprueba que `releases/InventoryCleaner-package.zip` contiene `tools/`, `docs/` y README.
+1. Tras modificar la tubería, ejecuta el cleaner y revisa logs + resumen H/I/J del HTML.
+2. Cambios de normalización → `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html`.
+3. Ajustes de hash o duplicados → inspecciona `docs/hash_data.csv` (`FullName`, `Hash`, `Length`, `Extension`, `Tipo`).
+4. Diferencias de visualización → abre el HTML generado, revisa el modal, overlays y la botonera de cast.
+5. Releases → `tools/make-inventory-package.ps1`, prueba `InventoryCleaner.exe -SweepMode DryRun`, valida `releases/InventoryCleaner-package.zip`.
+6. Servidor HTTP → con `inventory-fileserver.ps1` arriba, prueba `http://<host>:<puerto>/healthz` y descarga de archivos desde otra máquina.
 
 ---
 
 ## Notas operativas
 
-- `docs/hash_data.csv` contiene rutas absolutas y tamanos: compartelo solo con colaboradores de confianza.
-- Los sanitizadores bloquean protocolos externos (acestream, http); amplia la blocklist si aparecen nuevos protocolos en lugar de deshabilitarla.
-- El merge de scans conserva por defecto la ultima ruta vista por SHA/tamano; revisa `tools/merge-scans.ps1 -KeepDuplicates` si necesitas diagnosticar historicos.
-- `releases/` almacena los artefactos listos para GitHub Releases (exe + zip). Regenera tras cada cambio relevante ejecutando `tools/make-inventory-package.ps1`.
-- `tools/scan-drives-interactive.ps1` publica automaticamente los cambios en GitHub Pages al terminar. Usa `-SkipPublish` si necesitas revisar el diff antes del push.
-- Manten bajo control el repositorio: sin rutas absolutas, sin side-effects fuera de `RepoRoot`, y logs siempre en `logs/`.
+- `docs/hash_data.csv` contiene rutas absolutas y tamaños: compártelo sólo con colaboradores de confianza.
+- Los sanitizadores del HTML bloquean protocolos externos; amplía la blocklist en lugar de deshabilitarla.
+- El merge de scans conserva la última ruta por hash/tamaño; usa `tools/merge-scans.ps1 -KeepDuplicates` para auditorías.
+- `tools/scan-drives-interactive.ps1` publica automáticamente (commit + push). Usa `-SkipPublish` para revisar el diff antes.
+- Duplica `inventory.config.sample.json` a `inventory.config.json` para ajustar `publicBaseUrl`, `listenerPrefixes` y `driveMappings`.
+- El helper DLNA es opcional: si no se pasa `dlnaHelper/dlnaApi`, el UI oculta la acción.
+- Mantén el repo limpio: nada de rutas absolutas, sin efectos fuera de `RepoRoot`, logs en `logs/`.
 
+---
+
+## Roadmap sugerido
+
+1. Autenticación básica + preferencias de vista (PIN/código y `localStorage`).
+2. Controles tipo spreadsheet (selección múltiple, ocultar/mostrar columnas/filas, almacenamiento de orden).
+3. Lista de reproducción para múltiples archivos seleccionados.
+
+Trabaja cada fase en ramas separadas a partir de `main`.
