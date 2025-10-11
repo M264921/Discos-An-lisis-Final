@@ -65,25 +65,29 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
   <div class="player-picker">
     <label for="globalPlayerSelect">Reproductor:</label>
     <select id="globalPlayerSelect">
-      <option value="auto">Auto (segun archivo)</option>
+      <option value="auto" selected>Auto (según archivo)</option>
+      <option value="choose">Elegir cada vez…</option>
       <option value="local">Este navegador</option>
-      <option value="browser-picker">Chromecast / AirPlay</option>
+      <option value="browser-picker">Chromecast / AirPlay…</option>
+      <!-- DLNA dinámicos aquí -->
     </select>
-    <button id="airplayBtn" type="button" hidden>AirPlay</button>
+    <button id="airplayBtn" hidden>AirPlay</button>
   </div>
 </header>
-<div id="openWithModal" class="ow-modal" hidden>
-  <div class="ow-dialog" role="dialog" aria-modal="true">
-    <button type="button" class="ow-close" aria-label="Cerrar">&times;</button>
-    <h3 id="owDialogTitle">Abrir con</h3>
-    <p id="owFileName"></p>
-    <div id="owMessage" class="ow-message" hidden></div>
+
+<!-- Modal “Abrir con…” -->
+<div id="openWithModal" class="ow-modal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="ow-backdrop" data-ow-close></div>
+  <div class="ow-dialog" role="document">
+    <button class="ow-x" type="button" aria-label="Cerrar" data-ow-close>✕</button>
+    <h3 class="ow-title" id="owDialogTitle">Abrir con…</h3>
+    <p id="owFileName" class="ow-filename"></p>
     <div class="ow-actions">
-      <button type="button" data-action="open-local">Este navegador</button>
-      <button type="button" data-action="browser-picker">Chromecast / AirPlay</button>
-      <button type="button" data-action="dlna" hidden>DLNA de la red</button>
-      <button type="button" data-action="new-tab">Nueva pestaña</button>
-      <button type="button" data-action="download">Descargar</button>
+      <button data-action="open-local">Este navegador</button>
+      <button data-action="browser-picker">Chromecast / AirPlay…</button>
+      <button data-action="dlna" hidden>DLNA de la red</button>
+      <button data-action="new-tab">Nueva pestaña</button>
+      <button data-action="download">Descargar</button>
     </div>
   </div>
 </div>
