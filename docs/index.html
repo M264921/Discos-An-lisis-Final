@@ -7,7 +7,7 @@ body{margin:0;padding:24px;font-family:"Inter","Segoe UI",Roboto,Ubuntu,Helvetic
 main{max-width:1280px;margin:0 auto}
 h1{margin:0 0 12px;font-size:28px;font-weight:700;color:#0b1733}
 #err{display:none;padding:12px 16px;border-radius:10px;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;margin-bottom:16px}
-.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;position:relative}
 .toolbar .summary{display:flex;align-items:center;gap:6px;font-weight:600;color:#1f2937}
 .toolbar .summary .sep{color:#94a3b8}
 .toolbar .search{flex:1;min-width:220px}
@@ -34,9 +34,17 @@ h1{margin:0 0 12px;font-size:28px;font-weight:700;color:#0b1733}
 table{width:100%;border-collapse:separate;border-spacing:0;min-width:840px}
 thead tr:first-child th{position:sticky;top:0;background:#ecf1ff;color:#0f172a;font-size:13px;font-weight:600;z-index:2}
 thead tr.filters th{position:sticky;top:46px;background:rgba(236,241,255,0.96);backdrop-filter:blur(3px);z-index:1}
+.selector-header,.row-selector-cell{width:48px;min-width:48px;text-align:center;padding:0 8px}
+.selector-header{position:sticky;left:0;background:#ecf1ff;border-right:1px solid #dbe4ff;z-index:3}
+.row-selector-cell{position:sticky;left:0;background:#fff;border-right:1px solid #e2e8f0}
+tbody tr:nth-child(even) .row-selector-cell{background:#f8faff}
+tbody tr:hover .row-selector-cell{background:#e8f1ff}
+.row-selector-cell input[type="checkbox"],.selector-header input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
 th,td{padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:13px;vertical-align:top}
 tbody tr:nth-child(even){background:#f8faff}
 tbody tr:hover{background:#e8f1ff}
+.row-selected{box-shadow:inset 0 0 0 2px #2563eb;background:#e0ecff}
+.row-selected .row-selector-cell{background:#d6e4ff}
 .muted{color:#475569;font-size:12px}
 .wrap{text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .col-size{text-align:right;font-variant-numeric:tabular-nums}
@@ -59,6 +67,51 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 .pagination button:hover:not(:disabled){border-color:#2563eb;color:#2563eb}
 .pagination button:disabled{opacity:.45;cursor:not-allowed}
 .pagination .info{font-size:13px;color:#475569}
+.selection-indicator{font-size:13px;color:#1f2937;display:flex;align-items:center;gap:8px}
+.selection-indicator[hidden]{display:none}
+.selection-indicator strong{font-weight:600;color:#2563eb}
+.selection-actions{display:flex;align-items:center;gap:6px}
+.link-button{border:none;background:none;padding:0;color:#2563eb;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline}
+.link-button:disabled{color:#94a3b8;cursor:not-allowed;text-decoration:none}
+.access-gate{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);z-index:9999}
+.access-gate[hidden]{display:none}
+.access-card{max-width:360px;width:100%;background:#fff;border-radius:18px;padding:24px;box-shadow:0 40px 90px -45px rgba(15,23,42,.6);display:flex;flex-direction:column;gap:18px}
+.access-card h2{margin:0;font-size:20px;font-weight:700;color:#0b1733}
+.access-card p{margin:0;font-size:13px;color:#475569}
+.access-form{display:flex;flex-direction:column;gap:12px}
+.access-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#1f2937}
+.access-form input{padding:9px 12px;border:1px solid #cbd5f5;border-radius:10px;background:#f8fafc;color:#0f172a;font-size:14px}
+.access-form input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+.access-error{color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;font-size:13px}
+.access-error[hidden]{display:none}
+.access-form button{padding:10px 14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:background .15s ease,transform .15s ease}
+.access-form button:hover{background:#1d4ed8;transform:translateY(-1px)}
+.access-form button:disabled{background:#94a3b8;cursor:not-allowed;transform:none}
+.view-panel{position:absolute;top:110%;right:0;width:320px;max-width:90vw;background:#fff;border:1px solid #d7dff5;border-radius:16px;box-shadow:0 30px 80px -45px rgba(15,23,42,.55);padding:18px;display:flex;flex-direction:column;gap:16px;z-index:20}
+.view-panel[hidden]{display:none}
+.view-panel-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.view-panel-header h3{margin:0;font-size:15px;font-weight:700;color:#0b1733}
+.view-panel-close{border:none;background:none;font-size:18px;line-height:1;color:#475569;cursor:pointer;padding:4px}
+.view-panel-section{display:flex;flex-direction:column;gap:10px}
+.view-panel-section h4{margin:0;font-size:13px;font-weight:600;color:#1f2937}
+.view-panel-columns{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow:auto}
+.view-panel-columns li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:#1f2937}
+.view-panel-columns label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.view-panel-columns input[type="checkbox"]{width:16px;height:16px}
+.view-panel-hidden-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:160px;overflow:auto}
+.view-panel-hidden-rows li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#475569}
+.view-panel-hidden-rows li .hidden-row-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.view-panel-footer{display:flex;justify-content:flex-end}
+.hidden-rows-banner{margin:12px 0;padding:10px 14px;border-radius:12px;background:#f1f5ff;color:#1f2937;border:1px solid #cbd5f5;display:flex;align-items:center;gap:12px;font-size:13px}
+.hidden-rows-banner[hidden]{display:none}
+.selection-rect{position:absolute;border:2px solid rgba(37,99,235,.6);background:rgba(37,99,235,.12);pointer-events:none;border-radius:8px;z-index:15}
+.row-selector-cell{position:sticky;left:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 6px}
+.row-selector-cell .row-selector-wrap{display:flex;align-items:center;justify-content:center;gap:6px}
+.row-selector-cell .row-selector-wrap button{border:none;background:none;padding:2px;color:#94a3b8;cursor:pointer;line-height:1}
+.row-selector-cell .row-selector-wrap button:hover{color:#2563eb}
+.row-resize-handle{display:block;width:100%;height:6px;cursor:ns-resize;margin-top:auto}
+.row-resize-handle::after{content:"";display:block;width:40%;height:2px;margin:2px auto 0;background:#9ca3af;border-radius:2px;opacity:.65}
+.row-drag-select{box-shadow:inset 0 0 0 2px rgba(37,99,235,.55);background:#e0ecff}
 </style><link rel="stylesheet" href="./assets/css/picker.css"/></head><body>
 <header class="site-header">
   <div class="brand">MingoMedia</div>
@@ -96,6 +149,12 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 <div id="err"></div>
 <div class="toolbar">
   <div class="summary"><span id="count">0</span> archivos <span class="sep">&middot;</span> <span id="size">0</span> visibles</div>
+  <div class="selection-indicator" id="selectionIndicator" hidden>
+    <div class="selection-actions">
+      <strong id="selectionCount">0</strong> seleccionados
+      <button type="button" class="link-button" id="hideSelectedBtn">Ocultar</button>
+    </div>
+  </div>
   <div class="search"><input id="q" type="search" placeholder="Buscar por ruta, nombre o hash"/></div>
   <select id="pageSize">
     <option value="25">25 por página</option>
@@ -105,7 +164,27 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
     <option value="0">Todos</option>
   </select>
   <button class="btn-secondary" id="resetColumns">Reset columnas</button>
+  <button class="btn-secondary" id="viewManagerBtn" aria-haspopup="true" aria-expanded="false">Vista…</button>
   <button id="downloadBtn" disabled>Descargar CSV</button>
+  <div class="view-panel" id="viewPanel" hidden>
+    <div class="view-panel-header">
+      <h3>Preferencias de vista</h3>
+      <button type="button" class="view-panel-close" id="closeViewPanel" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="view-panel-section">
+      <h4>Columnas visibles</h4>
+      <ul class="view-panel-columns" id="columnToggleList"></ul>
+    </div>
+    <div class="view-panel-section">
+      <h4>Filas ocultas</h4>
+      <p id="hiddenRowsMessage" class="muted">No hay filas ocultas.</p>
+      <ul class="view-panel-hidden-rows" id="hiddenRowsList"></ul>
+      <button type="button" class="btn-secondary" id="showHiddenRowsBtn" disabled>Mostrar todas</button>
+    </div>
+    <div class="view-panel-footer">
+      <button type="button" id="resetViewBtn">Reset vista</button>
+    </div>
+  </div>
 </div>
 <div class="insights">
   <div class="card">
@@ -131,6 +210,10 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
     <tbody></tbody>
   </table>
 </div>
+<div class="hidden-rows-banner" id="hiddenRowsBanner" hidden>
+  <span><strong id="hiddenRowsCount">0</strong> filas ocultas en esta vista.</span>
+  <button type="button" class="btn-secondary" id="hiddenRowsShowBtn">Mostrar todas</button>
+</div>
 <div class="pagination">
   <div class="info" id="pageInfo"></div>
   <div class="controls">
@@ -142,439 +225,24 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 <script id="INV_B64" type="application/octet-stream" data-src="data/inventory.json">
 
 </script>
-<script>
-(function(){
-  const showErr=function(msg){const box=document.getElementById("err");box.textContent="[!] "+msg;box.style.display="block";console.error(msg);};
-  const baseNode=document.getElementById("INV_B64");
-  let DATA=[];
-
-  loadData().then(function(raw){
-    DATA=normalizeData(raw);
-    buildHeaders();
-    render();
-  }).catch(function(err){
-    const message=err && err.message ? err.message : String(err);
-    showErr(message);
-  });
-
-  function loadData(){
-    if(baseNode){
-      const raw=(baseNode.textContent||"").trim();
-      if(raw){
-        try{
-          return Promise.resolve(decodeBase64(raw));
-        }catch(err){
-          return Promise.reject(err);
-        }
-      }
-      const src=baseNode.getAttribute("data-src");
-      if(src){return fetchJson(src);}
-    }
-    return fetchJson("data/inventory.json");
-  }
-
-  function decodeBase64(raw){
-    const bin=atob(raw);
-    const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++){bytes[i]=bin.charCodeAt(i);}
-    const txt=new TextDecoder("utf-8",{fatal:false}).decode(bytes);
-    const parsed=JSON.parse(txt);
-    return Array.isArray(parsed)?parsed:(parsed.data||[]);
-  }
-
-  function fetchJson(url){
-    return fetch(url,{cache:"no-store"}).then(function(res){
-      if(!res.ok){throw new Error("No se pudo cargar "+url+" ("+res.status+")");}
-      return res.json();
-    });
-  }
-
-  function normalizeData(source){
-    return (source||[]).map(function(row){
-      return {
-        sha:row.sha||"",
-        tipo:row.tipo||row.type||"",
-        nombre:row.nombre||row.name||"",
-        ruta:row.ruta||row.dir||row.path||"",
-        unidad:(row.unidad||row.drive||"").toString().trim(),
-        tamano:Number((row.tamano??row.size??row.length) || 0),
-        fecha:row.fecha||row.date||row.lastWriteTime||""
-      };
-    });
-  }
-
-  const elements={
-    tableShell:document.getElementById("tableShell"),
-    headerRow:document.getElementById("headerRow"),
-    filterRow:document.getElementById("filterRow"),
-    tbody:document.querySelector("#tbl tbody"),
-    q:document.getElementById("q"),
-    chips:document.getElementById("unitChips"),
-    count:document.getElementById("count"),
-    size:document.getElementById("size"),
-    pageSize:document.getElementById("pageSize"),
-    prev:document.getElementById("prevPage"),
-    next:document.getElementById("nextPage"),
-  pageInfo:document.getElementById("pageInfo"),
-  download:document.getElementById("downloadBtn"),
-  resetCols:document.getElementById("resetColumns"),
-  unitSummary:document.getElementById("unitSummary"),
-  extSummary:document.getElementById("extSummary"),
-  pathSummary:document.getElementById("pathSummary")
-};
-
-  const defaultOrder=["sha","tipo","nombre","ruta","unidad","tamano","fecha"];
-  const defaultWidths={sha:240,tipo:120,nombre:260,ruta:320,unidad:90,tamano:130,fecha:160};
-
-  const columns={
-    sha:{id:"sha",label:"SHA",type:"text",className:"muted wrap",get:r=>r.sha||"",filterPlaceholder:"Filtrar hash",csv:r=>r.sha||""},
-    tipo:{id:"tipo",label:"Tipo",type:"text",get:r=>r.tipo||"",filterPlaceholder:"Filtrar tipo"},
-    nombre:{id:"nombre",label:"Nombre",type:"text",get:r=>r.nombre||"",render:r=>cellFileLink(r),filterPlaceholder:"Filtrar nombre",csv:r=>r.nombre||""},
-    ruta:{id:"ruta",label:"Ruta/Carpeta",type:"text",get:r=>r.ruta||"",render:r=>cellFolderLink(r),filterPlaceholder:"Filtrar ruta",csv:r=>r.ruta||""},
-    unidad:{id:"unidad",label:"Unidad",type:"text",get:r=>r.unidad||"",filterPlaceholder:"Filtrar unidad"},
-    tamano:{id:"tamano",label:"Tama&ntilde;o",type:"number",className:"col-size",get:r=>Number(r.tamano||0),render:r=>escapeHtml(human(r.tamano)),filterPlaceholder:">=, <=, =",csv:r=>Number(r.tamano||0)},
-    fecha:{id:"fecha",label:"Fecha",type:"date",className:"col-date",get:r=>r.fecha||"",render:r=>escapeHtml(formatDate(r.fecha)),filterPlaceholder:"YYYY-MM-DD",csv:r=>r.fecha||""}
-  };
-
-  const state={order:defaultOrder.slice(),widths:Object.assign({},defaultWidths),filters:Object.create(null),search:"",pageSize:50,page:1,activeUnit:""};
-  let dragSource=null;
-
-  function human(bytes){
-    if(!bytes||Number.isNaN(bytes)){return "0 B";}
-    const units=["B","KB","MB","GB","TB","PB"];
-    let value=Number(bytes);
-    let idx=0;
-    while(value>=1024 && idx<units.length-1){value/=1024;idx++;}
-    return value.toFixed(idx===0?0:1)+" "+units[idx];
-  }
-  function formatDate(value){return value?(value.replace("T"," ").replace("Z","")):"";}
-  function escapeHtml(text){return (text??"").toString().replace(/[&<>"]/g,function(ch){switch(ch){case"&":return"&amp;";case"<":return"&lt;";case">":return"&gt;";case"\"":return"&quot;";default:return ch;}});}
-  function joinWinPath(dir,name){if(!dir){return name||"";}if(!name){return dir;}const sep=(dir.endsWith("\\")||dir.endsWith("/"))?"":"\\";return dir+sep+name;}
-  function toFileUrl(path){
-    if(!path){return"";}
-    let normalized=path.replace(/\\/g,"/").replace(/^\.\/+/,"");
-    const driveMatch=normalized.match(/^([A-Za-z]):\/?(.*)$/);
-    let prefix="file:///";
-    let rest=normalized;
-    if(driveMatch){
-      prefix+=driveMatch[1].toUpperCase()+":/";
-      rest=driveMatch[2];
-    }
-    const encoded=rest.split("/").filter(Boolean).map(function(part){return encodeURIComponent(part);}).join("/");
-    return prefix+encoded;
-  }
-  function cellFileLink(row){
-    const full=joinWinPath(row.ruta,row.nombre);
-    const url=toFileUrl(full);
-    const label=escapeHtml(row.nombre||"");
-    if(!url){return label;}
-    return "<a class=\"cell-link\" href=\""+url+"\" title=\"Abrir archivo\" target=\"_blank\" rel=\"noopener\">"+label+"</a>";
-  }
-  function cellFolderLink(row){
-    const url=toFileUrl(row.ruta||"");
-    const label=escapeHtml(row.ruta||"");
-    if(!url){return label;}
-    return "<a class=\"cell-link\" href=\""+url+"\" title=\"Abrir carpeta\" target=\"_blank\" rel=\"noopener\">"+label+"</a>";
-  }
-
-  function buildHeaders(){
-    elements.headerRow.innerHTML="";
-    elements.filterRow.innerHTML="";
-    state.order.forEach(function(colId){
-      const col=columns[colId];
-      const th=document.createElement("th");
-      th.dataset.col=colId;
-      th.draggable=true;
-      const width=state.widths[colId]||defaultWidths[colId]||150;
-      th.style.width=width+"px";
-      const wrapper=document.createElement("div");
-      wrapper.className="th-content";
-      const label=document.createElement("span");
-      label.className="th-label";
-      label.innerHTML=col.label;
-      wrapper.appendChild(label);
-      th.appendChild(wrapper);
-      const handle=document.createElement("span");
-      handle.className="resize-handle";
-      th.appendChild(handle);
-
-      handle.addEventListener("pointerdown",function(ev){
-        ev.preventDefault();ev.stopPropagation();
-        const startX=ev.clientX;
-        const startWidth=th.getBoundingClientRect().width;
-        function onMove(moveEvent){
-          const delta=moveEvent.clientX-startX;
-          const newWidth=Math.max(80,startWidth+delta);
-          th.style.width=newWidth+"px";
-          state.widths[colId]=newWidth;
-        }
-        function onUp(){window.removeEventListener("pointermove",onMove);window.removeEventListener("pointerup",onUp);}
-        window.addEventListener("pointermove",onMove);
-        window.addEventListener("pointerup",onUp,{once:true});
-      });
-
-      th.addEventListener("dragstart",function(ev){
-        dragSource=colId;
-        th.classList.add("drag-source");
-        elements.tableShell.classList.add("drag-active");
-        ev.dataTransfer.effectAllowed="move";
-      });
-      th.addEventListener("dragend",function(){
-        dragSource=null;
-        th.classList.remove("drag-source");
-        elements.tableShell.classList.remove("drag-active");
-        Array.from(elements.headerRow.children).forEach(function(node){node.classList.remove("drop-target");});
-      });
-      th.addEventListener("dragover",function(ev){
-        ev.preventDefault();
-        if(!dragSource || dragSource===colId){return;}
-        th.classList.add("drop-target");
-      });
-      th.addEventListener("dragleave",function(){th.classList.remove("drop-target");});
-      th.addEventListener("drop",function(ev){
-        ev.preventDefault();
-        th.classList.remove("drop-target");
-        if(!dragSource || dragSource===colId){return;}
-        const order=state.order.slice();
-        const fromIdx=order.indexOf(dragSource);
-        const toIdx=order.indexOf(colId);
-        order.splice(fromIdx,1);
-        order.splice(toIdx,0,dragSource);
-        state.order=order;
-        buildHeaders();
-        render();
-      });
-
-      elements.headerRow.appendChild(th);
-
-      const filterCell=document.createElement("th");
-      let placeholder="Filtrar";
-      if(col.type==="number"){placeholder=">=, <=, =";}
-      else if(col.type==="date"){placeholder="YYYY-MM-DD";}
-      else if(col.filterPlaceholder){placeholder=col.filterPlaceholder;}
-      filterCell.innerHTML="<input data-col=\""+colId+"\" placeholder=\""+placeholder+"\"/>";
-      const input=filterCell.querySelector("input");
-      if(input){
-        input.value=state.filters[colId]||"";
-        input.addEventListener("input",function(ev){
-          state.filters[colId]=ev.target.value.trim();
-          state.page=1;
-          render();
-        });
-      }
-      elements.filterRow.appendChild(filterCell);
-    });
-  }
-
-  function applyFilters(skipUnit){
-    const searchTerm=state.search.toLowerCase();
-    const hasSearch=searchTerm.length>0;
-    return DATA.filter(function(row){
-      if(!skipUnit && state.activeUnit && row.unidad!==state.activeUnit){return false;}
-      if(hasSearch){
-        const hay=(row.nombre+" "+row.ruta+" "+row.sha+" "+row.tipo+" "+row.unidad).toLowerCase();
-        if(!hay.includes(searchTerm)){return false;}
-      }
-      for(const key in state.filters){
-        if(!Object.prototype.hasOwnProperty.call(state.filters,key)){continue;}
-        const raw=state.filters[key];
-        if(!raw){continue;}
-        if(key==="tamano"){
-          const match=raw.match(/^\s*(>=|<=|=)\s*(\d+)\s*$/);
-          const current=Number(row.tamano||0);
-          if(match){
-            const op=match[1];
-            const val=Number(match[2]);
-            if(op===">=" && !(current>=val)){return false;}
-            if(op==="<=" && !(current<=val)){return false;}
-            if(op==="=" && current!==val){return false;}
-          }else{
-            if(human(current).toLowerCase().indexOf(raw.toLowerCase())===-1){return false;}
-          }
-        }else if(key==="fecha"){
-          if(!(row.fecha||"").toLowerCase().startsWith(raw.toLowerCase())){return false;}
-        }else{
-          const compare=(row[key]||"").toString().toLowerCase();
-          if(!compare.includes(raw.toLowerCase())){return false;}
-        }
-      }
-      return true;
-    });
-  }
-
-  function renderChips(rows){
-    elements.chips.innerHTML="";
-    const counts=new Map();
-    rows.forEach(function(row){
-      if(!row.unidad){return;}
-      counts.set(row.unidad,(counts.get(row.unidad)||0)+1);
-    });
-    const allBtn=document.createElement("button");
-    allBtn.textContent="Todas ("+rows.length+")";
-    allBtn.className="chip-all";
-    allBtn.dataset.active=state.activeUnit===""?"true":"false";
-    allBtn.addEventListener("click",function(){state.activeUnit="";state.page=1;render();});
-    elements.chips.appendChild(allBtn);
-    const entries=Array.from(counts.entries());
-    if(state.activeUnit && !counts.has(state.activeUnit)){
-      entries.push([state.activeUnit,0]);
-    }
-    entries.sort(function(a,b){
-      return a[0].localeCompare(b[0],undefined,{numeric:true,sensitivity:"base"});
-    }).forEach(function(entry){
-      const btn=document.createElement("button");
-      btn.textContent=entry[0]+" ("+entry[1]+")";
-      btn.dataset.unit=entry[0];
-      btn.dataset.active=state.activeUnit===entry[0]?"true":"false";
-      btn.addEventListener("click",function(){
-        state.activeUnit=state.activeUnit===entry[0]?"":entry[0];
-        state.page=1;
-        render();
-      });
-      elements.chips.appendChild(btn);
-    });
-  }
-
-  function renderTableBody(rows){
-    elements.tbody.innerHTML="";
-    const fragment=document.createDocumentFragment();
-    rows.forEach(function(row){
-      const tr=document.createElement("tr");
-      state.order.forEach(function(colId){
-        const col=columns[colId];
-        const td=document.createElement("td");
-        if(col.className){td.className=col.className;}
-        let html="";
-        if(col.render){html=col.render(row);}else{html=escapeHtml((col.get?col.get(row):row[colId])||"");}
-        td.innerHTML=html;
-        tr.appendChild(td);
-      });
-      fragment.appendChild(tr);
-    });
-    elements.tbody.appendChild(fragment);
-  }
-
-  function renderInsights(rows){
-    const empty="<li>Sin datos</li>";
-    elements.unitSummary.innerHTML=empty;
-    elements.extSummary.innerHTML=empty;
-    elements.pathSummary.innerHTML=empty;
-    if(!rows.length){return;}
-
-    const byUnit=new Map();
-    const byExt=new Map();
-    const byPath=new Map();
-
-    rows.forEach(function(row){
-      const unit=(row.unidad||"(sin unidad)").toString();
-      const unitStats=byUnit.get(unit)||{count:0,size:0};
-      unitStats.count+=1;
-      unitStats.size+=Number(row.tamano||0);
-      byUnit.set(unit,unitStats);
-
-      const name=row.nombre||"";
-      const ext=name.includes(".")?name.split(".").pop().toLowerCase():"(sin extensión)";
-      const extStats=byExt.get(ext)||{count:0};
-      extStats.count+=1;
-      byExt.set(ext,extStats);
-
-      const path=(row.ruta||"(sin ruta)").toString();
-      const pathStats=byPath.get(path)||{count:0};
-      pathStats.count+=1;
-      byPath.set(path,pathStats);
-    });
-
-    const unitItems=Array.from(byUnit.entries()).sort(function(a,b){
-      return b[1].count-a[1].count || b[1].size-a[1].size;
-    }).slice(0,6).map(function(entry){
-      const key=escapeHtml(entry[0]);
-      const stats=entry[1];
-      return "<li>"+key+": "+stats.count.toLocaleString("es-ES")+" archivos ("+escapeHtml(human(stats.size))+")</li>";
-    }).join("");
-
-    const extItems=Array.from(byExt.entries()).sort(function(a,b){
-      return b[1].count-a[1].count;
-    }).slice(0,6).map(function(entry){
-      const key=escapeHtml(entry[0]);
-      return "<li>"+key+": "+entry[1].count.toLocaleString("es-ES")+" archivos</li>";
-    }).join("");
-
-    const pathItems=Array.from(byPath.entries()).sort(function(a,b){
-      return b[1].count-a[1].count;
-    }).slice(0,6).map(function(entry){
-      const key=escapeHtml(entry[0]);
-      return "<li>"+key+": "+entry[1].count.toLocaleString("es-ES")+" archivos</li>";
-    }).join("");
-
-    elements.unitSummary.innerHTML=unitItems||empty;
-    elements.extSummary.innerHTML=extItems||empty;
-    elements.pathSummary.innerHTML=pathItems||empty;
-  }
-
-  function computeBytes(rows){return rows.reduce((sum,row)=>sum+Number(row.tamano||0),0);}
-  function getCurrentSlice(rows){
-    const perPage=state.pageSize;
-    if(perPage===0){return rows.slice();}
-    const totalPages=Math.max(1,Math.ceil(rows.length/perPage));
-    if(state.page>totalPages){state.page=totalPages;}
-    const start=(state.page-1)*perPage;
-    return rows.slice(start,start+perPage);
-  }
-  function renderSummary(totalRows,totalBytes){
-    elements.count.textContent=totalRows.toLocaleString("es-ES");
-    elements.size.textContent=human(totalBytes);
-    const perPage=state.pageSize;
-    const totalPages=perPage===0?1:Math.max(1,Math.ceil(totalRows/perPage));
-    if(state.page>totalPages){state.page=totalPages;}
-    const safePage=state.page;
-    const start=perPage===0?1:((safePage-1)*perPage)+1;
-    const end=perPage===0?totalRows:Math.min(totalRows,safePage*perPage);
-    elements.pageInfo.textContent=totalRows===0?"Sin resultados":`Mostrando ${start.toLocaleString("es-ES")} - ${end.toLocaleString("es-ES")} de ${totalRows.toLocaleString("es-ES")}`;
-    elements.prev.disabled=safePage<=1;
-    elements.next.disabled=safePage>=totalPages;
-  }
-  function downloadCsv(rows){
-    if(!rows.length){return;}
-    const headers=state.order.map(colId=>columns[colId].label.replace(/&ntilde;/g,"ñ").replace(/<[^>]+>/g,""));
-    const lines=[headers.join(";")];
-    rows.forEach(function(row){
-      const values=state.order.map(function(colId){
-        const col=columns[colId];
-        const raw=col.csv?col.csv(row):(col.get?col.get(row):row[colId]);
-        const text=(raw??"").toString().replace(/"/g,'""');
-        return "\""+text+"\"";
-      });
-      lines.push(values.join(";"));
-    });
-    const blob=new Blob([lines.join("\r\n")],{type:"text/csv;charset=utf-8;"});
-    const url=URL.createObjectURL(blob);
-    const link=document.createElement("a");
-    link.href=url;
-    link.download="inventario_filtrado.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(()=>URL.revokeObjectURL(url),200);
-  }
-
-  elements.q.addEventListener("input",function(ev){state.search=ev.target.value.trim();state.page=1;render();});
-  elements.pageSize.addEventListener("change",function(ev){state.pageSize=Number(ev.target.value);state.page=1;render();});
-  elements.prev.addEventListener("click",function(){if(state.page>1){state.page--;render();}});
-  elements.next.addEventListener("click",function(){state.page++;render();});
-  elements.download.addEventListener("click",function(){downloadCsv(applyFilters(false));});
-  elements.resetCols.addEventListener("click",function(){state.order=defaultOrder.slice();state.widths=Object.assign({},defaultWidths);buildHeaders();state.page=1;render();});
-
-  function render(){
-    const filteredWithoutUnit=applyFilters(true);
-    const filtered=applyFilters(false);
-    const bytes=computeBytes(filtered);
-    renderChips(filteredWithoutUnit);
-    renderInsights(filtered);
-    const pageRows=getCurrentSlice(filtered);
-    renderTableBody(pageRows);
-    renderSummary(filtered.length,bytes);
-    elements.download.disabled=filtered.length===0;
-  }
-
-})();
-</script></main><script defer src="./assets/js/picker.js"></script></body></html>
+</main>
+<div id="accessGate" class="access-gate" hidden>
+  <div class="access-card" role="dialog" aria-modal="true" aria-labelledby="accessTitle">
+    <h2 id="accessTitle">Acceso privado</h2>
+    <p id="accessMessage">Introduce tu correo para continuar.</p>
+    <form id="accessForm" class="access-form" novalidate>
+      <label for="accessEmail">Correo electrónico
+        <input id="accessEmail" name="email" type="email" autocomplete="email" required />
+      </label>
+      <label for="accessPin" id="accessPinLabel">PIN (opcional)
+        <input id="accessPin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" />
+      </label>
+      <p class="access-error" id="accessError" hidden></p>
+      <button type="submit" id="accessSubmit">Entrar</button>
+    </form>
+  </div>
+</div>
+<script src="./assets/js/mingomedia-config.js"></script>
+<script src="./assets/js/inventory-state.js"></script>
+<script src="./assets/js/inventory-app.js"></script>
+<script defer src="./assets/js/picker.js"></script></body></html>
