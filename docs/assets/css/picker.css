@@ -46,12 +46,6 @@
   background: #f3f4f6;
 }
 
-/* Hide any legacy preview overlay remnants */
-.ow-preview,
-.ow-preview-dialog {
-  display: none !important;
-}
-
 .ow-modal[hidden] {
   display: none !important;
 }
@@ -120,6 +114,77 @@
   border-radius: 8px;
   width: 32px;
   height: 32px;
+  cursor: pointer;
+}
+
+.ow-x:hover {
+  background: #e5e7eb;
+}
+
+.ow-message {
+  font-size: 0.82rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.75rem;
+}
+
+.ow-actions button:focus-visible,
+.player-picker select:focus-visible,
+.player-picker button:focus-visible,
+.ow-x:focus-visible,
+.ow-preview-close:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+body.ow-no-scroll {
+  overflow: hidden;
+}
+
+.ow-preview {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 20;
+}
+
+.ow-preview-dialog {
+  width: min(960px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px -50px rgba(15, 23, 42, 0.7);
+}
+
+.ow-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ow-preview-header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+
+.ow-preview-close {
+  border: none;
+  background: transparent;
+  font-size: 1.3rem;
+  line-height: 1;
   cursor: pointer;
 }
 

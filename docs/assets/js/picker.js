@@ -78,9 +78,11 @@
 
   const owButtons = modal ? modal.querySelectorAll(".ow-actions button[data-action]") : [];
 
-  const airplayBtn = document.getElementById("airplayBtn");
+  const preview = document.getElementById("localViewer");
 
   removeLegacyPreviewMarkup();
+
+  let modalMessage = modal ? modal.querySelector(".ow-message") : null;
 
   let modalMessage = modal ? modal.querySelector(".ow-message") : null;
 
@@ -162,6 +164,42 @@
 
   };
 
+  let activeOverlay = null;
+
+  function setActiveOverlay(node) {
+    if (activeOverlay && activeOverlay !== node) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    activeOverlay = node;
+  }
+
+  function closeActiveOverlay() {
+    if (activeOverlay) {
+      try {
+        activeOverlay.remove();
+      } catch (_) {
+        /* ignore */
+      }
+      activeOverlay = null;
+    }
+  }
+
+
+
+  const overlayStack = [];
+
+
+
+  const overlayStack = [];
+
+
+
+  const overlayStack = [];
+
 
 
   const overlayStack = [];
@@ -177,54 +215,6 @@
   discoverDlnaDevices();
 
   setupDlnaWebSocket();
-
-  function removeLegacyPreviewMarkup() {
-
-    const selectors = ["#localViewer", "#openWithPreview", ".ow-preview-dialog", ".ow-preview"];
-
-    const removed = new Set();
-
-    selectors.forEach((selector) => {
-
-      document.querySelectorAll(selector).forEach((node) => {
-
-        if (!node || removed.has(node)) {
-
-          return;
-
-        }
-
-        removed.add(node);
-
-        const host = node.closest ? node.closest("#localViewer, #openWithPreview") : null;
-
-        const target = host || node;
-
-        if (target && target.parentNode) {
-
-          target.parentNode.removeChild(target);
-
-        } else if (node instanceof HTMLElement) {
-
-          node.hidden = true;
-
-          node.style.display = "none";
-
-        }
-
-      });
-
-    });
-
-    if (document.body && document.body.classList) {
-
-      document.body.classList.remove("ow-preview-active", "ow-preview-open");
-
-    }
-
-  }
-
-
 
   function registerOverlay(element, onClose) {
 
@@ -415,6 +405,16 @@
         if (!modal.hidden) {
 
           closeModal();
+
+        } else if (overlayStack.length > 0) {
+
+          const closeOverlay = overlayStack[overlayStack.length - 1];
+
+          if (typeof closeOverlay === "function") {
+
+            closeOverlay();
+
+          }
 
         } else if (overlayStack.length > 0) {
 
@@ -1130,6 +1130,12 @@
 
     const effectiveType = type || typeOf(abs);
 
+    if (!preview.hidden) {
+
+      closePreview();
+
+    }
+
     if (effectiveType === "image") {
 
       window.open(abs, "_blank", "noopener");
@@ -1229,8 +1235,7 @@
 
 
           document.body.appendChild(wrap);
-
-
+          setActiveOverlay(wrap);
 
           const closeButton = wrap.querySelector("#owTxtClose");
 
@@ -1252,7 +1257,7 @@
 
           wrap.addEventListener("click", function (event) {
 
-            if (event.target === wrap) { close(); }
+            if (event.target === wrap) { closeActiveOverlay(); }
 
           });
 
@@ -1557,6 +1562,77 @@
       modalDialog.insertBefore(node, actions);
 
     } else {
+
+      modalDialog.appendChild(node);
+
+    }
+
+    modalMessage = node;
+
+    return modalMessage;
+
+  }
+
+
+
+  function showMessage(text) {
+
+    const node = ensureModalMessage();
+
+    if (!node) {
+
+      return modalMessage;
+
+    }
+
+    node.textContent = text;
+
+    node.hidden = false;
+
+  }
+
+
+
+
+    if (modalMessage && modalMessage.isConnected) {
+
+      return null;
+
+    }
+
+
+
+    const existing = modalDialog.querySelector(".ow-message");
+
+    if (existing) {
+
+      modalMessage = existing;
+
+      return modalMessage;
+
+    }
+
+
+
+    const node = document.createElement("div");
+
+    node.className = "ow-message";
+
+      case "local": {
+
+        const opened = openLocal(context.href, context.type);
+
+        if (opened && !fromPreference) {
+
+          closeModal();
+
+        }
+
+        return Promise.resolve(Boolean(opened));
+
+      }
+
+      case "browser-picker":
 
       modalDialog.appendChild(node);
 
