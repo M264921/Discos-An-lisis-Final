@@ -293,9 +293,31 @@
         const normalized = normalizeUserKey(next, defaultUserKey);
         const changed = normalized !== userKey;
         userKey = normalized;
+        // Intentar cargar la vista del nuevo usuario
         const hydrated = loadFromStorageInternal(true);
-        emit("user:change", { userKey: userKey });
+        // Si no se encontraron datos para este usuario y es un usuario distinto,
+        // restablecemos el estado de la vista a los valores por defecto.
         if (!hydrated && changed) {
+          // restaurar columnas, anchos y visibilidad
+          state.order = state.defaultOrder.slice();
+          state.widths = sanitizeWidths(state.defaultWidths, availableColumns, state.defaultWidths, minColumnWidth);
+          state.hiddenColumns = new Set(defaults.hiddenColumns);
+          // restaurar filas y alturas
+          state.hiddenRows = new Set(defaults.hiddenRows);
+          state.rowHeights = sanitizeRowHeights(defaults.rowHeights);
+          // restaurar filtros, búsqueda y paginación
+          state.filters = Object.assign({}, defaults.filters);
+          state.search = defaults.search;
+          state.pageSize = defaults.pageSize;
+          state.page = defaults.page;
+          state.activeUnit = defaults.activeUnit;
+          // restaurar selección
+          state.selectedRows.clear();
+          state.selectionOrder = [];
+        }
+        emit("user:change", { userKey: userKey });
+        // Notificar el cambio de vista si se restableció o cambió de usuario
+        if (changed) {
           emitChange();
         }
       },
