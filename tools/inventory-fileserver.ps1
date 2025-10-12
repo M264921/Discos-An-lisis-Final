@@ -47,6 +47,10 @@ if (-not $Prefix -or $Prefix.Count -eq 0) {
 function Normalize-Root {
   param([string]$Path)
   if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
+  if (-not (Test-Path -LiteralPath $Path)) {
+    Write-Info ("Ruta ignorada (no existe): {0}" -f $Path)
+    return $null
+  }
   $full = (Resolve-Path -LiteralPath $Path).Path
   if (-not $full.EndsWith([IO.Path]::DirectorySeparatorChar)) {
     $full += [IO.Path]::DirectorySeparatorChar
@@ -72,7 +76,10 @@ if ($DriveMap -and $DriveMap.Keys.Count -gt 0) {
   }
 } else {
   Get-PSDrive -PSProvider FileSystem | ForEach-Object {
-    $driveRoots[$_.Name.ToUpperInvariant()] = Normalize-Root $_.Root
+    $rootPath = Normalize-Root $_.Root
+    if ($rootPath) {
+      $driveRoots[$_.Name.ToUpperInvariant()] = $rootPath
+    }
   }
 }
 
