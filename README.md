@@ -150,7 +150,7 @@ pytest
 | `tools/make-inventory-package.ps1` | Construye paquete distribuible + `InventoryCleaner.exe`. |
 | `tools/dlna-helper/server.js` | Mini servicio DLNA (Node.js + HTTP/WS). |
 | `tools/agents/inventory-cleaner.ps1` | Limpia duplicados confirmados, genera HTML y tabla interactiva de duplicados. |
-| `remove_nonmedia_duplicates.py` | Script Python para mover duplicados no multimedia; requiere Python 3 y se ejecuta desde `inventory-cleaner.ps1`. |
+| `remove_nonmedia_duplicates.py` | Script Python que **elimina** (usa `os.remove`) los duplicados no multimedia listados en `dupes_confirmed.csv`; requiere Python 3 y se ejecuta desde `inventory-cleaner.ps1`. |
 
 ---
 
