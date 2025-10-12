@@ -156,12 +156,14 @@ Write-Info ("Servidor iniciado en: {0}" -f ($Prefix -join ', '))
 Write-Info "Pulsa Ctrl+C para detener."
 
 $cancelled = $false
-$handler = {
+$handler = [System.ConsoleCancelEventHandler]{
+  param($sender, $eventArgs)
   $global:cancelled = $true
+  $eventArgs.Cancel = $true
   Write-Info "Deteniendo servidor..."
   $listener.Stop()
 }
-[Console]::CancelKeyPress += $handler
+[System.Console]::add_CancelKeyPress($handler)
 
 function Send-Error {
   param(
@@ -300,7 +302,7 @@ try {
   if ($listener.IsListening) {
     $listener.Stop()
   }
-  [Console]::CancelKeyPress -= $handler
+  [System.Console]::remove_CancelKeyPress($handler)
   if ($cancelled) {
     Write-Info "Servidor detenido."
   }
