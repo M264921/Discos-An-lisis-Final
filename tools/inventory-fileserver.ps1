@@ -60,26 +60,34 @@ function Normalize-Root {
 
 $driveRoots = @{}
 
+function Add-DriveRoot {
+  param(
+    [string]$DriveKey,
+    [string]$Path
+  )
+
+  if ([string]::IsNullOrWhiteSpace($DriveKey)) {
+    return
+  }
+
+  $rootPath = Normalize-Root $Path
+  if ($rootPath) {
+    $normalizedKey = $DriveKey.TrimEnd(':').ToUpperInvariant()
+    $script:driveRoots[$normalizedKey] = $rootPath
+  }
+}
+
 if ($DriveMap -and $DriveMap.Keys.Count -gt 0) {
   foreach ($key in $DriveMap.Keys) {
-    $rootPath = Normalize-Root $DriveMap[$key]
-    if ($rootPath) {
-      $driveRoots[$key.ToString().TrimEnd(':').ToUpperInvariant()] = $rootPath
-    }
+    Add-DriveRoot -DriveKey $key.ToString() -Path $DriveMap[$key]
   }
 } elseif ($config -and $config.driveMappings) {
   foreach ($entry in $config.driveMappings.PSObject.Properties) {
-    $rootPath = Normalize-Root $entry.Value
-    if ($rootPath) {
-      $driveRoots[$entry.Name.TrimEnd(':').ToUpperInvariant()] = $rootPath
-    }
+    Add-DriveRoot -DriveKey $entry.Name -Path $entry.Value
   }
 } else {
   Get-PSDrive -PSProvider FileSystem | ForEach-Object {
-    $rootPath = Normalize-Root $_.Root
-    if ($rootPath) {
-      $driveRoots[$_.Name.ToUpperInvariant()] = $rootPath
-    }
+    Add-DriveRoot -DriveKey $_.Name -Path $_.Root
   }
 }
 
