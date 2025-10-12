@@ -32,8 +32,49 @@ Log "SweepMode: $SweepMode"
 if ($SweepMode -ne "None") {
   $Sweep = Join-Path $RepoRoot "tools/agents/repo-sweep.ps1"
   if (Test-Path $Sweep) {
-    Log "Running repo-sweep.ps1 ($SweepMode) ..."
-    & $Sweep -RepoRoot "$RepoRoot" -Mode "$SweepMode" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    $psExe = $null
+    $candidatePaths = @()
+    try {
+      $currentExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+      if ($currentExe) {
+        $candidatePaths += $currentExe
+      }
+    } catch {}
+    foreach ($name in @("pwsh","pwsh.exe","powershell","powershell.exe")) {
+      $cmd = Get-Command -Name $name -ErrorAction SilentlyContinue
+      if ($cmd) {
+        $path = $cmd.Path
+        if (-not $path -and $cmd.CommandType -eq "Application") {
+          $path = $cmd.Source
+        }
+        if ($path) {
+          $candidatePaths += $path
+        }
+      }
+    }
+    foreach ($cand in ($candidatePaths | Where-Object { $_ } | Select-Object -Unique)) {
+      if (Test-Path -LiteralPath $cand) {
+        $psExe = $cand
+        break
+      }
+    }
+
+    if ($psExe) {
+      Log ("Running repo-sweep.ps1 ({0}) with {1} ..." -f $SweepMode, (Split-Path $psExe -Leaf))
+      $sweepArgs = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $Sweep,
+        "-RepoRoot", $RepoRoot,
+        "-Mode", $SweepMode
+      )
+      & $psExe @sweepArgs 2>&1 | Tee-Object -FilePath $LogFile -Append
+      if ($LASTEXITCODE -ne 0) {
+        Log ("WARN: repo-sweep.ps1 finalizo con codigo {0}" -f $LASTEXITCODE)
+      }
+    } else {
+      Log "WARN: No se encontro ejecutable compatible para repo-sweep.ps1"
+    }
   } else {
     Log "SKIP: tools/agents/repo-sweep.ps1 no encontrado"
   }
