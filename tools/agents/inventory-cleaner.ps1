@@ -45,7 +45,13 @@ if ($SweepMode -ne "None") {
         "-RepoRoot", $RepoRoot,
         "-Mode", $SweepMode
       )
-      & $psCmd.Path @sweepArgs 2>&1 | Tee-Object -FilePath $LogFile -Append
+      $sweepOutput = & $psCmd.Path @sweepArgs 2>&1
+      $sweepExit = $LASTEXITCODE
+      $sweepOutput | Tee-Object -FilePath $LogFile -Append
+      if ($sweepExit -ne 0) {
+        Log ("ERROR: repo-sweep.ps1 fallo con codigo {0}" -f $sweepExit)
+        throw "repo-sweep.ps1 termino con codigo $sweepExit"
+      }
     } else {
       Log "WARN: No se encontro pwsh/powershell para ejecutar repo-sweep.ps1"
     }
