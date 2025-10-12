@@ -1,0 +1,4 @@
+# Ignorar archivos grandes del inventario en repositorios sin Git LFS
+docs/data/inventory.json
+docs/inventario_interactivo_offline.html
+docs/inventory/scan_C.csv
