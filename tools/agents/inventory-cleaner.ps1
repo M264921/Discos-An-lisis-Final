@@ -33,7 +33,7 @@ if ($SweepMode -ne "None") {
   $Sweep = Join-Path $RepoRoot "tools/agents/repo-sweep.ps1"
   if (Test-Path $Sweep) {
     Log "Running repo-sweep.ps1 ($SweepMode) ..."
-    powershell -NoProfile -ExecutionPolicy Bypass -File "$Sweep" -RepoRoot "$RepoRoot" -Mode "$SweepMode" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    & $Sweep -RepoRoot "$RepoRoot" -Mode "$SweepMode" 2>&1 | Tee-Object -FilePath $LogFile -Append
   } else {
     Log "SKIP: tools/agents/repo-sweep.ps1 no encontrado"
   }
@@ -120,7 +120,7 @@ if (Test-Path $MakeInv) {
 
 if ($htmlGenerado -and (Test-Path $Wrapper)) {
   Log "Post-procesando inventario (wrapper)..."
-  powershell -NoProfile -ExecutionPolicy Bypass -File "$Wrapper" `
+  & $Wrapper `
     -RepoRoot "$RepoRoot" `
     -HtmlPath "$ExpectedHtml" `
     -CsvFallback "$csvDefault" `
