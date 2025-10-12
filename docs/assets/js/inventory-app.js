@@ -6,9 +6,21 @@
   const accessConfig = globalConfig.access || {};
   const SESSION_KEY = "mingomedia.access.session";
 
+  const IA_CATEGORY_ICONS = {
+    documento: "📄",
+    codigo: "🧩",
+    backup: "🗃️",
+    informe: "📝",
+    multimedia: "🎬",
+    personal: "👤",
+    otro: "📦"
+  };
+
   const columns = {
     sha: { id: "sha", label: "SHA", type: "text", className: "muted wrap", get: row => row.sha || "", filterPlaceholder: "Filtrar hash", csv: row => row.sha || "" },
     tipo: { id: "tipo", label: "Tipo", type: "text", get: row => row.tipo || "", filterPlaceholder: "Filtrar tipo" },
+    ia_categoria: { id: "ia_categoria", label: "IA tipo", type: "text", get: row => row.ia_categoria || "", render: row => renderIaCategory(row), filterPlaceholder: "Filtrar IA", csv: row => row.ia_categoria || "" },
+    ia_resumen: { id: "ia_resumen", label: "IA resumen", type: "text", className: "muted wrap", get: row => row.ia_resumen || "", render: row => renderIaSummary(row), filterPlaceholder: "Filtrar resumen IA", csv: row => row.ia_resumen || "" },
     nombre: { id: "nombre", label: "Nombre", type: "text", get: row => row.nombre || "", render: row => cellFileLink(row), filterPlaceholder: "Filtrar nombre", csv: row => row.nombre || "" },
     ruta: { id: "ruta", label: "Ruta/Carpeta", type: "text", get: row => row.ruta || "", render: row => cellFolderLink(row), filterPlaceholder: "Filtrar ruta", csv: row => row.ruta || "" },
     unidad: { id: "unidad", label: "Unidad", type: "text", get: row => row.unidad || "", filterPlaceholder: "Filtrar unidad" },
@@ -16,8 +28,8 @@
     fecha: { id: "fecha", label: "Fecha", type: "date", className: "col-date", get: row => row.fecha || "", render: row => escapeHtml(formatDate(row.fecha)), filterPlaceholder: "YYYY-MM-DD", csv: row => row.fecha || "" }
   };
 
-  const defaultOrder = ["sha", "tipo", "nombre", "ruta", "unidad", "tamano", "fecha"];
-  const defaultWidths = { sha: 240, tipo: 120, nombre: 260, ruta: 320, unidad: 90, tamano: 130, fecha: 160 };
+  const defaultOrder = ["sha", "tipo", "ia_categoria", "nombre", "ruta", "unidad", "tamano", "fecha", "ia_resumen"];
+  const defaultWidths = { sha: 240, tipo: 120, ia_categoria: 150, nombre: 260, ruta: 320, unidad: 90, tamano: 130, fecha: 160, ia_resumen: 320 };
 
   const store = window.createMingoInventoryStore({
     allColumns: Object.keys(columns),
@@ -49,6 +61,7 @@
     unitSummary: document.getElementById("unitSummary"),
     extSummary: document.getElementById("extSummary"),
     pathSummary: document.getElementById("pathSummary"),
+    aiSummary: document.getElementById("aiSummary"),
     selectionIndicator: document.getElementById("selectionIndicator"),
     selectionCount: document.getElementById("selectionCount"),
     hideSelected: document.getElementById("hideSelectedBtn"),
@@ -73,7 +86,10 @@
     hiddenRowsShow: document.getElementById("hiddenRowsShowBtn")
   };
 
+  elements.aiSummary = elements.aiSummary || ensureAiSummaryList();
+
   const baseNode = document.getElementById("INV_B64");
+  const aiBaseNode = document.getElementById("INV_AI_B64");
   let DATA = [];
   const rowLookup = new Map();
   let selectAllCheckbox = null;
@@ -197,8 +213,23 @@
 
   async function loadInventory() {
     try {
-      const raw = await window.loadInventorySafe();
+      const [raw, aiPayload] = await Promise.all([
+        window.loadInventorySafe(),
+        loadAiAnnotations().catch(error => {
+          if (error) {
+            console.warn("No se pudieron cargar las anotaciones IA", error);
+          }
+          return null;
+        })
+      ]);
       DATA = normalizeData(raw);
+      const annotations = prepareAiAnnotations(aiPayload);
+      if (annotations) {
+        applyAiAnnotations(DATA, annotations);
+        if (annotations.meta && (annotations.meta.model || annotations.meta.generatedAt)) {
+          console.info("Anotaciones IA cargadas", annotations.meta);
+        }
+      }
       DATA.forEach(rememberRow);
       requestRender();
     } catch (error) {
@@ -210,12 +241,197 @@
     return (Array.isArray(source) ? source : []).map(row => ({
       sha: row.sha || "",
       tipo: row.tipo || row.type || "",
+      ia_categoria: row.ia_categoria || row.aiCategoria || row.ai_category || row.category_ia || "",
+      ia_resumen: row.ia_resumen || row.aiResumen || row.ai_summary || row.resumen_ia || "",
+      ia_modelo: row.ia_modelo || row.aiModel || row.ai_model || "",
+      ia_actualizado: row.ia_actualizado || row.aiUpdatedAt || row.ai_updated_at || row.updated_at || row.generated_at || "",
       nombre: row.nombre || row.name || "",
       ruta: row.ruta || row.dir || row.path || "",
       unidad: (row.unidad || row.drive || "").toString().trim(),
       tamano: Number((row.tamano ?? row.size ?? row.length) || 0),
       fecha: row.fecha || row.date || row.lastWriteTime || ""
     }));
+  }
+
+  async function loadAiAnnotations() {
+    const embedded = loadAiAnnotationsFromEmbedded();
+    if (embedded) {
+      return embedded;
+    }
+    const protocol = (window.location && window.location.protocol) || "";
+    if (!protocol.startsWith("http")) {
+      return null;
+    }
+    return await loadAiAnnotationsFromFile();
+  }
+
+  function loadAiAnnotationsFromEmbedded() {
+    if (!aiBaseNode) {
+      return null;
+    }
+    const raw = (aiBaseNode.textContent || "").trim();
+    if (!raw) {
+      return null;
+    }
+    try {
+      const bin = window.atob(raw);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) {
+        bytes[i] = bin.charCodeAt(i);
+      }
+      const txt = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      return JSON.parse(txt);
+    } catch (error) {
+      console.warn("Error leyendo anotaciones IA embebidas", error);
+      return null;
+    }
+  }
+
+  async function loadAiAnnotationsFromFile() {
+    const candidates = [];
+    if (aiBaseNode) {
+      const hinted = aiBaseNode.getAttribute("data-src");
+      if (hinted) {
+        candidates.push(hinted);
+      }
+    }
+    candidates.push(
+      "data/inventory_ai_annotations.json",
+      "data/inventory_ai_annotations.min.json",
+      "data/inventory_ai_annotations.json.gz"
+    );
+    let lastError = null;
+    for (const url of candidates) {
+      if (!url) {
+        continue;
+      }
+      try {
+        const payload = await fetchJson(url);
+        if (payload) {
+          return payload;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError) {
+      console.warn("No se pudo cargar inventory_ai_annotations", lastError);
+    }
+    return null;
+  }
+
+  function prepareAiAnnotations(payload) {
+    if (!payload) {
+      return null;
+    }
+    const items = Array.isArray(payload)
+      ? payload
+      : (Array.isArray(payload.items) ? payload.items : []);
+    if (!items.length) {
+      return null;
+    }
+    const bySha = new Map();
+    const byPath = new Map();
+    const byFull = new Map();
+    const byId = new Map();
+    const meta = {
+      generatedAt: payload.generated_at || payload.generatedAt || null,
+      model: payload.model || payload.model_name || payload.modelo || null
+    };
+    items.forEach(item => {
+      if (!item || typeof item !== "object") {
+        return;
+      }
+      const categoria = (item.categoria || item.category || item.label || "").toString().trim();
+      const resumen = (item.resumen || item.summary || "").toString().trim();
+      const sha = (item.sha || item.hash || "").toString().trim();
+      const ruta = (item.ruta || item.path || item.dir || "").toString();
+      const nombre = (item.nombre || item.name || "").toString();
+      const fullPath = joinWinPath(ruta, nombre);
+      const record = {
+        categoria,
+        resumen,
+        sha,
+        ruta,
+        nombre,
+        model: item.model || meta.model || "",
+        updatedAt: item.generated_at || item.updated_at || meta.generatedAt || "",
+        id: item.id ? String(item.id) : ""
+      };
+      if (record.id) {
+        byId.set(record.id, record);
+      }
+      if (sha) {
+        bySha.set(sha, record);
+        byId.set(`sha:${sha}`, record);
+      }
+      if (ruta) {
+        byPath.set(ruta.toLowerCase(), record);
+      }
+      if (fullPath) {
+        byFull.set(fullPath.toLowerCase(), record);
+      }
+    });
+    if (!bySha.size && !byPath.size && !byFull.size && !byId.size) {
+      return null;
+    }
+    return { bySha, byPath, byFull, byId, meta };
+  }
+
+  function findAiAnnotation(row, lookup) {
+    if (!row || !lookup) {
+      return null;
+    }
+    const sha = (row.sha || "").toString().trim();
+    if (sha && lookup.bySha && lookup.bySha.has(sha)) {
+      return lookup.bySha.get(sha);
+    }
+    const full = joinWinPath(row.ruta || "", row.nombre || "");
+    if (full) {
+      const key = full.toLowerCase();
+      if (lookup.byFull && lookup.byFull.has(key)) {
+        return lookup.byFull.get(key);
+      }
+    }
+    const ruta = (row.ruta || "").toString().toLowerCase();
+    if (ruta && lookup.byPath && lookup.byPath.has(ruta)) {
+      return lookup.byPath.get(ruta);
+    }
+    if (sha) {
+      const shaKey = `sha:${sha}`;
+      if (lookup.byId && lookup.byId.has(shaKey)) {
+        return lookup.byId.get(shaKey);
+      }
+    }
+    const rowId = getRowId(row);
+    if (rowId && lookup.byId && lookup.byId.has(rowId)) {
+      return lookup.byId.get(rowId);
+    }
+    return null;
+  }
+
+  function applyAiAnnotations(rows, lookup) {
+    if (!Array.isArray(rows) || !rows.length || !lookup) {
+      return;
+    }
+    rows.forEach(row => {
+      const annotation = findAiAnnotation(row, lookup);
+      if (!annotation) {
+        return;
+      }
+      if (annotation.categoria) {
+        row.ia_categoria = annotation.categoria;
+      }
+      if (annotation.resumen) {
+        row.ia_resumen = annotation.resumen;
+      }
+      if (annotation.model) {
+        row.ia_modelo = annotation.model;
+      }
+      if (annotation.updatedAt) {
+        row.ia_actualizado = annotation.updatedAt;
+      }
+    });
   }
 
   function rememberRow(row) {
@@ -1151,7 +1367,15 @@
         return false;
       }
       if (hasSearch) {
-        const hay = (row.nombre + " " + row.ruta + " " + row.sha + " " + row.tipo + " " + row.unidad).toLowerCase();
+        const hay = (
+          row.nombre + " " +
+          row.ruta + " " +
+          row.sha + " " +
+          row.tipo + " " +
+          row.unidad + " " +
+          (row.ia_categoria || "") + " " +
+          (row.ia_resumen || "")
+        ).toLowerCase();
         if (!hay.includes(searchTerm)) {
           return false;
         }
@@ -1365,14 +1589,39 @@
     }
   }
 
+  function ensureAiSummaryList() {
+    const existing = document.getElementById("aiSummary");
+    if (existing) {
+      return existing;
+    }
+    const container = document.querySelector(".insights");
+    if (!container) {
+      return null;
+    }
+    const card = document.createElement("div");
+    card.className = "card";
+    const title = document.createElement("h2");
+    title.textContent = "Categorías IA";
+    const list = document.createElement("ul");
+    list.id = "aiSummary";
+    card.appendChild(title);
+    card.appendChild(list);
+    container.appendChild(card);
+    return list;
+  }
+
   function renderInsights(rows) {
     if (!elements.unitSummary || !elements.extSummary || !elements.pathSummary) {
       return;
     }
     const empty = "<li class=\"muted\">Sin datos</li>";
+    const aiEmpty = "<li class=\"muted\">Sin anotaciones IA</li>";
     elements.unitSummary.innerHTML = empty;
     elements.extSummary.innerHTML = empty;
     elements.pathSummary.innerHTML = empty;
+    if (elements.aiSummary) {
+      elements.aiSummary.innerHTML = aiEmpty;
+    }
     if (!rows.length) {
       return;
     }
@@ -1380,6 +1629,7 @@
     const byUnit = new Map();
     const byExt = new Map();
     const byPath = new Map();
+    const byAi = new Map();
 
     rows.forEach(row => {
       const unit = (row.unidad || "(sin unidad)").toString();
@@ -1398,6 +1648,15 @@
       const pathStats = byPath.get(path) || { count: 0 };
       pathStats.count += 1;
       byPath.set(path, pathStats);
+
+      const category = (row.ia_categoria || "").toString().trim();
+      if (category) {
+        const key = category.toLowerCase();
+        const stats = byAi.get(key) || { count: 0, label: category };
+        stats.count += 1;
+        stats.label = category;
+        byAi.set(key, stats);
+      }
     });
 
     elements.unitSummary.innerHTML = Array.from(byUnit.entries()).sort((a, b) => b[1].count - a[1].count || b[1].size - a[1].size).slice(0, 6).map(entry => {
@@ -1411,6 +1670,14 @@
     elements.pathSummary.innerHTML = Array.from(byPath.entries()).sort((a, b) => b[1].count - a[1].count).slice(0, 6).map(entry => {
       return "<li>" + escapeHtml(entry[0]) + ": " + entry[1].count.toLocaleString("es-ES") + " archivos</li>";
     }).join("") || empty;
+
+    if (elements.aiSummary) {
+      const aiContent = Array.from(byAi.values()).sort((a, b) => b.count - a.count).slice(0, 6).map(entry => {
+        const label = formatIaCategoryText(entry.label) || entry.label;
+        return "<li>" + escapeHtml(label) + ": " + entry.count.toLocaleString("es-ES") + " archivos</li>";
+      }).join("");
+      elements.aiSummary.innerHTML = aiContent || aiEmpty;
+    }
   }
 
   function computeBytes(rows) {
@@ -1532,6 +1799,33 @@
         default: return ch;
       }
     });
+  }
+
+  function formatIaCategoryText(value) {
+    const raw = (value || "").toString().trim();
+    if (!raw) {
+      return "";
+    }
+    const icon = IA_CATEGORY_ICONS[raw.toLowerCase()] || "🤖";
+    const label = raw.charAt(0).toUpperCase() + raw.slice(1);
+    return `${icon} ${label}`.trim();
+  }
+
+  function renderIaCategory(row) {
+    const text = formatIaCategoryText(row.ia_categoria || row.aiCategoria || row.ai_category || "");
+    if (!text) {
+      return "<span class=\"muted\">Sin IA</span>";
+    }
+    return escapeHtml(text);
+  }
+
+  function renderIaSummary(row) {
+    const raw = (row.ia_resumen || row.aiResumen || row.ai_summary || "").toString().trim();
+    if (!raw) {
+      return "<span class=\"muted\">Sin resumen</span>";
+    }
+    const safe = escapeHtml(raw);
+    return safe.replace(/\r?\n/g, "<br/>");
   }
 
   function downloadCsv(rows, snapshot) {

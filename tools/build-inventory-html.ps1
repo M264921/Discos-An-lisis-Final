@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$JsonPath = "docs\data\inventory.json",
+  [string]$AiJsonPath = "docs\data\inventory_ai_annotations.json",
   [string]$HtmlPath = "docs\inventario_interactivo_offline.html",
   [bool]$EmbedBase64 = $true,
   [switch]$NoOpen
@@ -12,6 +13,12 @@ if (!(Test-Path $JsonPath)) {
 
 $bytes = [IO.File]::ReadAllBytes($JsonPath)
 $b64   = [Convert]::ToBase64String($bytes)
+
+$aiB64 = ""
+if ($EmbedBase64 -and (Test-Path $AiJsonPath)) {
+  $aiBytes = [IO.File]::ReadAllBytes($AiJsonPath)
+  $aiB64 = [Convert]::ToBase64String($aiBytes)
+}
 
 function Format-Base64Block {
   param(
@@ -142,6 +149,7 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 <script id="INV_B64" type="application/octet-stream" data-src="data/inventory.json">
 __B64__
 </script>
+__AI_SCRIPT__
 <script>
 (function(){
   const showErr=function(msg){const box=document.getElementById("err");box.textContent="[!] "+msg;box.style.display="block";console.error(msg);};
@@ -600,7 +608,23 @@ $payload = if ($EmbedBase64) {
   ""
 }
 
+$aiPayload = if ($EmbedBase64 -and $aiB64) {
+  Format-Base64Block -Value $aiB64
+} else {
+  ""
+}
+
+$aiTag = ""
+if ($aiPayload) {
+  $aiTag = "<script id=\"INV_AI_B64\" type=\"application/octet-stream\" data-src=\"data/inventory_ai_annotations.json\">" +
+    [Environment]::NewLine +
+    $aiPayload +
+    [Environment]::NewLine +
+    "</script>"
+}
+
 $tpl = $tpl.Replace("__B64__", $payload)
+$tpl = $tpl.Replace("__AI_SCRIPT__", $aiTag)
 Set-Content -Encoding UTF8 -LiteralPath $HtmlPath -Value $tpl
 Write-Host "? HTML: $HtmlPath" -ForegroundColor Green
 
