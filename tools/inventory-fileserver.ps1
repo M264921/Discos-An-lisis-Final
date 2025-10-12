@@ -76,7 +76,10 @@ if ($DriveMap -and $DriveMap.Keys.Count -gt 0) {
   }
 } else {
   Get-PSDrive -PSProvider FileSystem | ForEach-Object {
-    $driveRoots[$_.Name.ToUpperInvariant()] = Normalize-Root $_.Root
+    $rootPath = Normalize-Root $_.Root
+    if ($rootPath) {
+      $driveRoots[$_.Name.ToUpperInvariant()] = $rootPath
+    }
   }
 }
 
