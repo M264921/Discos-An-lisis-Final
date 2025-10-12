@@ -32,8 +32,23 @@ Log "SweepMode: $SweepMode"
 if ($SweepMode -ne "None") {
   $Sweep = Join-Path $RepoRoot "tools/agents/repo-sweep.ps1"
   if (Test-Path $Sweep) {
-    Log "Running repo-sweep.ps1 ($SweepMode) ..."
-    & $Sweep -RepoRoot "$RepoRoot" -Mode "$SweepMode" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    $psCmd = Get-Command -Name "pwsh" -ErrorAction SilentlyContinue
+    if (-not $psCmd) {
+      $psCmd = Get-Command -Name "powershell" -ErrorAction SilentlyContinue
+    }
+    if ($psCmd) {
+      Log "Running repo-sweep.ps1 ($SweepMode) ..."
+      $sweepArgs = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $Sweep,
+        "-RepoRoot", $RepoRoot,
+        "-Mode", $SweepMode
+      )
+      & $psCmd.Path @sweepArgs 2>&1 | Tee-Object -FilePath $LogFile -Append
+    } else {
+      Log "WARN: No se encontro pwsh/powershell para ejecutar repo-sweep.ps1"
+    }
   } else {
     Log "SKIP: tools/agents/repo-sweep.ps1 no encontrado"
   }
