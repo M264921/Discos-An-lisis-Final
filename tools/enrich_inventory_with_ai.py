@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -23,17 +24,19 @@ def _ensure_src_on_path() -> None:
 def _load_main() -> "object":
     """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
 
-    try:
-        return import_module("discos_analisis.cli.enrich").main
-    except ModuleNotFoundError as exc:  # pragma: no cover - defensive fallback
-        if exc.name != "discos_analisis" and not exc.name.startswith("discos_analisis."):
-            raise
+    module_name = "discos_analisis.cli.enrich"
 
-        _ensure_src_on_path()
-        return import_module("discos_analisis.cli.enrich").main
+    # Ensure the development "src" tree is discoverable before attempting the import.
+    # This keeps the legacy entrypoint runnable from a fresh checkout without
+    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
+    _ensure_src_on_path()
+
+    module = importlib.import_module(module_name)
+
+    return module.main
 
 
-main = _resolve_main()
+main = _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
