@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib
 import sys
 from pathlib import Path
 from typing import Callable, Final, Optional
@@ -34,9 +33,21 @@ def _load_main() -> MainCallable:
     # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
     _ensure_src_on_path()
 
-    module = importlib.import_module(module_name)
+    try:
+        module = import_module(module_name)
+    except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
+        raise ModuleNotFoundError(
+            "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
+            "desde la raíz del repositorio."
+        ) from exc
 
-    return module.main
+    main_attr = getattr(module, "main", None)
+    if main_attr is None:
+        raise AttributeError(
+            "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
+        )
+
+    return main_attr
 
 
 # Resolve the CLI entry point at import time using the loader helper.

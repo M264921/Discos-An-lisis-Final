@@ -616,11 +616,11 @@ $aiPayload = if ($EmbedBase64 -and $aiB64) {
 
 $aiTag = ""
 if ($aiPayload) {
-  $aiTag = "<script id=\"INV_AI_B64\" type=\"application/octet-stream\" data-src=\"data/inventory_ai_annotations.json\">" +
-    [Environment]::NewLine +
-    $aiPayload +
-    [Environment]::NewLine +
-    "</script>"
+  $aiBuilder = [System.Text.StringBuilder]::new()
+  [void]$aiBuilder.AppendLine("<script id=""INV_AI_B64"" type=""application/octet-stream"" data-src=""data/inventory_ai_annotations.json"">")
+  [void]$aiBuilder.AppendLine($aiPayload)
+  [void]$aiBuilder.Append('</script>')
+  $aiTag = $aiBuilder.ToString()
 }
 
 $tpl = $tpl.Replace("__B64__", $payload)
@@ -629,7 +629,18 @@ Set-Content -Encoding UTF8 -LiteralPath $HtmlPath -Value $tpl
 Write-Host "? HTML: $HtmlPath" -ForegroundColor Green
 
 if (-not $NoOpen) {
-  Start-Process $HtmlPath
+  if ($IsWindows) {
+    Start-Process $HtmlPath
+  } elseif ($IsMacOS) {
+    Start-Process "open" -ArgumentList $HtmlPath
+  } else {
+    $xdgOpen = Get-Command xdg-open -ErrorAction SilentlyContinue
+    if ($xdgOpen) {
+      Start-Process $xdgOpen.Path -ArgumentList $HtmlPath
+    } else {
+      Write-Warning "Unable to automatically open '$HtmlPath'. Install 'xdg-open' or open the file manually."
+    }
+  }
 }
 
 
