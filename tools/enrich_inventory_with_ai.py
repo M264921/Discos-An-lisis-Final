@@ -52,8 +52,7 @@ def _load_main() -> MainCallable:
 
 
 # Resolve the CLI entry point at import time using the loader helper.
-main: Final[MainCallable]
-main = _load_main()
+main: Final[MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
