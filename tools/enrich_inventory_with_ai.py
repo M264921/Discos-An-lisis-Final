@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+from importlib import import_module
 from pathlib import Path
 from typing import Callable, Final, Optional
 
@@ -58,7 +59,7 @@ main: Final[MainCallable] = _load_main()
 def _resolve_main() -> MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
-    return _load_main()
+    return main
 
 
 if __name__ == "__main__":  # pragma: no cover
