@@ -68,7 +68,15 @@ def _load_main() -> _MainCallable:
     return main_attr
 
 
-main = _load_main()
+# Resolve the CLI entry point at import time using the loader helper.
+main: Final[MainCallable] = _load_main()
+
+
+# Keep a compatibility helper for callers that previously imported `_resolve_main`.
+def _resolve_main() -> MainCallable:
+    """Compatibility shim for legacy callers expecting the old helper name."""
+
+    return main
 
 
 if __name__ == "__main__":  # pragma: no cover
