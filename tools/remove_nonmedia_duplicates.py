@@ -15,6 +15,7 @@ NON_MEDIA_EXTS = {
     'mta'
 }
 
+
 def add_long_prefix(path: str) -> str:
     prefix = "\\\\?\\"
     if path.startswith(prefix):
@@ -22,6 +23,7 @@ def add_long_prefix(path: str) -> str:
     if os.name == 'nt' and len(path) > 240 and path[1:3] == ':\\':
         return prefix + path
     return path
+
 
 def remove_paths(csv_path: Path, log_path: Path, drives=None) -> int:
     drives = {d.upper() for d in drives} if drives else None

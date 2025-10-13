@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E203, W503
+per-file-ignores =
+    tools/generate_duplicates_table.py:E501
+    tools/reindex_hij.py:E501
+    tools/remove_nonmedia_duplicates.py:E501
+exclude = .git,.venv,venv,docs,releases
