@@ -13,7 +13,6 @@ from typing import Final
 
 
 _ENTRYPOINT: Final[str] = "discos_analisis.cli.enrich"
-_ENTRYPOINT = "discos_analisis.cli.enrich"
 
 
 _MainCallable = Callable[[], int | None]
@@ -38,12 +37,18 @@ def _ensure_src_on_path() -> Path | None:
     # relativas desde carpetas externas.
     for parent in (script_path.parent, *script_path.parents):
         src_root = parent / "src"
-        if src_root.exists():
-            src_path = str(src_root)
-            if src_path not in sys.path:
-                sys.path.insert(0, src_path)
+        if not src_root.exists():
+            continue
 
-            return src_root
+        package_root = src_root / "discos_analisis"
+        if not package_root.exists():
+            continue
+
+        src_path = str(src_root)
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+
+        return src_root
 
     return None
 
@@ -85,10 +90,8 @@ def _load_main() -> _MainCallable:
     return main_attr
 
 
-# Resolve the CLI entry point at import time using the new `_load_main` helper.
-main: Final[MainCallable] = _load_main()
 # Resolve the CLI entry point at import time using the loader helper.
-main: Final[_MainCallable] = _load_main()
+main: Final[MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
