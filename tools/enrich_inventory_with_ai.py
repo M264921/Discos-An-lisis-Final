@@ -37,7 +37,7 @@ def _load_main() -> "object":
     return module.main
 
 
-main = _resolve_main()
+main = _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
