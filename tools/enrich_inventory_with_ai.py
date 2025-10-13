@@ -4,8 +4,13 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
+from types import ModuleType
+
+
+_MainCallable = Callable[[], int | None]
 
 
 def _ensure_src_on_path() -> None:
@@ -20,18 +25,18 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, src_path)
 
 
-def _load_main() -> "object":
-    """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
+def _load_main() -> _MainCallable:
+    """Load ``discos_analisis.cli.enrich.main`` supporting editable checkouts."""
 
     module_name = "discos_analisis.cli.enrich"
 
-    # Ensure the development "src" tree is discoverable before attempting the import.
-    # This keeps the legacy entrypoint runnable from a fresh checkout without
-    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
+    # Ensure the development ``src`` tree is discoverable before attempting the
+    # import. This keeps the legacy entrypoint runnable from a fresh checkout
+    # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
     _ensure_src_on_path()
 
     try:
-        module = import_module(module_name)
+        module: ModuleType = import_module(module_name)
     except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
         raise ModuleNotFoundError(
             "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
@@ -39,7 +44,7 @@ def _load_main() -> "object":
         ) from exc
 
     main_attr = getattr(module, "main", None)
-    if main_attr is None:
+    if not isinstance(main_attr, Callable):
         raise AttributeError(
             "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
         )
