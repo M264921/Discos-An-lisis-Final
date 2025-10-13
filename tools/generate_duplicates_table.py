@@ -10,7 +10,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, List, Tuple
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -545,10 +545,10 @@ footer {{
 <div class="legend">
   <h2>Cómo leer las rutas</h2>
   <ul>
-    <li><strong>H:\_quarantine_from_HIJ\*</strong> — cuarentena común antes de decidir el destino final.</li>
-    <li><strong>H:\offload\...</strong> — volcados rápidos para liberar espacio sin perder respaldo.</li>
+    <li><strong>H:&#92;_quarantine_from_HIJ&#92;*</strong> — cuarentena común antes de decidir el destino final.</li>
+    <li><strong>H:&#92;offload&#92;...</strong> — volcados rápidos para liberar espacio sin perder respaldo.</li>
     <li><strong>_quarantine_from_H / _quarantine_from_I</strong> — indican la unidad de origen del fichero.</li>
-    <li><code>\migrated</code> — lotes ya revisados listos para archivar o compartir.</li>
+    <li><code>&#92;migrated</code> — lotes ya revisados listos para archivar o compartir.</li>
     <li><code>media_final</code> — biblioteca curada; toca moverla sólo tras validarlo con la familia.</li>
   </ul>
 </div>
@@ -965,5 +965,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
-

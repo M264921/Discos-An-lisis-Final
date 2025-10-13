@@ -20,44 +20,41 @@ _MainCallable = Callable[[], int | None]
 MainCallable = _MainCallable
 
 
-@lru_cache(maxsize=1)
-def _ensure_src_on_path() -> Path | None:
-    """Ensure the development ``src`` tree is importable.
+def _safe_resolve(entry: str) -> Path | None:
+    """Resolve a ``sys.path`` entry defensively."""
 
-    Returns the path that was added so callers can include it in error
-    diagnostics when the import still fails (for example if the package was
-    renamed).
-    """
-
-    script_path = Path(__file__).resolve()
-
-    # Soportar ejecuciones fuera de ``RepoRoot`` buscando el árbol ``src`` al
-    # lado del directorio ``tools``. Esto cubre ``python tools/...`` y también
-    # ``python path/to/repo/tools/...`` cuando se invoca desde otra carpeta.
-    src_root = (repo_root / "src").resolve()
-    if not src_root.exists():
+    try:
+        return Path(entry).resolve()
+    except (OSError, RuntimeError):  # pragma: no cover - defensive
         return None
 
-    # Evitar duplicados normales comparando rutas absolutas en ``sys.path``.
-    normalized_sys_path = {Path(entry).resolve() for entry in sys.path}
-    if src_root not in normalized_sys_path:
-        sys.path.insert(0, str(src_root))
-    # Buscar el árbol ``src`` partiendo del directorio del script y subiendo
-    # en la jerarquía. Esto soporta ejecuciones como ``python tools/...`` desde
-    # la raíz del repositorio y también llamadas con rutas absolutas o
-    # relativas desde carpetas externas.
-    for parent in (script_path.parent, *script_path.parents):
-        src_root = parent / "src"
+
+@lru_cache(maxsize=1)
+def _ensure_src_on_path() -> Path | None:
+    """Ensure the development ``src`` tree is importable."""
+
+    script_path = Path(__file__).resolve()
+    tools_dir = script_path.parent
+
+    candidate_roots: list[Path] = []
+    # Consider the expected repo layout first (``tools/`` sibling of ``src/``).
+    candidate_roots.append(tools_dir.parent / "src")
+    # Include every ancestor of ``tools/`` in case the repo is symlinked.
+    candidate_roots.extend(parent / "src" for parent in tools_dir.parents)
+
+    normalized_sys_path = {
+        resolved
+        for entry in sys.path
+        if (resolved := _safe_resolve(entry)) is not None
+    }
+
+    for src_root in candidate_roots:
         if not src_root.exists():
             continue
 
-        package_root = src_root / "discos_analisis"
-        if not package_root.exists():
-            continue
-
-        src_path = str(src_root)
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
+        if src_root not in normalized_sys_path:
+            sys.path.insert(0, str(src_root))
+            normalized_sys_path.add(src_root)
 
         return src_root
 
@@ -70,9 +67,6 @@ _SRC_ROOT = _ensure_src_on_path()
 def _load_main() -> _MainCallable:
     """Load ``discos_analisis.cli.enrich.main`` supporting editable checkouts."""
 
-    # Ensure the development ``src`` tree is discoverable before attempting the
-    # import. This keeps the legacy entrypoint runnable from a fresh checkout
-    # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
     src_root = _ensure_src_on_path() or _SRC_ROOT
 
     try:
@@ -93,7 +87,7 @@ def _load_main() -> _MainCallable:
             "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
         )
 
-    if not callable(main_attr):
+    if not callable(main_attr):  # pragma: no cover - defensive
         raise TypeError(
             "El atributo 'main' de 'discos_analisis.cli.enrich' no es invocable."
         )
@@ -101,12 +95,6 @@ def _load_main() -> _MainCallable:
     return main_attr
 
 
-# Resolve the CLI entry point at import time using the loader helper.
-# Resolve the CLI entry point at import time using the new `_load_main` helper.
-main: Final[MainCallable] = _load_main()
-# Resolve the CLI entry point at import time using the new ``_load_main`` helper
-# so importing this module never references the removed ``_resolve_main`` symbol
-# and therefore avoids a ``NameError`` during import.
 main: Final[_MainCallable] = _load_main()
 
 
@@ -120,5 +108,5 @@ def _resolve_main() -> _MainCallable:
 if __name__ == "__main__":  # pragma: no cover
     try:
         raise SystemExit(main())
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # pragma: no cover - user abort
         raise SystemExit(130)
