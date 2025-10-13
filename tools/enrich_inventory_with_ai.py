@@ -21,7 +21,13 @@ def _ensure_src_on_path() -> Path | None:
     renamed).
     """
 
-    src_root = Path(__file__).resolve().parents[1] / "src"
+    script_path = Path(__file__).resolve()
+    repo_root = script_path.parents[1]
+
+    # Soportar ejecuciones fuera de ``RepoRoot`` buscando el árbol ``src`` al
+    # lado del directorio ``tools``. Esto cubre ``python tools/...`` y también
+    # ``python path/to/repo/tools/...`` cuando se invoca desde otra carpeta.
+    src_root = repo_root / "src"
     if not src_root.exists():
         return None
 
@@ -32,6 +38,9 @@ def _ensure_src_on_path() -> Path | None:
     return src_root
 
 
+_SRC_ROOT = _ensure_src_on_path()
+
+
 def _load_main() -> _MainCallable:
     """Load ``discos_analisis.cli.enrich.main`` supporting editable checkouts."""
 
@@ -40,7 +49,7 @@ def _load_main() -> _MainCallable:
     # Ensure the development ``src`` tree is discoverable before attempting the
     # import. This keeps the legacy entrypoint runnable from a fresh checkout
     # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
-    src_root = _ensure_src_on_path()
+    src_root = _SRC_ROOT or _ensure_src_on_path()
 
     try:
         module: ModuleType = import_module(module_name)
