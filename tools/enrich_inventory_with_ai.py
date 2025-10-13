@@ -33,7 +33,7 @@ def _load_main() -> "object":
         return import_module("discos_analisis.cli.enrich").main
 
 
-main = _resolve_main()
+main = _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
