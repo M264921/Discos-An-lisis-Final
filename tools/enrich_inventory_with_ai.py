@@ -22,7 +22,9 @@ def _ensure_src_on_path() -> None:
 
 
 def _load_main() -> "object":
-    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
+    """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
+
+    _ensure_src_on_path()
 
     module_name = "discos_analisis.cli.enrich"
 
@@ -33,7 +35,10 @@ def _load_main() -> "object":
 
     module = importlib.import_module(module_name)
 
-    return module.main
+        raise ModuleNotFoundError(
+            "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
+            "desde la raíz del repositorio."
+        ) from exc
 
 
 main = _load_main()
