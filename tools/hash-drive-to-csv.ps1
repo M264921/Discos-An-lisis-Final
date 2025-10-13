@@ -118,7 +118,29 @@ foreach ($item in (Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -
   }
 }
 
-$rows | Export-Csv -NoTypeInformation -Encoding UTF8 $OutCsv
-Write-Host ("CSV listo: {0} ({1} filas)" -f $OutCsv, $rows.Count) -ForegroundColor Green
+$SafeVolumeName = $Drive -replace '[\\/:"*?<>|]', '_'
+$SafeVolumeName = $SafeVolumeName.Trim('_')
+if ([string]::IsNullOrWhiteSpace($SafeVolumeName)) { $SafeVolumeName = 'drive' }
+
+$targetOutCsv = $OutCsv
+$treatAsDirectory = $false
+if ($targetOutCsv.EndsWith('\\') -or $targetOutCsv.EndsWith('/')) {
+  $treatAsDirectory = $true
+}
+if (-not $treatAsDirectory) {
+  $isExistingDirectory = Test-Path -LiteralPath $targetOutCsv -PathType Container -ErrorAction SilentlyContinue
+  if ($isExistingDirectory) { $treatAsDirectory = $true }
+}
+if ($treatAsDirectory) {
+  $targetOutCsv = Join-Path $targetOutCsv ("scan_{0}.csv" -f $SafeVolumeName)
+}
+
+$targetDirectory = Split-Path -Parent $targetOutCsv
+if (-not [string]::IsNullOrWhiteSpace($targetDirectory)) {
+  New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+}
+
+$rows | Export-Csv -NoTypeInformation -Encoding UTF8 $targetOutCsv
+Write-Host ("CSV listo: {0} ({1} filas)" -f $targetOutCsv, $rows.Count) -ForegroundColor Green
 
 if ($hasher) { $hasher.Dispose() }
