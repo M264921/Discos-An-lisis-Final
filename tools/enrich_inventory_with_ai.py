@@ -82,8 +82,7 @@ def _load_main() -> _MainCallable:
 # Resolve the CLI entry point at import time using the new ``_load_main`` helper
 # so importing this module no longer references the removed ``_resolve_main``
 # symbol and therefore avoids a ``NameError`` during import.
-main: Final[_MainCallable]
-main = _load_main()
+main: Final[_MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
