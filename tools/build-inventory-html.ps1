@@ -617,7 +617,7 @@ $aiPayload = if ($EmbedBase64 -and $aiB64) {
 $aiTag = ""
 if ($aiPayload) {
   $aiBuilder = [System.Text.StringBuilder]::new()
-  [void]$aiBuilder.AppendLine("<script id=`"INV_AI_B64`" type=`"application/octet-stream`" data-src=`"data/inventory_ai_annotations.json`">")
+  [void]$aiBuilder.AppendLine("<script id=\"INV_AI_B64\" type=\"application/octet-stream\" data-src=\"data/inventory_ai_annotations.json\">")
   [void]$aiBuilder.AppendLine($aiPayload)
   [void]$aiBuilder.Append('</script>')
   $aiTag = $aiBuilder.ToString()
