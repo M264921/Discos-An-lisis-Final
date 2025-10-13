@@ -8,6 +8,7 @@ from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
 from types import ModuleType
+from typing import Final
 
 
 _MainCallable = Callable[[], int | None]
@@ -78,11 +79,11 @@ def _load_main() -> _MainCallable:
 
 
 # Resolve the CLI entry point at import time using the loader helper.
-main: Final[MainCallable] = _load_main()
+main: Final[_MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
-def _resolve_main() -> MainCallable:
+def _resolve_main() -> _MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
     return main
