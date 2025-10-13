@@ -49,6 +49,11 @@ def _load_main() -> _MainCallable:
             "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
         )
 
+    if not callable(main_attr):
+        raise TypeError(
+            "El atributo 'main' de 'discos_analisis.cli.enrich' no es invocable."
+        )
+
     return main_attr
 
 
