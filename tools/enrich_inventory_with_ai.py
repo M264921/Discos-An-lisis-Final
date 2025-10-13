@@ -31,20 +31,21 @@ def _ensure_src_on_path() -> Path | None:
     """
 
     script_path = Path(__file__).resolve()
-    repo_root = script_path.parents[1]
 
-    # Soportar ejecuciones fuera de ``RepoRoot`` buscando el árbol ``src`` al
-    # lado del directorio ``tools``. Esto cubre ``python tools/...`` y también
-    # ``python path/to/repo/tools/...`` cuando se invoca desde otra carpeta.
-    src_root = repo_root / "src"
-    if not src_root.exists():
-        return None
+    # Buscar el árbol ``src`` partiendo del directorio del script y subiendo
+    # en la jerarquía. Esto soporta ejecuciones como ``python tools/...`` desde
+    # la raíz del repositorio y también llamadas con rutas absolutas o
+    # relativas desde carpetas externas.
+    for parent in (script_path.parent, *script_path.parents):
+        src_root = parent / "src"
+        if src_root.exists():
+            src_path = str(src_root)
+            if src_path not in sys.path:
+                sys.path.insert(0, src_path)
 
-    src_path = str(src_root)
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
+            return src_root
 
-    return src_root
+    return None
 
 
 _SRC_ROOT = _ensure_src_on_path()
