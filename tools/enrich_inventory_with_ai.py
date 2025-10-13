@@ -20,8 +20,8 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, src_path)
 
 
-def _resolve_main():
-    """Import the CLI entry point, adding ``src`` to ``sys.path`` as needed."""
+def _load_main() -> "object":
+    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
 
     _ensure_src_on_path()
     try:
