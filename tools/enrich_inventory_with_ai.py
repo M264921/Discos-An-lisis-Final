@@ -37,6 +37,7 @@ def _load_main() -> "object":
     return module.main
 
 
+# Resolve the CLI entry point at import time to mirror the legacy shim behaviour.
 main = _load_main()
 
 
