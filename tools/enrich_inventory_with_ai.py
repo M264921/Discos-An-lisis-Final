@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys
 from importlib import import_module
 from pathlib import Path
+from typing import Callable
 
 
 def _ensure_src_on_path() -> None:
@@ -20,15 +21,13 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, src_path)
 
 
-def _load_main() -> "object":
+_ensure_src_on_path()
+
+
+def _load_main() -> Callable[..., int]:
     """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
 
     module_name = "discos_analisis.cli.enrich"
-
-    # Ensure the development "src" tree is discoverable before attempting the import.
-    # This keeps the legacy entrypoint runnable from a fresh checkout without
-    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
-    _ensure_src_on_path()
 
     try:
         module = import_module(module_name)
@@ -42,6 +41,11 @@ def _load_main() -> "object":
     if main_attr is None:
         raise AttributeError(
             "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
+        )
+
+    if not callable(main_attr):
+        raise TypeError(
+            "El atributo 'main' de 'discos_analisis.cli.enrich' no es invocable."
         )
 
     return main_attr
