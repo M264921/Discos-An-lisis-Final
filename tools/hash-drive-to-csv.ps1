@@ -48,6 +48,50 @@ if ([string]::IsNullOrWhiteSpace($OutCsv)) {
   $OutCsv = "docs\inventory\scan_{0}.csv" -f ([char]::ToUpper($letter))
 }
 
+$SafeVolumeName = $Drive -replace '[\\/:"*?<>|]', '_'
+$SafeVolumeName = $SafeVolumeName.Trim('_')
+if ([string]::IsNullOrWhiteSpace($SafeVolumeName)) { $SafeVolumeName = 'drive' }
+
+function Get-DriveIdentifier {
+  param(
+    [string]$Path,
+    [string]$SafeToken
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($Path)) {
+    $trimmed = $Path.Trim()
+    if ($trimmed -match '^[A-Za-z]:') {
+      return $trimmed.Substring(0, 2).ToUpperInvariant()
+    }
+
+    $qualifier = $null
+    try {
+      $qualifier = Split-Path -Path $trimmed -Qualifier -ErrorAction Stop
+    } catch {
+      $qualifier = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($qualifier)) {
+      if ($qualifier -match '^[A-Za-z]:') {
+        return $qualifier.Substring(0, 2).ToUpperInvariant()
+      }
+
+      $sanitizedQualifier = ($qualifier -replace '[\\/:"*?<>|]', '_').Trim('_')
+      if (-not [string]::IsNullOrWhiteSpace($sanitizedQualifier)) {
+        return $sanitizedQualifier.ToUpperInvariant()
+      }
+    }
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($SafeToken)) {
+    return $SafeToken.ToUpperInvariant()
+  }
+
+  return 'DRIVE'
+}
+
+$driveIdentifier = Get-DriveIdentifier -Path $drivePath -SafeToken $SafeVolumeName
+
 $progressEvery = 500
 $heartbeat = 2000
 $rows = New-Object System.Collections.Generic.List[object]
@@ -94,11 +138,7 @@ foreach ($item in (Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -
     }
   }
 
-  $unit = $drivePath.Substring(0, [Math]::Min(2, $drivePath.Length)).TrimEnd('\')
-  if (-not $unit.EndsWith(':')) {
-    $unit = ($unit.TrimEnd(':')) + ':'
-  }
-  $unit = $unit.ToUpperInvariant()
+  $unit = $driveIdentifier
 
   $rows.Add([pscustomobject]@{
     sha        = $sha
@@ -117,10 +157,6 @@ foreach ($item in (Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -
     Write-Host ("  Procesados: {0:n0} | Tiempo: {1:c} | Velocidad: {2}" -f $count, $stopwatch.Elapsed, $rate)
   }
 }
-
-$SafeVolumeName = $Drive -replace '[\\/:"*?<>|]', '_'
-$SafeVolumeName = $SafeVolumeName.Trim('_')
-if ([string]::IsNullOrWhiteSpace($SafeVolumeName)) { $SafeVolumeName = 'drive' }
 
 $targetOutCsv = $OutCsv
 $treatAsDirectory = $false
