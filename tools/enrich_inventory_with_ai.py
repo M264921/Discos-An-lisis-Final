@@ -87,7 +87,7 @@ main: Final[_MainCallable] = _load_main()
 def _resolve_main() -> _MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
-    return main
+    return _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
