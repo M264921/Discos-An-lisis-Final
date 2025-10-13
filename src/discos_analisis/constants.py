@@ -1,0 +1,53 @@
+"""Constantes compartidas del paquete discos_analisis."""
+
+DEFAULT_EXTENSIONS = {
+    ".txt",
+    ".md",
+    ".rst",
+    ".log",
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".csv",
+    ".tsv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".xml",
+    ".html",
+    ".htm",
+    ".css",
+    ".js",
+    ".ts",
+    ".py",
+    ".ps1",
+    ".psm1",
+    ".bat",
+    ".cmd",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".sql",
+    ".java",
+    ".cs",
+    ".cpp",
+    ".c",
+    ".h",
+    ".hpp",
+    ".rb",
+    ".php",
+    ".go",
+    ".rs",
+}
+
+DEFAULT_CATEGORIES = [
+    "documento",
+    "codigo",
+    "backup",
+    "informe",
+    "multimedia",
+    "personal",
+    "otro",
+]
+
+__all__ = ["DEFAULT_EXTENSIONS", "DEFAULT_CATEGORIES"]
