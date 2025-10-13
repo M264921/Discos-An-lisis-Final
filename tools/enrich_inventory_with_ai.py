@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -24,8 +23,6 @@ def _ensure_src_on_path() -> None:
 def _load_main() -> "object":
     """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
 
-    _ensure_src_on_path()
-
     module_name = "discos_analisis.cli.enrich"
 
     # Ensure the development "src" tree is discoverable before attempting the import.
@@ -33,11 +30,19 @@ def _load_main() -> "object":
     # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
     _ensure_src_on_path()
 
-    module = importlib.import_module(module_name)
-
+    try:
+        module = import_module(module_name)
+    except ModuleNotFoundError as exc:  # pragma: no cover - defensive shim
         raise ModuleNotFoundError(
             "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
             "desde la raíz del repositorio."
+        ) from exc
+
+    try:
+        return module.main
+    except AttributeError as exc:  # pragma: no cover - defensive shim
+        raise RuntimeError(
+            "El módulo 'discos_analisis.cli.enrich' no expone un callable `main`."
         ) from exc
 
 
