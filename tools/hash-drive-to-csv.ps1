@@ -81,14 +81,16 @@ foreach ($item in (Get-ChildItem -LiteralPath $drivePath -Recurse -Force -File -
 
   $sha = ""
   if ($computeHash -and $hasher) {
+    $stream = $null
     try {
       $stream = $item.OpenRead()
       $hashBytes = $hasher.ComputeHash($stream)
-      $stream.Dispose()
       $sha = -join ($hashBytes | ForEach-Object { $_.ToString("x2") })
       $sha = $sha.ToUpperInvariant()
     } catch {
       Write-Warning ("No se pudo hashear {0}: {1}" -f $item.FullName, $_.Exception.Message)
+    } finally {
+      if ($stream) { $stream.Dispose() }
     }
   }
 
