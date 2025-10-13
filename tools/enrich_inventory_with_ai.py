@@ -11,6 +11,9 @@ from types import ModuleType
 from typing import Final
 
 
+_ENTRYPOINT: Final[str] = "discos_analisis.cli.enrich"
+
+
 _MainCallable = Callable[[], int | None]
 # Exported for compatibility with legacy callers that imported ``MainCallable``.
 MainCallable = _MainCallable
