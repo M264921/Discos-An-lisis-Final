@@ -13,6 +13,7 @@ from typing import Final
 
 
 _ENTRYPOINT: Final[str] = "discos_analisis.cli.enrich"
+_ENTRYPOINT = "discos_analisis.cli.enrich"
 
 
 _MainCallable = Callable[[], int | None]
@@ -83,6 +84,8 @@ def _load_main() -> _MainCallable:
     return main_attr
 
 
+# Resolve the CLI entry point at import time using the new `_load_main` helper.
+main: Final[MainCallable] = _load_main()
 # Resolve the CLI entry point at import time using the loader helper.
 main: Final[_MainCallable] = _load_main()
 
@@ -91,7 +94,7 @@ main: Final[_MainCallable] = _load_main()
 def _resolve_main() -> _MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
-    return main
+    return _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
