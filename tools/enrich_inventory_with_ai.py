@@ -4,48 +4,76 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
-from typing import Callable, Final, Optional
+from types import ModuleType
+from typing import Final
 
 
-def _ensure_src_on_path() -> None:
-    """Add the repository ``src`` directory to ``sys.path`` when available."""
+_ENTRYPOINT = "discos_analisis.cli.enrich"
 
-    src_root = Path(__file__).resolve().parents[1] / "src"
+
+_MainCallable = Callable[[], int | None]
+
+
+def _ensure_src_on_path() -> Path | None:
+    """Ensure the development ``src`` tree is importable.
+
+    Returns the path that was added so callers can include it in error
+    diagnostics when the import still fails (for example if the package was
+    renamed).
+    """
+
+    script_path = Path(__file__).resolve()
+    repo_root = script_path.parents[1]
+
+    # Soportar ejecuciones fuera de ``RepoRoot`` buscando el árbol ``src`` al
+    # lado del directorio ``tools``. Esto cubre ``python tools/...`` y también
+    # ``python path/to/repo/tools/...`` cuando se invoca desde otra carpeta.
+    src_root = repo_root / "src"
     if not src_root.exists():
-        return
+        return None
 
     src_path = str(src_root)
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
 
+    return src_root
 
-MainCallable = Callable[[], Optional[int]]
+
+_SRC_ROOT = _ensure_src_on_path()
 
 
-def _load_main() -> MainCallable:
-    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
+def _load_main() -> _MainCallable:
+    """Load ``discos_analisis.cli.enrich.main`` supporting editable checkouts."""
 
-    module_name = "discos_analisis.cli.enrich"
-
-    # Ensure the development "src" tree is discoverable before attempting the import.
-    # This keeps the legacy entrypoint runnable from a fresh checkout without
-    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
-    _ensure_src_on_path()
+    # Ensure the development ``src`` tree is discoverable before attempting the
+    # import. This keeps the legacy entrypoint runnable from a fresh checkout
+    # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
+    src_root = _SRC_ROOT or _ensure_src_on_path()
 
     try:
-        module = import_module(module_name)
+        module: ModuleType = import_module(_ENTRYPOINT)
     except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
+        hint = (
+            " Instala el paquete o ejecuta el script desde la raíz del repositorio."
+            if src_root is None
+            else f" Asegúrate de que {src_root} contenga el paquete 'discos_analisis'."
+        )
         raise ModuleNotFoundError(
-            "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
-            "desde la raíz del repositorio."
+            "No se pudo importar 'discos_analisis'." + hint
         ) from exc
 
     main_attr = getattr(module, "main", None)
-    if main_attr is None:
+    if not isinstance(main_attr, Callable):
         raise AttributeError(
             "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
+        )
+
+    if not callable(main_attr):
+        raise TypeError(
+            "El atributo 'main' de 'discos_analisis.cli.enrich' no es invocable."
         )
 
     return main_attr
@@ -53,10 +81,12 @@ def _load_main() -> MainCallable:
 
 # Resolve the CLI entry point at import time using the new `_load_main` helper.
 main: Final[MainCallable] = _load_main()
+# Resolve the CLI entry point at import time using the loader helper.
+main: Final[_MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
-def _resolve_main() -> MainCallable:
+def _resolve_main() -> _MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
     return _load_main()
