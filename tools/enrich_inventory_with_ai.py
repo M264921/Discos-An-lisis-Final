@@ -6,41 +6,40 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import sys
+from importlib import import_module
+from importlib.util import find_spec
 from pathlib import Path
 
 
 def _ensure_src_on_path() -> None:
-    """Insert the repository ``src`` directory into ``sys.path`` if present."""
+    """Add the repository ``src`` directory to ``sys.path`` when available."""
 
-    repo_root = Path(__file__).resolve().parents[1]
-    src_dir = repo_root / "src"
+    src_root = Path(__file__).resolve().parents[1] / "src"
+    if not src_root.exists():
+        return
 
-    if src_dir.is_dir() and str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
+    src_path = str(src_root)
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
 
 
-def _load_main() -> "object":
-    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
+def _resolve_main():
+    """Import the CLI entry point, adding ``src`` to ``sys.path`` as needed."""
 
-    module_name = "discos_analisis.cli.enrich"
-
-    if importlib.util.find_spec(module_name) is None:
+    spec = find_spec("discos_analisis")
+    if spec is None:
         _ensure_src_on_path()
+        spec = find_spec("discos_analisis")
+        if spec is None:
+            raise ModuleNotFoundError(
+                "No se pudo importar 'discos_analisis'. Instala el paquete (p. ej. `pip install -e .`) "
+                "o ejecuta este script desde el repositorio que contiene el directorio `src/`."
+            )
 
-    try:
-        module = importlib.import_module(module_name)
-    except ModuleNotFoundError as first_error:
-        if first_error.name not in {"discos_analisis", "discos_analisis.cli", "discos_analisis.cli.enrich"}:
-            raise
-
-        _ensure_src_on_path()
-
-        module = importlib.import_module(module_name)
-
-    return module.main
+    return import_module("discos_analisis.cli.enrich").main
 
 
-main = _load_main()
+main = _resolve_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
