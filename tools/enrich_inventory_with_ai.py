@@ -84,9 +84,9 @@ def _load_main() -> _MainCallable:
     return main_attr
 
 
-# Resolve the CLI entry point at import time using the new `_load_main` helper.
-main: Final[MainCallable] = _load_main()
-# Resolve the CLI entry point at import time using the loader helper.
+# Resolve the CLI entry point at import time using the new ``_load_main`` helper
+# so importing this module no longer references the removed ``_resolve_main``
+# symbol and therefore avoids a ``NameError`` during import.
 main: Final[_MainCallable] = _load_main()
 
 
@@ -94,7 +94,7 @@ main: Final[_MainCallable] = _load_main()
 def _resolve_main() -> _MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
-    return main
+    return _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
