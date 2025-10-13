@@ -32,18 +32,19 @@ def _load_main() -> "object":
 
     try:
         module = import_module(module_name)
-    except ModuleNotFoundError as exc:  # pragma: no cover - defensive shim
+    except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
         raise ModuleNotFoundError(
             "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
             "desde la raíz del repositorio."
         ) from exc
 
-    try:
-        return module.main
-    except AttributeError as exc:  # pragma: no cover - defensive shim
-        raise RuntimeError(
-            "El módulo 'discos_analisis.cli.enrich' no expone un callable `main`."
-        ) from exc
+    main_attr = getattr(module, "main", None)
+    if main_attr is None:
+        raise AttributeError(
+            "El módulo 'discos_analisis.cli.enrich' no expone un callable 'main'."
+        )
+
+    return main_attr
 
 
 main = _load_main()
