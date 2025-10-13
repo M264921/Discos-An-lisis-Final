@@ -11,10 +11,9 @@ from types import ModuleType
 from typing import Final
 
 
-_ENTRYPOINT = "discos_analisis.cli.enrich"
-
-
 _MainCallable = Callable[[], int | None]
+# Exported for compatibility with legacy callers that imported ``MainCallable``.
+MainCallable = _MainCallable
 
 
 def _ensure_src_on_path() -> Path | None:
@@ -51,7 +50,7 @@ def _load_main() -> _MainCallable:
     # Ensure the development ``src`` tree is discoverable before attempting the
     # import. This keeps the legacy entrypoint runnable from a fresh checkout
     # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
-    src_root = _SRC_ROOT or _ensure_src_on_path()
+    src_root = _ensure_src_on_path() or _SRC_ROOT
 
     try:
         module: ModuleType = import_module(_ENTRYPOINT)
