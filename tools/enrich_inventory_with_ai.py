@@ -3,11 +3,8 @@
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
 import sys
 from importlib import import_module
-from importlib.util import find_spec
 from pathlib import Path
 
 
@@ -26,17 +23,14 @@ def _ensure_src_on_path() -> None:
 def _resolve_main():
     """Import the CLI entry point, adding ``src`` to ``sys.path`` as needed."""
 
-    spec = find_spec("discos_analisis")
-    if spec is None:
-        _ensure_src_on_path()
-        spec = find_spec("discos_analisis")
-        if spec is None:
-            raise ModuleNotFoundError(
-                "No se pudo importar 'discos_analisis'. Instala el paquete (p. ej. `pip install -e .`) "
-                "o ejecuta este script desde el repositorio que contiene el directorio `src/`."
-            )
+    try:
+        return import_module("discos_analisis.cli.enrich").main
+    except ModuleNotFoundError as exc:  # pragma: no cover - defensive fallback
+        if exc.name != "discos_analisis" and not exc.name.startswith("discos_analisis."):
+            raise
 
-    return import_module("discos_analisis.cli.enrich").main
+        _ensure_src_on_path()
+        return import_module("discos_analisis.cli.enrich").main
 
 
 main = _resolve_main()
