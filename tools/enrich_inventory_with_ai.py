@@ -13,16 +13,27 @@ from types import ModuleType
 _MainCallable = Callable[[], int | None]
 
 
+def _iter_candidate_src_dirs() -> list[Path]:
+    """Return ``src`` directories discovered while walking up from this file."""
+
+    resolved = Path(__file__).resolve()
+    candidates: list[Path] = []
+    for parent in resolved.parents:
+        candidate = parent / "src"
+        if candidate.exists() and candidate.is_dir():
+            candidates.append(candidate)
+    return candidates
+
+
 def _ensure_src_on_path() -> None:
     """Add the repository ``src`` directory to ``sys.path`` when available."""
 
-    src_root = Path(__file__).resolve().parents[1] / "src"
-    if not src_root.exists():
-        return
-
-    src_path = str(src_root)
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
+    for candidate in _iter_candidate_src_dirs():
+        src_path = str(candidate)
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+        # Once we've added the first matching ``src`` directory we can stop.
+        break
 
 
 def _load_main() -> _MainCallable:
