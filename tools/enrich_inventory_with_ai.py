@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
+from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
 from types import ModuleType
@@ -19,6 +20,7 @@ _MainCallable = Callable[[], int | None]
 MainCallable = _MainCallable
 
 
+@lru_cache(maxsize=1)
 def _ensure_src_on_path() -> Path | None:
     """Ensure the development ``src`` tree is importable.
 
