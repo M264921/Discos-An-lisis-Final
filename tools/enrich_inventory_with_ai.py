@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Callable, Final, Optional
 
 
 def _ensure_src_on_path() -> None:
@@ -19,8 +20,11 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, src_path)
 
 
-def _load_main() -> "object":
-    """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
+MainCallable = Callable[[], Optional[int]]
+
+
+def _load_main() -> MainCallable:
+    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
 
     module_name = "discos_analisis.cli.enrich"
 
@@ -47,14 +51,14 @@ def _load_main() -> "object":
 
 
 # Resolve the CLI entry point at import time using the loader helper.
-main = _load_main()
+main: Final[MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
-def _resolve_main() -> "object":
+def _resolve_main() -> MainCallable:
     """Compatibility shim for legacy callers expecting the old helper name."""
 
-    return main
+    return _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
