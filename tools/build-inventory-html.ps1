@@ -629,7 +629,18 @@ Set-Content -Encoding UTF8 -LiteralPath $HtmlPath -Value $tpl
 Write-Host "? HTML: $HtmlPath" -ForegroundColor Green
 
 if (-not $NoOpen) {
-  Start-Process $HtmlPath
+  if ($IsWindows) {
+    Start-Process $HtmlPath
+  } elseif ($IsMacOS) {
+    Start-Process "open" -ArgumentList $HtmlPath
+  } else {
+    $xdgOpen = Get-Command xdg-open -ErrorAction SilentlyContinue
+    if ($xdgOpen) {
+      Start-Process $xdgOpen.Path -ArgumentList $HtmlPath
+    } else {
+      Write-Warning "Unable to automatically open '$HtmlPath'. Install 'xdg-open' or open the file manually."
+    }
+  }
 }
 
 
