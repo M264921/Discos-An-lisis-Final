@@ -51,7 +51,7 @@ def _load_main() -> MainCallable:
     return main_attr
 
 
-# Resolve the CLI entry point at import time using the loader helper.
+# Resolve the CLI entry point at import time using the new `_load_main` helper.
 main: Final[MainCallable] = _load_main()
 
 
