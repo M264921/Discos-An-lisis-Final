@@ -21,7 +21,9 @@ def _ensure_src_on_path() -> None:
 
 
 def _load_main() -> "object":
-    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
+    """Load `discos_analisis.cli.enrich.main` supporting editable checkouts."""
+
+    _ensure_src_on_path()
 
     try:
         return import_module("discos_analisis.cli.enrich").main
@@ -29,11 +31,13 @@ def _load_main() -> "object":
         if exc.name != "discos_analisis" and not exc.name.startswith("discos_analisis."):
             raise
 
-        _ensure_src_on_path()
-        return import_module("discos_analisis.cli.enrich").main
+        raise ModuleNotFoundError(
+            "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
+            "desde la raíz del repositorio."
+        ) from exc
 
 
-main = _resolve_main()
+main = _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
