@@ -13,27 +13,23 @@ from types import ModuleType
 _MainCallable = Callable[[], int | None]
 
 
-def _iter_candidate_src_dirs() -> list[Path]:
-    """Return ``src`` directories discovered while walking up from this file."""
+def _ensure_src_on_path() -> Path | None:
+    """Ensure the development ``src`` tree is importable.
 
-    resolved = Path(__file__).resolve()
-    candidates: list[Path] = []
-    for parent in resolved.parents:
-        candidate = parent / "src"
-        if candidate.exists() and candidate.is_dir():
-            candidates.append(candidate)
-    return candidates
+    Returns the path that was added so callers can include it in error
+    diagnostics when the import still fails (for example if the package was
+    renamed).
+    """
 
+    src_root = Path(__file__).resolve().parents[1] / "src"
+    if not src_root.exists():
+        return None
 
-def _ensure_src_on_path() -> None:
-    """Add the repository ``src`` directory to ``sys.path`` when available."""
+    src_path = str(src_root)
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
 
-    for candidate in _iter_candidate_src_dirs():
-        src_path = str(candidate)
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
-        # Once we've added the first matching ``src`` directory we can stop.
-        break
+    return src_root
 
 
 def _load_main() -> _MainCallable:
@@ -44,14 +40,18 @@ def _load_main() -> _MainCallable:
     # Ensure the development ``src`` tree is discoverable before attempting the
     # import. This keeps the legacy entrypoint runnable from a fresh checkout
     # without requiring ``pip install -e .`` or manual ``PYTHONPATH`` tweaks.
-    _ensure_src_on_path()
+    src_root = _ensure_src_on_path()
 
     try:
         module: ModuleType = import_module(module_name)
     except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
+        hint = (
+            " Instala el paquete o ejecuta el script desde la raíz del repositorio."
+            if src_root is None
+            else f" Asegúrate de que {src_root} contenga el paquete 'discos_analisis'."
+        )
         raise ModuleNotFoundError(
-            "No se pudo importar 'discos_analisis'. Instala el paquete o ejecuta el script "
-            "desde la raíz del repositorio."
+            "No se pudo importar 'discos_analisis'." + hint
         ) from exc
 
     main_attr = getattr(module, "main", None)
