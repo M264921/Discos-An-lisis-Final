@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import sys
-from importlib import import_module
 from pathlib import Path
 
 
@@ -47,7 +46,15 @@ def _load_main() -> "object":
     return main_attr
 
 
+# Resolve the CLI entry point at import time using the loader helper.
 main = _load_main()
+
+
+# Keep a compatibility helper for callers that previously imported `_resolve_main`.
+def _resolve_main() -> "object":
+    """Compatibility shim for legacy callers expecting the old helper name."""
+
+    return main
 
 
 if __name__ == "__main__":  # pragma: no cover
