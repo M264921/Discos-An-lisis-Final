@@ -13,7 +13,6 @@ from typing import Final
 
 
 _ENTRYPOINT: Final[str] = "discos_analisis.cli.enrich"
-_ENTRYPOINT = "discos_analisis.cli.enrich"
 
 
 _MainCallable = Callable[[], int | None]
@@ -36,13 +35,14 @@ def _ensure_src_on_path() -> Path | None:
     # Soportar ejecuciones fuera de ``RepoRoot`` buscando el árbol ``src`` al
     # lado del directorio ``tools``. Esto cubre ``python tools/...`` y también
     # ``python path/to/repo/tools/...`` cuando se invoca desde otra carpeta.
-    src_root = repo_root / "src"
+    src_root = (repo_root / "src").resolve()
     if not src_root.exists():
         return None
 
-    src_path = str(src_root)
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
+    # Evitar duplicados normales comparando rutas absolutas en ``sys.path``.
+    normalized_sys_path = {Path(entry).resolve() for entry in sys.path}
+    if src_root not in normalized_sys_path:
+        sys.path.insert(0, str(src_root))
 
     return src_root
 
@@ -86,8 +86,6 @@ def _load_main() -> _MainCallable:
 
 # Resolve the CLI entry point at import time using the new `_load_main` helper.
 main: Final[MainCallable] = _load_main()
-# Resolve the CLI entry point at import time using the loader helper.
-main: Final[_MainCallable] = _load_main()
 
 
 # Keep a compatibility helper for callers that previously imported `_resolve_main`.
