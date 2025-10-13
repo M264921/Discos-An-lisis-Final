@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import importlib
-import importlib.util
 import sys
 from importlib import import_module
 from importlib.util import find_spec
@@ -23,20 +22,19 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, src_path)
 
 
-def _resolve_main():
-    """Import the CLI entry point, adding ``src`` to ``sys.path`` as needed."""
+def _load_main() -> "object":
+    """Load `discos_analisis.cli.enrich.main` with fallback for src layout."""
 
-    spec = find_spec("discos_analisis")
-    if spec is None:
-        _ensure_src_on_path()
-        spec = find_spec("discos_analisis")
-        if spec is None:
-            raise ModuleNotFoundError(
-                "No se pudo importar 'discos_analisis'. Instala el paquete (p. ej. `pip install -e .`) "
-                "o ejecuta este script desde el repositorio que contiene el directorio `src/`."
-            )
+    module_name = "discos_analisis.cli.enrich"
 
-    return import_module("discos_analisis.cli.enrich").main
+    # Ensure the development "src" tree is discoverable before attempting the import.
+    # This keeps the legacy entrypoint runnable from a fresh checkout without
+    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
+    _ensure_src_on_path()
+
+    module = importlib.import_module(module_name)
+
+    return module.main
 
 
 main = _resolve_main()
