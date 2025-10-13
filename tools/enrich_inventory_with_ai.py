@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import importlib
-import importlib.util
 import sys
 from pathlib import Path
 
@@ -24,18 +23,12 @@ def _load_main() -> "object":
 
     module_name = "discos_analisis.cli.enrich"
 
-    if importlib.util.find_spec(module_name) is None:
-        _ensure_src_on_path()
+    # Ensure the development "src" tree is discoverable before attempting the import.
+    # This keeps the legacy entrypoint runnable from a fresh checkout without
+    # requiring `pip install -e .` or manual `PYTHONPATH` tweaks.
+    _ensure_src_on_path()
 
-    try:
-        module = importlib.import_module(module_name)
-    except ModuleNotFoundError as first_error:
-        if first_error.name not in {"discos_analisis", "discos_analisis.cli", "discos_analisis.cli.enrich"}:
-            raise
-
-        _ensure_src_on_path()
-
-        module = importlib.import_module(module_name)
+    module = importlib.import_module(module_name)
 
     return module.main
 
