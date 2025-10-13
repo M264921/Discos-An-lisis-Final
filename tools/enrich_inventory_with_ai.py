@@ -35,14 +35,15 @@ def _load_main() -> "object":
     return module.main
 
 
-# Resolve the CLI entry point at import time using the loader helper.
-main = _load_main()
-
-
+# Keep a compatibility helper for callers that previously imported `_resolve_main`.
 def _resolve_main() -> "object":
     """Compatibility shim for legacy callers expecting the old helper name."""
 
     return _load_main()
+
+
+# Resolve the CLI entry point at import time using the loader helper.
+main = _load_main()
 
 
 if __name__ == "__main__":  # pragma: no cover
