@@ -151,6 +151,7 @@ pytest
 | `tools/dlna-helper/server.js` | Mini servicio DLNA (Node.js + HTTP/WS). |
 | `tools/agents/inventory-cleaner.ps1` | Limpia duplicados confirmados, genera HTML y tabla interactiva de duplicados. |
 | `remove_nonmedia_duplicates.py` | Script Python que **elimina permanentemente** (usa `os.remove`, sin enviar a papelera) los duplicados no multimedia listados en `dupes_confirmed.csv`; requiere Python 3 y se ejecuta desde `inventory-cleaner.ps1`. |
+| `tools/run-inventory-auto.ps1` | Ejecuta la cadena completa de inventario (hash → JSON → gzip) y ofrece ventanas emergentes para confirmar escaneo y publicación automática (`git add/commit/push`). |
 
 ---
 
