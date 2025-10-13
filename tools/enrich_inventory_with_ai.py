@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import sys
 from importlib import import_module
 from importlib.util import find_spec
