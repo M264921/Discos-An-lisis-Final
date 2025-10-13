@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-from importlib import import_module
 from pathlib import Path
 
 
@@ -36,7 +35,7 @@ def _load_main() -> "object":
     return module.main
 
 
-# Resolve the CLI entry point at import time to mirror the legacy shim behaviour.
+# Resolve the CLI entry point at import time using the loader helper.
 main = _load_main()
 
 
