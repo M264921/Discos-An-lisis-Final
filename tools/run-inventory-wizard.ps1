@@ -43,6 +43,8 @@ if (-not $IsWindows) {
 if ($PSVersionTable.PSVersion.Major -lt 7) {
   try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch {}
 }
+Write-Host "  F) Carpeta concreta (p.ej. D:\Fotos\2024)"
+$sel = Read-Host "Selecciona (p.ej. 1,3) o F"
 
 # ---------------- Rutas robustas ----------------
 $self = $MyInvocation.MyCommand.Path
