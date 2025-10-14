@@ -1,82 +1,50 @@
 [
   {
-    "sha": "8451995A462A3EE01C620C702498E1E8CC443A00EA592950CDD55F4E92ADF8F1",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00047.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 1468286,
-    "fecha": "2003-08-08T14:23:00Z"
+    "path": "K:\\DSC00047.JPG",
+    "size": 1468286,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:00Z"
   },
   {
-    "sha": "56DF60AF562E2B403CA7D1AF92B87856F3FE8794FFD22CDDECA9B5347BB7F293",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00055.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 288391,
-    "fecha": "2003-08-08T14:23:00Z"
+    "path": "K:\\DSC00055.JPG",
+    "size": 288391,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:00Z"
   },
   {
-    "sha": "CF4D2B03A2272570873FC2ED7BB085B60D86CFECA0EC4748876F1E4BA0AC2DC4",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00057.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 305889,
-    "fecha": "2003-08-08T14:23:00Z"
+    "path": "K:\\DSC00057.JPG",
+    "size": 305889,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:00Z"
   },
   {
-    "sha": "6C6F706B4459DF907D6F7E0E965D6D8435110655CC3202E5EFB8368A121CB9FA",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00058.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 335851,
-    "fecha": "2003-08-08T14:23:02Z"
+    "path": "K:\\DSC00058.JPG",
+    "size": 335851,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:02Z"
   },
   {
-    "sha": "D357C69CD5031380561CEA789158A174A7FB1D8A776D7764D3E7C3A817C95F93",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00059.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 1336610,
-    "fecha": "2003-08-08T14:23:02Z"
+    "path": "K:\\DSC00059.JPG",
+    "size": 1336610,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:02Z"
   },
   {
-    "sha": "B0BD79D6E7DD3DFBDE63C75A5A4A7E6884069B453E914A121B26CE476B3D86E9",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00060.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 1389891,
-    "fecha": "2003-08-08T14:23:02Z"
+    "path": "K:\\DSC00060.JPG",
+    "size": 1389891,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:02Z"
   },
   {
-    "sha": "7B007742A844EAA96D65656EBC4F035F3DB0273F4A8C9C75C3B73F0A5585548F",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00070.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 1299434,
-    "fecha": "2003-08-08T14:23:02Z"
+    "path": "K:\\DSC00070.JPG",
+    "size": 1299434,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:02Z"
   },
   {
-    "sha": "3FF007036E63F1CCB62FBCC08FAC1D5B4154FAD5053DA420E0F88EBF6A1FDC0C",
-    "tipo": "foto",
-    "extension": "jpg",
-    "nombre": "DSC00071.JPG",
-    "ruta": "K:\\",
-    "unidad": "K:",
-    "tamano": 1232564,
-    "fecha": "2003-08-08T14:23:02Z"
+    "path": "K:\\DSC00071.JPG",
+    "size": 1232564,
+    "ext": ".jpg",
+    "modified": "2003-08-08T14:23:02Z"
   }
 ]
