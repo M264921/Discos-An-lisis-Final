@@ -32,11 +32,9 @@ function Get-DefaultRoots {
     $reasons = @()
 
     if ($drive.DisplayRoot) {
-      $include = $false
-      $reasons += 'DisplayRoot presente'
+      $reasons += ("DisplayRoot={0}" -f $drive.DisplayRoot)
     }
     if ($drive.Free -eq $null) {
-      $include = $false
       $reasons += 'Espacio libre desconocido'
     }
     if (-not (Test-Path -LiteralPath $normalizedRoot)) {
@@ -67,10 +65,8 @@ function Get-DefaultRoots {
   foreach ($item in $report) {
     $status = if ($item.Include) { 'incluida' } else { 'omitida' }
     $freeText = if ($item.FreeGB -ne $null) { ('{0:N2} GB libres' -f $item.FreeGB) } else { 'espacio desconocido' }
-    Write-Host ("  {0}: {1} ({2}) -> {3}" -f $item.Name, $item.Root, $freeText, $status)
-    if (-not $item.Include -and $item.Reason -and $item.Reason -ne 'OK') {
-      Write-Host ("     motivo: {0}" -f $item.Reason)
-    }
+    $reasonText = if ($item.Reason -and $item.Reason -ne 'OK') { (" (motivo: {0})" -f $item.Reason) } else { '' }
+    Write-Host ("  {0}: {1} ({2}) -> {3}{4}" -f $item.Name, $item.Root, $freeText, $status, $reasonText)
   }
 
   if (-not $included -or $included.Count -eq 0) {
