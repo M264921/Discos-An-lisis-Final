@@ -246,3 +246,25 @@ thead input{width:100%;padding:7px 8px;border:1px solid #cbd5f5;border-radius:8p
 <script src="./assets/js/inventory-state.js"></script>
 <script src="./assets/js/inventory-app.js"></script>
 <script defer src="./assets/js/picker.js"></script></body></html>
+<script type="module">
+  import { loadInventory } from "./assets/inventory-loader.js";
+  (async () => {
+    try {
+      const data = await loadInventory({ gzUrl: "data/inventory.json.gz", jsonUrl: "data/inventory.json" });
+      // TODO: reemplaza initApp(data) por la función que ya tengas para iniciar la tabla/página
+      if (window.initApp) {
+        window.initApp(data);
+      } else if (window.renderInventory) {
+        window.renderInventory(data);
+      } else {
+        console.log("Inventario cargado (size):", Array.isArray(data) ? data.length : Object.keys(data||{}).length);
+      }
+    } catch (err) {
+      console.error("No se pudo cargar el inventario:", err);
+      const banner = document.createElement("div");
+      banner.style.cssText = "background:#fee;border:1px solid #f99;color:#900;padding:12px;margin:12px 0;border-radius:8px";
+      banner.textContent = "[!] No se pudo cargar el inventario (gz y json). Revisa la consola para más detalles.";
+      document.body.prepend(banner);
+    }
+  })();
+</script>
