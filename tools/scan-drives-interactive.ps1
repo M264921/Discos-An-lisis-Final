@@ -12,14 +12,73 @@ $ErrorActionPreference = 'Stop'
 
 function Get-DefaultRoots {
   try {
-    $fixed = Get-PSDrive -PSProvider FileSystem |
-      Where-Object { $_.DisplayRoot -eq $null -and $_.Free -ne $null } |
-      ForEach-Object { ($_.Root).TrimEnd('\') }
-    if (-not $fixed -or $fixed.Count -eq 0) { return @('C:') }
-    return $fixed
+    $drives = Get-PSDrive -PSProvider FileSystem | Sort-Object Name
   } catch {
+    Write-Warning ("No se pudieron enumerar las unidades: {0}" -f $_.Exception.Message)
     return @('C:')
   }
+
+  if (-not $drives -or $drives.Count -eq 0) { return @('C:') }
+
+  $included = @()
+  $report = @()
+
+  foreach ($drive in $drives) {
+    $root = $drive.Root
+    if (-not $root) { $root = ("{0}:\\" -f $drive.Name) }
+    $normalizedRoot = ($root).TrimEnd('\\') + '\\'
+
+    $include = $true
+    $reasons = @()
+
+    if ($drive.DisplayRoot) {
+      $include = $false
+      $reasons += 'DisplayRoot presente'
+    }
+    if ($drive.Free -eq $null) {
+      $include = $false
+      $reasons += 'Espacio libre desconocido'
+    }
+    if (-not (Test-Path -LiteralPath $normalizedRoot)) {
+      $include = $false
+      $reasons += 'Ruta inaccesible'
+    }
+
+    $freeGb = $null
+    if ($drive.Free -ne $null) {
+      $freeGb = [math]::Round(($drive.Free / 1GB), 2)
+    }
+
+    $report += [pscustomobject]@{
+      Name    = $drive.Name
+      Root    = $normalizedRoot
+      FreeGB  = $freeGb
+      Include = $include
+      Reason  = if ($reasons.Count -gt 0) { $reasons -join '; ' } else { 'OK' }
+    }
+
+    if ($include) {
+      $included += $normalizedRoot.TrimEnd('\\')
+    }
+  }
+
+  Write-Host ''
+  Write-Host 'Resumen de unidades disponibles:' -ForegroundColor Cyan
+  foreach ($item in $report) {
+    $status = if ($item.Include) { 'incluida' } else { 'omitida' }
+    $freeText = if ($item.FreeGB -ne $null) { ('{0:N2} GB libres' -f $item.FreeGB) } else { 'espacio desconocido' }
+    Write-Host ("  {0}: {1} ({2}) -> {3}" -f $item.Name, $item.Root, $freeText, $status)
+    if (-not $item.Include -and $item.Reason -and $item.Reason -ne 'OK') {
+      Write-Host ("     motivo: {0}" -f $item.Reason)
+    }
+  }
+
+  if (-not $included -or $included.Count -eq 0) {
+    Write-Warning 'No se detectaron unidades con espacio libre accesible; usando C:\\ por defecto.'
+    return @('C:')
+  }
+
+  return $included
 }
 
 function Normalize-Root([string]$value) {
