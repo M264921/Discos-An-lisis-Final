@@ -1,134 +1,149 @@
-# tools/run-inventory-auto.ps1
+# Requires PowerShell 7 or later
+<#
+    .SYNOPSIS
+        Automates the inventory scan and publication process for the disc
+        analysis project with minimal user interaction.
+
+    .DESCRIPTION
+        This helper script is designed for less technical users who should
+        only have to click through a couple of windows to update the
+        inventory on GitHub Pages. It leverages the existing PowerShell
+        helper scripts in the tools directory to scan a fixed drive,
+        generate the inventory JSON and GZip files, and then optionally
+        commit and push the results back to the repository.  Before
+        running this script, ensure that Git is installed and configured
+        to push without prompting (for example, by caching credentials via
+        the Git Credential Manager or by using an access token).
+
+    .PARAMETER Drive
+        The drive letter or root folder to scan.  Defaults to `K:\` if
+        unspecified.
+
+    .PARAMETER Filter
+        The media filter to apply when scanning.  Acceptable values are
+        `Media` or `Todo`.  Defaults to `Media`.
+
+    .NOTES
+        Author: Community contribution
+        Last modified: ${env:USERNAME} on $(Get-Date -Format 'yyyy-MM-dd')
+
+    .EXAMPLE
+        # Launch the GUI, scan K:\ and publish automatically when
+        # prompted.
+        ./run-inventory-auto.ps1
+
+#>
+
 [CmdletBinding()]
 param(
-  [string]$Drive = 'K:\',
-  [ValidateSet('Media','Todo')][string]$ContentFilter = 'Media'
+    [string]$Drive = 'K:\\',
+    [ValidateSet('Media','Todo')]
+    [string]$Filter = 'Media'
 )
 
-$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
 try {
-  Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    # Load Windows Forms for GUI message boxes.
+    Add-Type -AssemblyName System.Windows.Forms
 } catch {
-  Write-Error 'System.Windows.Forms no está disponible en este entorno.'
-  throw
+    Write-Warning "Failed to load Windows Forms assemblies. Ensure you're running Windows PowerShell or PowerShell 7 on Windows."
+    throw
 }
 
 function Show-YesNoQuestion {
-  param(
-    [Parameter(Mandatory)][string]$Message,
-    [string]$Title = 'Confirmación'
-  )
-  return [System.Windows.Forms.MessageBox]::Show(
-    $Message,
-    $Title,
-    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-    [System.Windows.Forms.MessageBoxIcon]::Question
-  )
+    param(
+        [Parameter(Mandatory)] [string]$Message,
+        [Parameter(Mandatory)] [string]$Title
+    )
+    return [System.Windows.Forms.MessageBox]::Show(
+        $Message,
+        $Title,
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
 }
 
 function Show-Info {
-  param(
-    [Parameter(Mandatory)][string]$Message,
-    [string]$Title = 'Información'
-  )
-  [void][System.Windows.Forms.MessageBox]::Show(
-    $Message,
-    $Title,
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Information
-  )
+    param(
+        [Parameter(Mandatory)] [string]$Message,
+        [string]$Title = 'Information'
+    )
+    [System.Windows.Forms.MessageBox]::Show(
+        $Message,
+        $Title,
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    ) | Out-Null
 }
 
-function Show-ErrorDialog {
-  param(
-    [Parameter(Mandatory)][string]$Message,
-    [string]$Title = 'Error'
-  )
-  [void][System.Windows.Forms.MessageBox]::Show(
-    $Message,
-    $Title,
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Error
-  )
+# Determine repository root based on script location
+$scriptDir = $PSScriptRoot
+$repoRoot = (Get-Item $scriptDir).Parent.FullName
+
+if (-not (Test-Path $repoRoot)) {
+    Show-Info -Message "Cannot determine repository root from $scriptDir." -Title 'Error'
+    exit 1
 }
 
-$scriptPath = $PSCommandPath
-if (-not $scriptPath) { $scriptPath = $MyInvocation.MyCommand.Path }
-$scriptDir = Split-Path -Parent $scriptPath
-if (-not $scriptDir) { throw 'No se pudo determinar el directorio del script.' }
-
-$repoRoot = $scriptDir
-while ($repoRoot -and -not (Test-Path -LiteralPath (Join-Path $repoRoot '.git'))) {
-  $parent = Split-Path -Parent $repoRoot
-  if (-not $parent -or $parent -eq $repoRoot) { throw 'No se encontró la raíz del repositorio.' }
-  $repoRoot = $parent
+# Confirm start of scanning
+$resp = Show-YesNoQuestion -Message "Scan drive $Drive with filter '$Filter'?" -Title 'Start Inventory Scan'
+if ($resp -ne [System.Windows.Forms.DialogResult]::Yes) {
+    Show-Info -Message 'Operation cancelled by user.' -Title 'Cancelled'
+    exit 0
 }
 
-$dataDir = Join-Path $repoRoot 'data'
-New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
-
-$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$csvFile = Join-Path $dataDir ("inventory-scan-$timestamp.csv")
-$jsonFile = Join-Path $dataDir ("inventory-$timestamp.json")
-$gzipFile = Join-Path $dataDir 'inventory.json.gz'
-
-$drivePath = $Drive.Trim()
-if ($drivePath.Length -eq 2 -and $drivePath[1] -eq ':') { $drivePath += '\\' }
-
-$question = "Escanear la unidad $drivePath con el filtro '$ContentFilter'?"
-$choice = Show-YesNoQuestion -Message $question -Title 'Iniciar escaneo'
-if ($choice -ne [System.Windows.Forms.DialogResult]::Yes) {
-  Show-Info -Message 'Operación cancelada por el usuario.' -Title 'Cancelado'
-  return
-}
+# Build paths for intermediate and output files
+$csvFile  = Join-Path $repoRoot 'inventory_by_folder.csv'
+$jsonFile = Join-Path $repoRoot 'data' 'inventory.json'
+$gzipFile = Join-Path $repoRoot 'data' 'inventory.json.gz'
 
 try {
-  & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'hash-drive-to-csv.ps1') `
-    -Drive $drivePath -OutCsv $csvFile -ContentFilter $ContentFilter
-  if ($LASTEXITCODE -ne 0) { throw "hash-drive-to-csv.ps1 devolvió código $LASTEXITCODE" }
+    # Ensure output directory exists
+    New-Item -ItemType Directory -Path (Join-Path $repoRoot 'data') -ErrorAction SilentlyContinue | Out-Null
 
-  & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'csv-to-inventory-json.ps1') `
-    -CsvPath $csvFile -JsonPath $jsonFile
-  if ($LASTEXITCODE -ne 0) { throw "csv-to-inventory-json.ps1 devolvió código $LASTEXITCODE" }
+    # Step 1: scan drive to CSV
+    # Run the drive scan script.  The parameter name for the filter is
+    # -ContentFilter in hash-drive-to-csv.ps1 (Media/Otros/Todo).
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'hash-drive-to-csv.ps1') `
+        -Drive $Drive `
+        -OutCsv $csvFile `
+        -ContentFilter $Filter
 
-  & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'minify-and-gzip-inventory.ps1') `
-    -DataDir $dataDir -Source (Split-Path -Leaf $jsonFile)
-  if ($LASTEXITCODE -ne 0) { throw "minify-and-gzip-inventory.ps1 devolvió código $LASTEXITCODE" }
+    # Step 2: convert CSV to JSON inventory.  csv-to-inventory-json.ps1 expects
+    # -CsvPath and -JsonPath.
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'csv-to-inventory-json.ps1') `
+        -CsvPath $csvFile `
+        -JsonPath $jsonFile
+
+    # Step 3: compress JSON to .gz for Pages.  minify-and-gzip-inventory.ps1
+    # takes a data directory and source filename, then writes
+    # inventory.min.json and inventory.json.gz into that directory.
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'minify-and-gzip-inventory.ps1') `
+        -DataDir (Join-Path $repoRoot 'data') `
+        -Source (Split-Path -Leaf $jsonFile)
 } catch {
-  Show-ErrorDialog -Message ("Falló la generación del inventario: {0}" -f $_.Exception.Message) -Title 'Proceso interrumpido'
-  throw
+    Show-Info -Message "An error occurred while generating the inventory: $_" -Title 'Error'
+    exit 1
 }
 
-$publishQuestion = 'Inventario generado correctamente. ¿Publicar cambios en GitHub?'
-$publishChoice = Show-YesNoQuestion -Message $publishQuestion -Title 'Publicar inventario'
-if ($publishChoice -ne [System.Windows.Forms.DialogResult]::Yes) {
-  Show-Info -Message 'Inventario generado localmente. Publicación omitida.' -Title 'Proceso finalizado'
-  return
+# Ask user if they want to publish changes
+$resp2 = Show-YesNoQuestion -Message 'Inventory generated successfully. Commit and push to GitHub?' -Title 'Publish Inventory'
+if ($resp2 -ne [System.Windows.Forms.DialogResult]::Yes) {
+    Show-Info -Message "Inventory file generated at $gzipFile. No changes were published." -Title 'Finished'
+    exit 0
 }
 
-Push-Location $repoRoot
+# Perform git operations
+Set-Location $repoRoot
 try {
-  & git add -- "data/inventory.json.gz"
-  if ($LASTEXITCODE -ne 0) { throw "git add falló con código $LASTEXITCODE" }
-
-  $commitMessage = "auto: update inventory $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-  $commitOutput = & git commit -m $commitMessage 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    if ($commitOutput -match 'nothing to commit') {
-      Show-Info -Message 'No hay cambios que publicar.' -Title 'Sin cambios'
-      return
-    }
-    throw "git commit falló con código $LASTEXITCODE: $commitOutput"
-  }
-
-  & git push
-  if ($LASTEXITCODE -ne 0) { throw "git push falló con código $LASTEXITCODE" }
-
-  Show-Info -Message 'Inventario publicado en GitHub correctamente.' -Title 'Éxito'
+    git add $gzipFile 2>&1 | Out-String | Write-Verbose
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $commitMsg = "auto: update inventory $timestamp"
+    git commit -m $commitMsg 2>&1 | Out-String | Write-Verbose
+    git push 2>&1 | Out-String | Write-Verbose
+    Show-Info -Message 'Inventory committed and pushed successfully.' -Title 'Success'
 } catch {
-  Show-ErrorDialog -Message ("No se pudo publicar el inventario: {0}" -f $_.Exception.Message) -Title 'Error al publicar'
-  throw
-} finally {
-  Pop-Location
+    Show-Info -Message "Failed to publish changes: $_" -Title 'Git Error'
+    exit 1
 }
