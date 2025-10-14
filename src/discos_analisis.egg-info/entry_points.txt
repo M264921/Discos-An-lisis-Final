@@ -1,0 +1,2 @@
+[console_scripts]
+discos-enrich = discos_analisis.cli.enrich:main

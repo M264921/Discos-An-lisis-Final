@@ -1,0 +1,7 @@
+# Texto normal a LF (consistente para CI)
+* text=auto eol=lf
+
+# Ajustes específicos (si quieres)
+*.ps1  text eol=lf
+*.sh   text eol=lf
+*.bat  text eol=crlf

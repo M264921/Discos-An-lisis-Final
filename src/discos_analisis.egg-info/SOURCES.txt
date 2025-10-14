@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/discos_analisis/__init__.py
+src/discos_analisis/ai.py
+src/discos_analisis/annotations.py
+src/discos_analisis/constants.py
+src/discos_analisis/inventory.py
+src/discos_analisis.egg-info/PKG-INFO
+src/discos_analisis.egg-info/SOURCES.txt
+src/discos_analisis.egg-info/dependency_links.txt
+src/discos_analisis.egg-info/entry_points.txt
+src/discos_analisis.egg-info/requires.txt
+src/discos_analisis.egg-info/top_level.txt
+src/discos_analisis/cli/__init__.py
+src/discos_analisis/cli/enrich.py
