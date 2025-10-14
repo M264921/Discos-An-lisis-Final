@@ -1,4 +1,4 @@
-name: Update inventory JSON.GZ
+﻿name: Update inventory JSON.GZ
 
 permissions:
   contents: write
@@ -27,6 +27,23 @@ jobs:
       - name: Regenerate compressed file
         run: python tools/regen_inventory_json_gz.py
 
+      - name: Validate gzip content
+        run: |
+          python - <<'PYCODE'
+          import gzip, json, sys, os
+          path = "data/inventory.json.gz"
+          if not os.path.exists(path) or os.path.getsize(path) < 10:
+              print("❌ ERROR: archivo vacío o no encontrado.")
+              sys.exit(1)
+          try:
+              d = gzip.open(path, "rb").read()
+              json.loads(d.decode("utf-8"))
+              print("✅ Validación JSON OK — tamaño:", len(d), "bytes")
+          except Exception as e:
+              print("❌ ERROR: contenido no válido ->", e)
+              sys.exit(1)
+          PYCODE
+
       - name: Commit and push updated gz
         run: |
           git config user.name "github-actions[bot]"
@@ -35,6 +52,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: auto-regenerated inventory.json.gz"
+            git commit -m "chore: auto-regenerated inventory.json.gz (validated)"
             git push
           fi
