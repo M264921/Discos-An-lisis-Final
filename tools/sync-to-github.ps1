@@ -19,6 +19,18 @@ $branch = $branch.Trim()
 
 # git status outputs nothing (null) when tree is clean; skip trim to avoid null method calls
 $dirty = git status --porcelain
+$unmergedStatuses = @('DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU')
+$unmerged = @()
+if ($dirty) {
+  $unmerged = $dirty | Where-Object { $_.Length -ge 2 -and $unmergedStatuses -contains $_.Substring(0, 2) }
+}
+if ($unmerged.Count -gt 0) {
+  $conflictList = $unmerged | ForEach-Object { $_.Substring(3) }
+  $hint = @('Se detectaron archivos con conflictos sin resolver:')
+  $hint += $conflictList | ForEach-Object { "  - $_" }
+  $hint += "Ejecuta 'git status' y resuelve cada conflicto. Luego marca los archivos solucionados con 'git add' antes de reintentar."
+  throw ($hint -join "`n")
+}
 $stashed = $false
 if ($dirty) {
   git stash push -k -u -m ("sync-autostash {0}" -f (Get-Date -Format s)) | Out-Null
