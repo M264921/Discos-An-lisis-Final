@@ -1,3 +1,4 @@
+# ?? DEPRECATED: usa tools/inventory.ps1 en modo correspondiente (interactive, uto, etc.)
 [CmdletBinding()]
 param(
   [string]$RepoRoot = "$PSScriptRoot\..",
@@ -48,3 +49,4 @@ try {
 } finally {
   Pop-Location
 }
+

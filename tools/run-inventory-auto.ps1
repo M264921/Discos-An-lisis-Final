@@ -1,3 +1,4 @@
+# ?? DEPRECATED: usa tools/inventory.ps1 en modo correspondiente (interactive, uto, etc.)
 # Requires PowerShell 7 or later
 <#
     .SYNOPSIS

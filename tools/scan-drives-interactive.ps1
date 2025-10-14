@@ -1,3 +1,4 @@
+# ?? DEPRECATED: usa tools/inventory.ps1 en modo correspondiente (interactive, uto, etc.)
 [CmdletBinding()]
 param(
   [string[]]$Roots,
@@ -219,3 +220,4 @@ try {
   Write-Warning ("Fallo al publicar cambios en GitHub: {0}" -f $_.Exception.Message)
   Log-Info ("sync-to-github.ps1 fallo: {0}" -f $_.Exception.Message)
 }
+
