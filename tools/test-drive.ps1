@@ -3,7 +3,10 @@ param(
   [string]$Path,                                  # C:\  o D:\Carpeta
   [ValidateSet('Auto','Hash','Quick')][string]$Mode = 'Auto',
   [ValidateSet('Media','Otros','Todo')][string]$ContentFilter = 'Todo',
-  [switch]$NoOpen
+  [switch]$NoOpen,
+  [string]$ScansDir,
+  [string]$HtmlPath,
+  [string]$JsonPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,9 +17,9 @@ if (-not $scriptPath) { $scriptPath = $MyInvocation.MyCommand.Path }
 $here  = [System.IO.Path]::GetDirectoryName($scriptPath)
 $repo  = [System.IO.Directory]::GetParent($here).FullName
 
-$scans  = Join-Path $repo 'docs\inventory'
-$dataJs = Join-Path $repo 'docs\data\inventory.json'
-$html   = Join-Path $repo 'docs\inventario_pro_offline.html'
+$scans  = if ($ScansDir) { [IO.Path]::GetFullPath($ScansDir) } else { Join-Path $repo 'docs\inventory' }
+$dataJs = if ($JsonPath) { [IO.Path]::GetFullPath($JsonPath) } else { Join-Path $repo 'docs\data\inventory.json' }
+$html   = if ($HtmlPath) { [IO.Path]::GetFullPath($HtmlPath) } else { Join-Path $repo 'docs\inventario_pro_offline.html' }
 $idxCsv = Join-Path $scans 'hash_index.csv'
 
 if (-not $Path) { throw 'Falta -Path' }
@@ -141,12 +144,13 @@ Get-ChildItem -LiteralPath $scans -Filter 'scan_*.csv' | Sort-Object Name | ForE
 $seen   = New-Object 'System.Collections.Generic.HashSet[string]'
 $merged = New-Object System.Collections.Generic.List[object]
 foreach ($r in $all) {
-  $key = '{0}|{1}|{2}' -f $r.ruta, $r.tamano, $r.fecha
+  $key = '{0}|{1}|{2}|{3}' -f $r.ruta, $r.nombre, $r.tamano, $r.fecha
   if ($seen.Add($key)) { $merged.Add($r) | Out-Null }
 }
 
 # Guarda JSON
-$merged | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $dataJs -Encoding UTF8
+ConvertTo-Json -InputObject ($merged.ToArray()) -Depth 6 | Set-Content -LiteralPath $dataJs -Encoding UTF8
+& (Join-Path $PSScriptRoot 'sync-inventory-data.ps1') -JsonPath $dataJs
 Write-Host ("OK Merge: {0} ({1} filas)" -f $dataJs, $merged.Count)
 
 # --- Incrusta en el HTML ---
@@ -171,4 +175,3 @@ Write-Host ("OK HTML embebido: {0}" -f $html)
 
 if (-not $NoOpen) { Start-Process $html }
 exit 0
-

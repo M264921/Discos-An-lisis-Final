@@ -169,3 +169,23 @@ pytest
 ## Licencia y contacto
 
 Proyecto mantenido por **Antonio Durán Mingorance**. Preguntas y sugerencias vía issues o contacto directo.
+
+
+## Discos y deduplicacion portable
+
+El flujo de media-dedup se mantiene en este repositorio, en
+[`tools/media-dedup/`](tools/media-dedup/STORAGE.md). Detecta discos fijos y
+extraibles por identidad del volumen, aunque cambien de letra entre equipos.
+
+```powershell
+pwsh -NoProfile -File tools/media-dedup/scripts/Get-MediaStorage.ps1
+```
+
+Este comando solo consulta metadatos. Para seleccionar volumenes, crear un
+catalogo, localizar duplicados y ensayar la consolidacion, consultar la
+[guia de almacenamiento](tools/media-dedup/STORAGE.md). No se presupone un
+destino I:; las copias, movimientos y restauraciones usan simulacion por
+defecto y requieren opciones explicitas para ejecutarse realmente.
+
+Los inventarios antiguos con letras H:/I:/J: deben asociarse una vez a sus
+volumenes correctos. Los nuevos catalogos guardan identidad y ruta relativa.

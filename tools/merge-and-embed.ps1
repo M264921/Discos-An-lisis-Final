@@ -35,14 +35,14 @@ foreach ($f in $scanFiles) {
       $sha   = $r.sha   ?? $r.hash   ?? ""
       $path  = $r.ruta  ?? $r.path   ?? ""
       $name  = $r.nombre?? $r.name   ?? $(if($path){ Split-Path $path -Leaf } else { "" })
-      $dir   = if ($path) { Split-Path $path -Parent } else { ($r.ruta ?? "") }
+      $dir   = if ($r.ruta) { $r.ruta } elseif ($path) { Split-Path $path -Parent } else { "" }
       $drive = $r.unidad?? $r.unit   ?? $r.drive ?? $(if($path -match '^([A-Za-z]):'){ $Matches[1] + ":" } else { "" })
       $tam   = $r.tamano?? $r.size   ?? 0
       $date  = $r.fecha ?? $r.mtime  ?? $r.last ?? ""
       $tipo  = $r.tipo  ?? $r.type   ?? (Infer-Tipo ($r.ext ?? [System.IO.Path]::GetExtension($path)))
 
       $fromCsv += [pscustomobject]@{
-        sha=$sha; tipo=$tipo; nombre=$name; ruta=$dir; unidad=$drive
+        sha=$sha; tipo=$tipo; nombre=$name; ruta=$dir; unidad=$drive; extension=($r.extension ?? $r.ext ?? [IO.Path]::GetExtension($name)).TrimStart('.')
         tamano=[int64]($tam); fecha=$date
       }
     }
@@ -59,21 +59,24 @@ $fromHtml = Get-EmbeddedRows -HtmlPath $Html | ForEach-Object {
     unidad= $_.unidad
     tamano= [int64]($_.tamano)
     fecha = $_.fecha
+    extension = $_.extension ?? [IO.Path]::GetExtension($_.nombre).TrimStart('.')
   }
 }
 
-# 3) Merge + dedupe (sha+ruta)
-$rows = @($fromHtml + $fromCsv) |
-  Where-Object { $_.sha } |
-  Sort-Object sha, ruta -Unique
+# 3) Keep one current record for each full file path; scan rows replace embedded rows.
+$byPath = @{}
+foreach ($row in @($fromHtml) + @($fromCsv)) {
+  if ($row.nombre -and $row.ruta) { $byPath["$($row.ruta)|$($row.nombre)"] = $row }
+}
+$rows = @($byPath.Values | Sort-Object ruta, nombre)
 
 # 4) Guardar JSON combinado
-$rows | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $OutJson -Encoding UTF8
+ConvertTo-Json -InputObject @($rows) -Depth 6 -Compress | Set-Content -LiteralPath $OutJson -Encoding UTF8
 Write-Host ("✔ Combinado -> {0} ({1} filas)" -f $OutJson, $rows.Count) -ForegroundColor Green
 
 # 5) Re-embebido en HTML
 $doc = Get-Content -LiteralPath $Html -Raw
-$payload = ($rows | ConvertTo-Json -Depth 6 -Compress)
+$payload = (ConvertTo-Json -InputObject @($rows) -Depth 6 -Compress)
 $pattern = '<script\s+id="inventory-data"[^>]*>(?<json>[\s\S]*?)</script>'
 if ($doc -match $pattern) {
   $new = '<script id="inventory-data" type="application/json">' + "`n" + $payload + "`n" + '</script>'
@@ -87,3 +90,4 @@ Copy-Item -LiteralPath $Html -Destination $backup -Force
 Set-Content -LiteralPath $Html -Value $doc -Encoding UTF8
 Write-Host "↪ Backup: $backup" -ForegroundColor DarkGray
 Write-Host "✔ JSON embebido en $Html" -ForegroundColor Green
+if (Test-Path -LiteralPath $OutJson) { & (Join-Path $PSScriptRoot 'sync-inventory-data.ps1') -JsonPath $OutJson }

@@ -887,7 +887,7 @@ footer {{
           }});
         }});
         const lines = [headers, ...rows].map((row) => row.map(csvCell).join(';'));
-        const csvContent = lines.join('\r\n');
+        const csvContent = lines.join('\\r\\n');
         const blob = new Blob([`\uFEFF${{csvContent}}`], {{ type: 'text/csv;charset=utf-8;' }});
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
