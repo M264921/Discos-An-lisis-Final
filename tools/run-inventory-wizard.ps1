@@ -25,12 +25,8 @@ if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
     }
   }
 
-  $argList = @('-NoLogo', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath)
-  foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-    $argList += @("-$($kv.Key)", "$($kv.Value)")
-  }
-
-  Start-Process -FilePath $hostExe -ArgumentList $argList -STA | Out-Null
+  & $hostExe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File $PSCommandPath @PSBoundParameters
+  if ($LASTEXITCODE -ne 0) { throw "Wizard child process failed: $LASTEXITCODE" }
   return
 }
 
@@ -43,8 +39,6 @@ if (-not $IsWindows) {
 if ($PSVersionTable.PSVersion.Major -lt 7) {
   try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch {}
 }
-Write-Host "  F) Carpeta concreta (p.ej. D:\Fotos\2024)"
-$sel = Read-Host "Selecciona (p.ej. 1,3) o F"
 
 # ---------------- Rutas robustas ----------------
 $self = $MyInvocation.MyCommand.Path
@@ -67,7 +61,7 @@ if (-not (Test-Path -LiteralPath $merge)) {
 $Html     = Join-Path -Path $repoDir -ChildPath $Html
 $ScansDir = Join-Path -Path $repoDir -ChildPath $ScansDir
 
-$null = New-Item -ItemType Directory -Force -Path (Split-Path -LiteralPath $Html -Parent)
+$null = New-Item -ItemType Directory -Force -Path (Split-Path -Path $Html -Parent)
 $null = New-Item -ItemType Directory -Force -Path $ScansDir
 
 Write-Host "↓ repo:  $repoDir"
@@ -156,8 +150,8 @@ function Show-DriveFolderPicker {
     $row = New-Object Windows.Forms.ListViewItem('Disco')
     [void]$row.SubItems.Add($d.Drive)
     [void]$row.SubItems.Add($d.Label)
-    [void]$row.SubItems.Add((if ($d.SizeGB) { "$($d.SizeGB) GB" } else { '' }))
-    [void]$row.SubItems.Add((if ($d.FreeGB) { "$($d.FreeGB) GB" } else { '' }))
+    [void]$row.SubItems.Add($(if ($d.SizeGB) { "$($d.SizeGB) GB" } else { '' }))
+    [void]$row.SubItems.Add($(if ($d.FreeGB) { "$($d.FreeGB) GB" } else { '' }))
     $row.Tag = [pscustomobject]@{
       Kind    = 'Drive'
       Path    = $d.Root
@@ -249,18 +243,22 @@ foreach ($t in $targets) {
     '-File', $testDrive,
     '-Mode', $mode,
     '-NoOpen',
+    '-ScansDir', $ScansDir,
+    '-HtmlPath', $Html,
     '-Path', $t.Path
   )
 
   Write-Progress -Id 2 -Activity "Escaneando $label" -Status 'Trabajando...' -PercentComplete 25
   & $pwsh @args
+  if ($LASTEXITCODE -ne 0) { throw "Scan failed for $label" }
   Write-Progress -Id 2 -Activity "Escaneando $label" -Status 'Finalizando...' -PercentComplete 90
   Start-Sleep -Milliseconds 200
   Write-Progress -Id 2 -Completed -Activity "Escaneando $label"
 }
 
 Write-Progress -Activity 'Inventario: fusionando y embebiendo' -Status 'merge-and-embed' -PercentComplete 50
-& $pwsh -NoLogo -ExecutionPolicy Bypass -File $merge
+& $pwsh -NoLogo -ExecutionPolicy Bypass -File $merge -ScansDir $ScansDir -Html $Html -OutJson (Join-Path $repoDir 'docs\data\inventory.json')
+if ($LASTEXITCODE -ne 0) { throw "Inventory merge failed" }
 Write-Progress -Activity 'Inventario: fusionando y embebiendo' -Completed
 
 if (Test-Path -LiteralPath $Html) {

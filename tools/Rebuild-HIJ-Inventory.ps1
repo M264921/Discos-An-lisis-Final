@@ -152,13 +152,13 @@ $scannedDrives = @()
 
 try {
     foreach ($drive in $Drives) {
-        $root = "$drive:\\"
+        $root = "${drive}:\\"
         if (-not (Test-Path -LiteralPath $root)) {
-            Write-Log -Message "Disco $drive: no disponible, se omite." -Color DarkYellow
+            Write-Log -Message "Disco ${drive}: no disponible, se omite." -Color DarkYellow
             continue
         }
         $scannedDrives += $drive
-        Write-Log -Message "Disco $drive: escaneando archivos..." -Color Green
+        Write-Log -Message "Disco ${drive}: escaneando archivos..." -Color Green
         Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue | ForEach-Object {
             $item = $_
             $hash = $null
@@ -270,8 +270,8 @@ if (-not $SkipInteractive.IsPresent) {
     if (Test-Path -LiteralPath $treeScript) {
         foreach ($drive in $scannedDrives) {
             $outputHtml = Join-Path $RepoRoot ("Listado_{0}_interactivo.html" -f $drive)
-            Write-Log -Message "Generando árbol interactivo para $drive:" -Color Green
-            & $treeScript -Root "$drive:\" -OutputHtml $outputHtml | Out-Null
+            Write-Log -Message "Generando árbol interactivo para ${drive}:" -Color Green
+            & $treeScript -Root "${drive}:\" -OutputHtml $outputHtml | Out-Null
             Write-Log -Message "Árbol actualizado: $outputHtml" -Color Gray
         }
     } else {

@@ -38,6 +38,7 @@ function Detect-Category {
   return 'archivo'
 }
 
+$null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent ([IO.Path]::GetFullPath($JsonPath)))
 $rows = Import-Csv -LiteralPath $CsvPath
 $data = $rows | ForEach-Object {
   $extension = Normalize-Extension ($_.extension ?? $_.ext)
@@ -65,5 +66,7 @@ $data = $rows | ForEach-Object {
   }
 }
 
-$data | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $JsonPath -Encoding UTF8
+ConvertTo-Json -InputObject @($data) -Depth 4 | Set-Content -LiteralPath $JsonPath -Encoding UTF8
 Write-Host ("Generado {0} con {1} elementos" -f $JsonPath, $data.Count) -ForegroundColor Green
+
+if (Test-Path -LiteralPath $JsonPath) { & (Join-Path $PSScriptRoot 'sync-inventory-data.ps1') -JsonPath $JsonPath }
