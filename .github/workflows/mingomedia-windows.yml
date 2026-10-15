@@ -1,0 +1,81 @@
+name: MingoMedia Windows
+
+on:
+  push:
+    branches: [main, 'feat/mingomedia-windows-*']
+    paths:
+      - 'tools/mingomedia_*.py'
+      - 'tools/inventory_remote.py'
+      - 'tools/build-mingomedia-windows.py'
+      - 'tools/windows/**'
+      - 'tests/test_mingomedia_desktop.py'
+      - 'MINGOMEDIA-WINDOWS.md'
+      - '.github/workflows/mingomedia-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Test scan and private sharing
+        run: python -m unittest discover -s tests -p 'test_mingomedia_desktop.py' -v
+      - name: Test existing gateway
+        run: python -m unittest discover -s tests -p 'test_inventory_remote.py' -v
+      - name: Install isolated build dependencies
+        run: python -m pip install -r tools/windows/requirements-build.txt
+      - name: Build and verify executable and installer
+        run: python tools/build-mingomedia-windows.py --installer
+      - name: Install and test without source Python modules
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -LiteralPath dist/mingomedia -Filter 'MingoMedia-Setup-*-win64.exe' | Select-Object -First 1
+          $target = Join-Path $env:RUNNER_TEMP 'MingoMedia-install-test'
+          $report = Join-Path $env:RUNNER_TEMP 'MingoMedia-installed-test.json'
+          $process = Start-Process -FilePath $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/DIR="' + $target + '"')) -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw 'Installer failed' }
+          $app = Join-Path $target 'MingoMedia.exe'
+          $process = Start-Process -FilePath $app -ArgumentList @('--self-test',('"' + $report + '"')) -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw 'Installed executable failed' }
+          $check = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          if (-not $check.web -or -not $check.tunnel) { throw 'Installed resources missing' }
+          $uninstaller = Join-Path $target 'unins000.exe'
+          $process = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw 'Uninstaller failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MingoMedia-Windows
+          path: |
+            dist/mingomedia/MingoMedia-Setup-*-win64.exe
+            dist/mingomedia/MingoMedia-Portable-*-win64.zip
+            dist/mingomedia/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: MingoMedia-Windows
+          path: release-files
+      - name: Publish tested Windows download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n "s/^VERSION = '\([^']*\)'/\1/p" tools/mingomedia_core.py)
+          gh release create "mingomedia-v${version}" release-files/* --target "$GITHUB_SHA" --title "MingoMedia ${version} para Windows" --notes-file MINGOMEDIA-WINDOWS.md
