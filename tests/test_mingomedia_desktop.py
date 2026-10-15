@@ -160,7 +160,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_gateway_only_serves_files_in_this_scan(self):
         result = self.scan({'documentos'})
-        session = core.ShareSession(result,[self.drive],'Frase privada de prueba',self.base,self.cancel,self.events.append)
+        session = core.ShareSession(result,[self.drive],'Clave8!!',self.base,self.cancel,self.events.append)
         base = urlsplit(session.start_local())
         def request(path,method='GET',body=None,cookie=''):
             connection = http.client.HTTPConnection(base.hostname,base.port,timeout=5)
@@ -173,7 +173,7 @@ class DesktopTests(unittest.TestCase):
             self.assertEqual(request('/drives')[0],401)
             _,headers,body = request('/login')
             csrf = re.search(rb'name="csrf" value="([^"]+)"',body)[1].decode()
-            code,headers,_ = request('/login','POST',urlencode({'csrf':csrf,'password':'Frase privada de prueba'}),'mingo_csrf='+csrf)
+            code,headers,_ = request('/login','POST',urlencode({'csrf':csrf,'password':'Clave8!!'}),'mingo_csrf='+csrf)
             self.assertEqual(code,303)
             cookie = next(value.split(';')[0] for name,value in headers if name=='Set-Cookie' and value.startswith('mingo_session='))
             self.assertEqual(request('/files/C/Documento.pdf',cookie=cookie)[0],200)
@@ -186,7 +186,7 @@ class DesktopTests(unittest.TestCase):
     def test_tampered_tunnel_binary_never_runs(self):
         result = self.scan({'documentos'})
         (self.base/'cloudflared.exe').write_bytes(b'untrusted')
-        session = core.ShareSession(result,[self.drive],'Frase privada de prueba',self.base,self.cancel,self.events.append)
+        session = core.ShareSession(result,[self.drive],'Clave8!!',self.base,self.cancel,self.events.append)
         try:
             with patch.object(core.subprocess,'Popen') as popen:
                 with self.assertRaises(RuntimeError):
@@ -223,7 +223,13 @@ class GuiTests(unittest.TestCase):
             self.assertEqual(app.categories(),{'imagenes','documentos'})
             app.next()
             self.assertEqual(app.page,2)
-            app.password.set('Frase privada de prueba')
+            app.password.set('1234567')
+            app.confirm.set('1234567')
+            with patch.object(desktop.messagebox,'showinfo') as message:
+                app.next()
+                self.assertEqual(app.page,2)
+                self.assertTrue(message.called)
+            app.password.set('Clave8!!')
             app.confirm.set('diferente')
             with patch.object(desktop.messagebox,'showinfo') as message:
                 app.next()

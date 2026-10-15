@@ -26,7 +26,7 @@ class RemoteTests(unittest.TestCase):
         self.files.mkdir()
         (self.files / 'prueba ñ.txt').write_bytes(b'<script>alert(1)</script>0123456789')
         (self.files / 'empty.txt').write_bytes(b'')
-        self.password = 'Mingo-test-password-123456'
+        self.password = 'Clave8!!'
         self.server = remote.ViewerServer(('127.0.0.1', 0), self.docs, self.password, {'C': self.files})
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -64,6 +64,10 @@ class RemoteTests(unittest.TestCase):
         self.assertIn('HttpOnly', next(v for k, v in response.getheaders() if v.startswith('mingo_session=')))
         response.read()
         conn.close()
+
+    def test_short_password_is_rejected_before_listening(self):
+        with self.assertRaises(ValueError):
+            remote.ViewerServer(('127.0.0.1', 0), self.docs, '1234567', {'C': self.files})
 
     def test_auth_required_for_data_and_static(self):
         for path in ('/drives', '/files/C/prueba%20%C3%B1.txt', '/data/inventory.json', '/assets/js/picker.js'):

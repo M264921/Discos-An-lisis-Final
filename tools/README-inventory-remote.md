@@ -13,7 +13,7 @@ Desde la raíz del repositorio:
 python tools/inventory_remote.py
 ```
 
-Introduce una contraseña de al menos 16 caracteres. El servicio escucha únicamente
+Introduce una contraseña de al menos 8 caracteres. El servicio escucha únicamente
 en `127.0.0.1:8766`. Consulta los metadatos de unidades montadas de Windows cada
 15 segundos; no busca letras ausentes ni recorre carpetas para descubrir archivos.
 El inventario existente determina los nombres que aparecen en la tabla.
