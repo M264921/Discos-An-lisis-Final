@@ -8,9 +8,9 @@
   const KNOWN = {
     video: [".mp4", ".webm", ".mkv", ".mov", ".m3u8"],
     audio: [".mp3", ".aac", ".m4a", ".flac", ".wav", ".ogg"],
-    image: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".avif"],
+    image: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".avif", ".svg", ".ico"],
     pdf: [".pdf"],
-    text: [".txt", ".md", ".log", ".csv", ".json", ".xml", ".yaml", ".yml"],
+    text: [".txt", ".md", ".log", ".csv", ".json", ".xml", ".yaml", ".yml", ".js", ".ts", ".py", ".ps1", ".css", ".toml", ".ini"],
     html: [".html", ".htm"]
   };
 
@@ -293,7 +293,7 @@
       return;
     }
 
-    if (anchor.hasAttribute("download") || anchor.getAttribute("target") === "_blank") {
+    if (anchor.hasAttribute("download") || (anchor.getAttribute("target") === "_blank" && !anchor.hasAttribute("data-mingo-local-url"))) {
       return;
     }
 
@@ -302,7 +302,7 @@
       return;
     }
 
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
       return;
     }
 
@@ -387,10 +387,11 @@
       return false;
     }
     const sameOrigin = window.location.origin === "null" || url.origin === window.location.origin;
-    if (!sameOrigin) {
+    const owned = window.mingoDriveLinks && typeof window.mingoDriveLinks.owns === "function" && window.mingoDriveLinks.owns(url);
+    if (!sameOrigin && !owned) {
       return false;
     }
-    return Boolean(typeOf(url.href));
+    return Boolean(typeOf(url.href)) || Boolean(owned);
   }
 
   function buildContext(anchor, url) {
@@ -398,7 +399,7 @@
     const baseName = pathname.split("/").pop();
     const anchorText = anchor && anchor.textContent ? anchor.textContent : "";
     const fileName = decodeURIComponent(baseName || anchorText || "");
-    const resourceType = typeOf(url.href);
+    const resourceType = typeOf(url.href) || (anchor.hasAttribute("data-mingo-local-url") ? "other" : null);
     if (!resourceType) {
       return null;
     }
@@ -561,163 +562,146 @@
     return type === "video" || type === "audio";
   }
 
-  function openLocal(href, type) {
-    if (!href) {
-      return false;
+  // BEGIN MINGO PREVIEW (generated from tools/templates/inventory-preview.js)
+  function openPreview(href, type) {
+    if (openPreview.close) openPreview.close();
+    const controller = new AbortController();
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    const overlay = document.createElement('div');
+    overlay.className = 'mingo-preview';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Vista previa del archivo');
+    overlay.setAttribute('data-no-intercept', '');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#0f172a;color:#f8fafc;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);';
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #475569';
+    const title = document.createElement('strong');
+    try { title.textContent = decodeURIComponent(new URL(href).pathname.split('/').pop()); }
+    catch (_) { title.textContent = 'Archivo'; }
+    title.style.cssText = 'flex:1;overflow-wrap:anywhere;min-width:100px';
+    const download = document.createElement('a');
+    download.textContent = 'Descargar';
+    download.href = href;
+    download.download = title.textContent;
+    download.style.color = '#93c5fd';
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Cerrar';
+    closeButton.style.cssText = 'padding:10px 16px;background:#2563eb;color:white;border:0;border-radius:8px;cursor:pointer';
+    header.append(title, download, closeButton);
+    const body = document.createElement('div');
+    body.style.cssText = 'flex:1;min-height:0;overflow:auto;display:grid;place-items:center;padding:16px';
+    const status = document.createElement('p');
+    status.setAttribute('role', 'status');
+    status.textContent = 'Cargando vista previa…';
+    body.append(status);
+    overlay.append(header, body);
+    document.body.append(overlay);
+    document.body.style.overflow = 'hidden';
+    let media;
+    let closed = false;
+    function close() {
+      if (closed) return;
+      closed = true;
+      controller.abort();
+      if (media) { media.pause(); media.removeAttribute('src'); media.load(); }
+      overlay.remove();
+      document.removeEventListener('keydown', keydown, true);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus && previousFocus.isConnected) previousFocus.focus();
+      openPreview.close = null;
     }
-    let absolute;
-    try {
-      absolute = new URL(href, location.href).href;
-    } catch (error) {
-      console.warn("URL inválida", error);
-      return false;
+    function keydown(event) {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
+      if (event.key === 'Tab') {
+        const controls = Array.from(overlay.querySelectorAll('a[href],button,video,audio,iframe'));
+        if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls[controls.length - 1].focus(); }
+        else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) { event.preventDefault(); controls[0].focus(); }
+      }
     }
-    const effectiveType = type || typeOf(absolute);
-
-    if (effectiveType === "image") {
-      window.open(absolute, "_blank", "noopener");
-      return true;
+    function failure(message) {
+      if (closed) return;
+      body.replaceChildren(status);
+      status.textContent = message;
     }
-
-    if (effectiveType === "pdf" || effectiveType === "html") {
-      window.open(absolute, "_blank", "noopener");
-      return true;
-    }
-
-    if (effectiveType === "text") {
-      fetch(absolute)
-        .then(function (res) {
-          if (!res.ok) {
-            throw new Error("No se pudo cargar el texto");
+    openPreview.close = close;
+    closeButton.addEventListener('click', close);
+    document.addEventListener('keydown', keydown, true);
+    closeButton.focus();
+    (async () => {
+      try {
+        // Same-origin requests carry the private gateway's HttpOnly session cookie.
+        if (/^https?:$/.test(new URL(href).protocol) && new URL(href).origin === location.origin) {
+          const response = await fetch(href, { method: 'HEAD', signal: controller.signal });
+          if (!response.ok) {
+            if (response.status === 404) throw new Error('El archivo ya no existe en la ruta del inventario o la unidad se ha desconectado.');
+            if (response.status === 401) throw new Error('La sesión ha caducado. Recarga la página para entrar de nuevo.');
+            throw new Error('No se puede acceder a este archivo (' + response.status + ').');
           }
-          return res.text();
-        })
-        .then(function (content) {
-          const wrap = document.createElement("div");
-          wrap.style.position = "fixed";
-          wrap.style.inset = "0";
-          wrap.style.background = "#0b0b0d";
-          wrap.style.color = "#e5e7eb";
-          wrap.style.display = "grid";
-          wrap.style.gridTemplateRows = "auto 1fr";
-          wrap.style.zIndex = 9999;
-
-          const escapeHtml = function (textValue) {
-            return textValue.replace(/[&<>"']/g, function (ch) {
-              switch (ch) {
-                case "&": return "&amp;";
-                case "<": return "&lt;";
-                case ">": return "&gt;";
-                case '"': return "&quot;";
-                case "'": return "&#39;";
-                default: return ch;
-              }
-            });
-          };
-
-          wrap.innerHTML = [
-            '<div style="padding:.6rem 1rem;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center">',
-            "<strong>" + escapeHtml(absolute.split("/").pop() || "(texto)") + "</strong>",
-            '<div style="display:flex;gap:8px">',
-            '<button id="owTxtClose" style="padding:6px 12px;border:1px solid #475569;border-radius:8px;background:#1e293b;color:#f8fafc;cursor:pointer">Cerrar</button>',
-            '<button id="owTxtDL" style="padding:6px 12px;border:1px solid #2563eb;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer">Descargar</button>',
-            "</div>",
-            "</div>",
-            '<pre style="margin:0;overflow:auto;padding:1rem;white-space:pre-wrap;font-family:Consolas,\'Courier New\',monospace;font-size:0.95rem;line-height:1.4">' + escapeHtml(content) + "</pre>"
-          ].join("");
-
-          document.body.appendChild(wrap);
-          setActiveOverlay(wrap);
-
-          const closeButton = wrap.querySelector("#owTxtClose");
-          const downloadButton = wrap.querySelector("#owTxtDL");
-
-          const close = registerOverlay(wrap, function () {
-            wrap.remove();
-          });
-          if (closeButton) {
-            closeButton.addEventListener("click", close);
-          }
-          wrap.addEventListener("click", function (event) {
-            if (event.target === wrap) {
-              closeActiveOverlay();
-            }
-          });
-          if (downloadButton) {
-            downloadButton.addEventListener("click", function () {
-              const link = document.createElement("a");
-              link.href = absolute;
-              link.download = "";
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-            });
-          }
-        })
-        .catch(function () {
-          window.open(absolute, "_blank", "noopener");
-        });
-      return true;
-    }
-
-    if (effectiveType === "video" || effectiveType === "audio") {
-      const wrap = document.createElement("div");
-      wrap.style.position = "fixed";
-      wrap.style.inset = "0";
-      wrap.style.background = "rgba(0,0,0,.85)";
-      wrap.style.display = "grid";
-      wrap.style.placeItems = "center";
-      wrap.style.zIndex = 9999;
-
-      const media = document.createElement(effectiveType === "video" ? "video" : "audio");
-      media.src = absolute;
-      media.controls = true;
-      media.autoplay = true;
-      media.style.maxWidth = "90vw";
-      media.style.maxHeight = "80vh";
-
-      const closeButton = document.createElement("button");
-      closeButton.textContent = "Cerrar";
-      closeButton.style.marginTop = "10px";
-
-      const panel = document.createElement("div");
-      panel.style.display = "grid";
-      panel.style.placeItems = "center";
-      panel.append(media, closeButton);
-
-      wrap.append(panel);
-      document.body.appendChild(wrap);
-
-      const close = registerOverlay(wrap, function () {
-        try {
-          if (typeof media.pause === "function") {
-            media.pause();
-          }
-        } catch (_) {
-          /* ignore */
         }
-        try {
-          media.removeAttribute("src");
-          if (typeof media.load === "function") {
-            media.load();
+        if (closed) return;
+        if (type === 'text' || type === 'html') {
+          const response = await fetch(href, { signal: controller.signal });
+          if (!response.ok) throw new Error('No se pudo leer el archivo (' + response.status + ').');
+          const limit = 2 * 1024 * 1024;
+          if (Number(response.headers.get('Content-Length')) > limit) {
+            if (response.body) await response.body.cancel();
+            throw new Error('El texto supera 2 MB. Puedes descargarlo para abrirlo completo.');
           }
-        } catch (_) {
-          /* ignore */
+          const reader = response.body.getReader();
+          const chunks = [];
+          let size = 0;
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            size += value.length;
+            if (size > limit) { await reader.cancel(); throw new Error('El texto supera 2 MB. Puedes descargarlo para abrirlo completo.'); }
+            chunks.push(value);
+          }
+          if (closed) return;
+          const bytes = new Uint8Array(size);
+          let offset = 0;
+          chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.length; });
+          const pre = document.createElement('pre');
+          pre.style.cssText = 'align-self:start;justify-self:stretch;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 monospace';
+          pre.textContent = new TextDecoder().decode(bytes);
+          body.replaceChildren(pre);
+        } else if (type === 'image') {
+          const img = document.createElement('img');
+          img.alt = title.textContent;
+          img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+          img.onload = () => { if (!closed) body.replaceChildren(img); };
+          img.onerror = () => failure('No se pudo cargar la imagen. Comprueba que el archivo siga disponible.');
+          img.src = href;
+        } else if (type === 'pdf') {
+          const frame = document.createElement('iframe');
+          frame.title = title.textContent;
+          frame.style.cssText = 'width:100%;height:100%;min-height:65vh;border:0;background:white';
+          frame.src = href;
+          body.replaceChildren(frame);
+        } else if (type === 'audio' || type === 'video') {
+          media = document.createElement(type);
+          media.controls = true;
+          media.playsInline = true;
+          media.preload = 'metadata';
+          media.style.cssText = 'max-width:100%;max-height:100%;width:100%';
+          media.onerror = () => failure('Este navegador no puede reproducir el archivo. Puedes descargarlo y abrirlo con otra aplicación.');
+          media.src = href;
+          body.replaceChildren(media);
+        } else {
+          failure('Este formato no tiene vista previa en el navegador. Pulsa Descargar para abrirlo con una aplicación compatible.');
         }
-        wrap.remove();
-      });
-      setActiveOverlay(wrap);
-      closeButton.addEventListener("click", close);
-      wrap.addEventListener("click", function (event) {
-        if (event.target === wrap) {
-          close();
-        }
-      });
-      return true;
-    }
-
-    window.open(absolute, "_blank", "noopener");
+      } catch (error) {
+        if (!closed && error.name !== 'AbortError') failure(error.message || 'No se pudo cargar el archivo.');
+      }
+    })();
     return true;
+  }
+  // END MINGO PREVIEW
+
+  function openLocal(href, type) {
+    return openPreview(href, type);
   }
 
   async function handleDlnaAction() {

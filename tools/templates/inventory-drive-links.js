@@ -17,7 +17,7 @@
           const timer = setTimeout(() => controller.abort(), timeout);
           try {
             const response = await fetch(candidate + "/drives", {
-              cache: "no-store", credentials: "omit", signal: controller.signal
+              cache: "no-store", credentials: "same-origin", signal: controller.signal
             });
             if (!response.ok) continue;
             const data = await response.json();
@@ -51,7 +51,17 @@
       return base + "/files/" + match[1].toUpperCase() + "/" + match[2];
     }
 
-    return { refresh, url, onChange(listener) { listeners.add(listener); } };
+    function owns(value) {
+      if (!base) return false;
+      try {
+        const parsed = new URL(value);
+        const endpoint = new URL(base);
+        const match = parsed.pathname.match(/^\/files\/([A-Z])\//);
+        return parsed.origin === endpoint.origin && !parsed.username && !parsed.password && Boolean(match && drives.has(match[1]));
+      } catch (_) { return false; }
+    }
+
+    return { refresh, url, owns, onChange(listener) { listeners.add(listener); } };
   }
 
   function decorateLink(anchor, state) {
@@ -99,7 +109,7 @@
   if (configured) {
     addCandidate(configured);
   } else {
-    if (["localhost", "127.0.0.1", "[::1]"].includes(root.location.hostname)) addCandidate(root.location.origin);
+    if (/^https?:$/.test(root.location.protocol)) addCandidate(root.location.origin);
     addCandidate("http://127.0.0.1:8765");
   }
   const state = createDriveLinks({ fetch: root.fetch.bind(root), candidates, protocol: root.location.protocol });
