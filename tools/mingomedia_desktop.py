@@ -19,7 +19,9 @@ class MingoMediaApp:
     def __init__(self, root, autodetect=True):
         self.root = root
         self.root.title('MingoMedia · Tu biblioteca privada')
-        self.root.geometry('900x740')
+        width = min(900,max(760,self.root.winfo_screenwidth()-80))
+        height = min(740,max(600,self.root.winfo_screenheight()-100))
+        self.root.geometry(f'{width}x{height}')
         self.root.minsize(760, 600)
         self.root.configure(bg='#f3f5fb')
         self.events = queue.Queue()
@@ -51,14 +53,14 @@ class MingoMediaApp:
         self.steps.pack(anchor='w',pady=(0,12))
         card = ttk.Frame(self.shell,style='Card.TFrame')
         card.pack(fill='both',expand=True)
-        self.canvas = tk.Canvas(card,bg='white',highlightthickness=0,height=380)
+        self.canvas = tk.Canvas(card,bg='white',highlightthickness=0,height=120)
         scrollbar = ttk.Scrollbar(card,orient='vertical',command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side='right',fill='y')
         self.canvas.pack(side='left',fill='both',expand=True)
         self.content = ttk.Frame(self.canvas,style='Card.TFrame',padding=22)
         self.content_window = self.canvas.create_window((0,0),window=self.content,anchor='nw')
-        self.canvas.bind('<Configure>',lambda event:self.canvas.itemconfigure(self.content_window,width=event.width))
+        self.canvas.bind('<Configure>',self.resize_card)
         self.content.bind('<Configure>',lambda _event:self.canvas.configure(scrollregion=self.canvas.bbox('all')))
         self.root.bind('<MouseWheel>',self.scroll_card,add='+')
         self.footer = ttk.Frame(self.shell)
@@ -96,6 +98,13 @@ class MingoMediaApp:
         if not isinstance(event.widget,ttk.Treeview):
             self.canvas.yview_scroll(-int(event.delta/120),'units')
 
+    def resize_card(self,_event=None):
+        width = self.canvas.winfo_width()
+        self.canvas.itemconfigure(self.content_window,width=width)
+        for child in self.content.winfo_children():
+            if isinstance(child,ttk.Label):
+                child.configure(wraplength=max(320,width-44))
+
     def button(self,parent,text,command,accent=False,**options):
         button = ttk.Button(parent,text=text,command=command,style='Accent.TButton' if accent else 'TButton',**options)
         return button
@@ -123,6 +132,7 @@ class MingoMediaApp:
         if page < 3:
             self.next_button = self.button(self.footer,'Empezar análisis' if page == 2 else 'Siguiente →',self.next,True)
             self.next_button.pack(side='right')
+        self.root.after_idle(self.resize_card)
 
     def page_drives(self):
         self.label('¿Qué unidades quieres analizar?','Heading.TLabel')
