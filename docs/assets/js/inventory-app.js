@@ -174,31 +174,14 @@
     throw new Error("No se pudo cargar el inventario");
   }
 
+  let inventoryReaderPromise;
   async function fetchJson(url) {
-    if (!url) {
-      throw new Error("URL de inventario no definida");
+    if (!url) throw new Error("URL de inventario no definida");
+    if (!inventoryReaderPromise) {
+      inventoryReaderPromise = import("../inventory-loader.js?v=gzip-20261015");
     }
-    const protocol = (window.location && window.location.protocol) || "";
-    if (!protocol.startsWith("http") && url.startsWith("data/")) {
-      throw new Error("No se puede hacer fetch sin servidor HTTP");
-    }
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error("No se pudo cargar " + url + " (" + res.status + ")");
-    }
-    if (url.endsWith(".gz")) {
-      try {
-        return await res.json();
-      } catch (_) {
-        if (window.pako && typeof window.pako.ungzip === "function") {
-          const buf = await res.arrayBuffer();
-          const text = window.pako.ungzip(new Uint8Array(buf), { to: "string" });
-          return JSON.parse(text);
-        }
-        throw new Error("El archivo " + url + " está comprimido y no se pudo descomprimir.");
-      }
-    }
-    return await res.json();
+    const { fetchInventoryJson } = await inventoryReaderPromise;
+    return fetchInventoryJson(url);
   }
 
   function decodeBase64(raw) {
