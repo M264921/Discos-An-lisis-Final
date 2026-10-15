@@ -35,10 +35,12 @@ function Format-Base64Block {
 }
 
 # HTML interactivo con paginacion, columnas reorganizables y enlaces locales
+$driveLinksSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'templates/inventory-drive-links.js') -Raw -Encoding UTF8
 $tpl = @'
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inventario Interactivo</title>
+<script id="mingo-drive-links">__DRIVE_LINKS_SCRIPT__</script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:24px;font-family:"Inter","Segoe UI",Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:#f4f6fb;color:#0f172a;line-height:1.5}
@@ -625,6 +627,7 @@ if ($aiPayload) {
 
 $tpl = $tpl.Replace("__B64__", $payload)
 $tpl = $tpl.Replace("__AI_SCRIPT__", $aiTag)
+$tpl = $tpl.Replace('__DRIVE_LINKS_SCRIPT__', $driveLinksSource)
 Set-Content -Encoding UTF8 -LiteralPath $HtmlPath -Value $tpl
 Write-Host "? HTML: $HtmlPath" -ForegroundColor Green
 
