@@ -97,3 +97,26 @@ test('external links are preserved and local folders remain local in file viewer
   decorateLink(folder, f.state);
   assert.equal(folder.getAttribute('href'), 'file:///C:/folder');
 });
+
+test('only the connected file service owns preview links, and disconnect revokes them', async () => {
+  const f = fixture('https:');
+  assert.equal(f.state.owns('http://127.0.0.1:8765/files/C/photo.svg'), false);
+  await f.state.refresh();
+  assert.equal(f.state.owns('http://127.0.0.1:8765/files/C/photo.svg'), true);
+  for (const value of ['https://evil.test/files/C/photo.svg', 'http://127.0.0.1:8765/files/Z/photo.svg',
+                       'http://127.0.0.1:8765/other/C/photo.svg', 'http://user@127.0.0.1:8765/files/C/a.txt']) {
+    assert.equal(f.state.owns(value), false);
+  }
+  f.offline(); await f.state.refresh();
+  assert.equal(f.state.owns('http://127.0.0.1:8765/files/C/photo.svg'), false);
+});
+
+test('same-origin private drive discovery carries the login session', async () => {
+  let credentials;
+  const state = createDriveLinks({protocol:'https:', candidates:['https://private.test'],
+    fetch:async (_url, options) => {credentials=options.credentials;
+      return {ok:true,json:async()=>({service:'MingoMedia.files',drives:['C']})};}});
+  await state.refresh();
+  assert.equal(credentials, 'same-origin');
+  assert.equal(state.url('file:///C:/image.svg'), 'https://private.test/files/C/image.svg');
+});
