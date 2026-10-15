@@ -173,6 +173,25 @@ Proyecto mantenido por **Antonio Dur√°n Mingorance**. Preguntas y sugerencias v√
 
 ## Discos y deduplicacion portable
 
+### Enlaces a unidades disponibles
+
+El visor consulta las unidades listas en cada ejecucion del servidor local y al
+volver a la pagina. Solo activa enlaces de archivos de esas unidades. Las rutas
+historicas de discos ausentes siguen visibles como texto, sin buscar H:, I: o J:
+ni asociarlas automaticamente a otra letra. Si el servidor no responde, el
+inventario sigue disponible para consulta, con los enlaces locales desactivados.
+
+Arrancar el servidor de archivos con `pwsh -NoProfile -File tools/inventory-fileserver.ps1`.
+El visor lo consulta en `http://127.0.0.1:8765`; para otro puerto o equipo, indicar
+`?fileServer=http://equipo:puerto` en la URL del visor. Desde una pagina HTTP, los
+archivos se abren a traves del servidor; desde un HTML local usan `file:`. Las
+carpetas solo son enlaces en el HTML local, porque el servidor no lista carpetas.
+
+`tools/sync-drive-links.ps1` actualiza el recurso compartido y las paginas
+existentes sin regenerar sus inventarios. Las nuevas exportaciones del generador
+HTML incluyen la misma deteccion. La disponibilidad se comprueba por unidad;
+un archivo borrado dentro de un disco conectado puede seguir devolviendo 404.
+
 El flujo de media-dedup se mantiene en este repositorio, en
 [`tools/media-dedup/`](tools/media-dedup/STORAGE.md). Detecta discos fijos y
 extraibles por identidad del volumen, aunque cambien de letra entre equipos.

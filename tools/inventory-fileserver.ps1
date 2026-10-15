@@ -17,6 +17,7 @@ function Write-Info {
 
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $scriptRoot '..')).Path
+. (Join-Path $scriptRoot 'common/mounted-drives.ps1')
 
 if (-not $ConfigPath) {
   $ConfigPath = Join-Path $repoRoot 'inventory.config.json'
@@ -44,56 +45,16 @@ if (-not $Prefix -or $Prefix.Count -eq 0) {
   }
 }
 
-function Normalize-Root {
-  param([string]$Path)
-  if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
-  if (-not (Test-Path -LiteralPath $Path)) {
-    Write-Info ("Ruta ignorada (no existe): {0}" -f $Path)
-    return $null
-  }
-  $full = (Resolve-Path -LiteralPath $Path).Path
-  if (-not $full.EndsWith([IO.Path]::DirectorySeparatorChar)) {
-    $full += [IO.Path]::DirectorySeparatorChar
-  }
-  return $full
-}
-
-$driveRoots = @{}
-
-function Add-DriveRoot {
-  param(
-    [string]$DriveKey,
-    [string]$Path
-  )
-
-  if ([string]::IsNullOrWhiteSpace($DriveKey)) {
-    return
-  }
-
-  $rootPath = Normalize-Root $Path
-  if ($rootPath) {
-    $normalizedKey = $DriveKey.TrimEnd(':').ToUpperInvariant()
-    $script:driveRoots[$normalizedKey] = $rootPath
-  }
-}
-
-if ($DriveMap -and $DriveMap.Keys.Count -gt 0) {
-  foreach ($key in $DriveMap.Keys) {
-    Add-DriveRoot -DriveKey $key.ToString() -Path $DriveMap[$key]
-  }
+$configuredMappings = $null
+if ($PSBoundParameters.ContainsKey('DriveMap')) {
+  $configuredMappings = $DriveMap
 } elseif ($config -and $config.driveMappings) {
+  $configuredMappings = @{}
   foreach ($entry in $config.driveMappings.PSObject.Properties) {
-    Add-DriveRoot -DriveKey $entry.Name -Path $entry.Value
-  }
-} else {
-  Get-PSDrive -PSProvider FileSystem | ForEach-Object {
-    Add-DriveRoot -DriveKey $_.Name -Path $_.Root
+    $configuredMappings[$entry.Name] = [string]$entry.Value
   }
 }
-
-if ($driveRoots.Count -eq 0) {
-  throw "No hay unidades configuradas para exponer."
-}
+$driveRoots = Get-InventoryDriveRoots -Mappings $configuredMappings
 
 $publicBaseUrl = ''
 if ($config -and $config.publicBaseUrl) {
@@ -287,12 +248,31 @@ try {
 
     try {
       switch -Regex ($request.Url.AbsolutePath) {
+        '^/drives/?$' {
+          $driveRoots = Get-InventoryDriveRoots -Mappings $configuredMappings
+          $response.Headers['Access-Control-Allow-Origin'] = '*'
+          $response.Headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+          $response.Headers['Cache-Control'] = 'no-store'
+          if ($request.HttpMethod -eq 'OPTIONS') {
+            $response.StatusCode = 204
+            $response.ContentLength64 = 0
+          } else {
+            $payload = @{ service = 'MingoMedia.files'; drives = @($driveRoots.Keys | Sort-Object) } | ConvertTo-Json -Compress
+            $bytes = [Text.Encoding]::UTF8.GetBytes($payload)
+            $response.StatusCode = 200
+            $response.ContentType = 'application/json; charset=utf-8'
+            $response.ContentLength64 = $bytes.Length
+            $response.OutputStream.Write($bytes, 0, $bytes.Length)
+          }
+          $response.OutputStream.Close()
+        }
         '^/healthz/?$' {
           $response.StatusCode = 200
           $response.ContentLength64 = 0
           $response.OutputStream.Close()
         }
         '^/files/' {
+          $driveRoots = Get-InventoryDriveRoots -Mappings $configuredMappings
           Handle-File -Request $request -Response $response
         }
         default {
