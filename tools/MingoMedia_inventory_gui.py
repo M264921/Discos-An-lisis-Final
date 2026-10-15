@@ -1,31 +1,8 @@
-"""
-MingoMedia Inventory GUI
----------------------
+"""Legacy PySimpleGUI inventory interface; retained for its data/gui format.
 
-Este script proporciona una interfaz gráfica sencilla para:
-  * Detectar unidades (discos) disponibles en Windows.
-  * Permitir al usuario seleccionar una o varias unidades con el ratón.
-  * Elegir el algoritmo de hash (sha1, md5 o sha256).
-  * Omitir archivos que ya han sido hasheados anteriormente (si existen en el inventario).
-  * Guardar los resultados en un fichero comprimido `data/gui/inventory.json.gz` dentro de la raíz del proyecto.
-
-Para ejecutar este script:
-
-1. Instala las dependencias en un entorno de Python 3 (idealmente en un entorno virtual).
-   ```bash
-   pip install PySimpleGUI
-   ```
-2. Ejecuta el script desde PowerShell o la terminal:
-   ```bash
-   python tools/MingoMedia_inventory_gui.py
-   ```
-
-Puedes convertir este script en un ejecutable `.exe` utilizando PyInstaller:
-   ```bash
-   pyinstaller --onefile --noconsole --add-data "data;data" tools/MingoMedia_inventory_gui.py
-   ```
-
-Copyleft © 2025 tu nombre. Distribuido bajo la licencia MIT.
+The current Windows installer uses mingomedia_desktop.py and includes Tk.
+This optional interface requires PySimpleGUI separately and is not bundled.
+See LEGACY.md before using or packaging older inventory tools.
 """
 
 import os

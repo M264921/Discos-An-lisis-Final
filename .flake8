@@ -5,4 +5,4 @@ per-file-ignores =
     tools/generate_duplicates_table.py:E501
     tools/reindex_hij.py:E501
     tools/remove_nonmedia_duplicates.py:E501
-exclude = .git,.venv,venv,docs,releases
+exclude = .git,.venv,.venv-build,.venv-test,venv,build,dist,docs,releases

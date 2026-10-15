@@ -1,13 +1,52 @@
-# Ignorar archivos grandes del inventario en repositorios sin Git LFS
-docs/data/inventory.json
-docs/inventario_interactivo_offline.html
-docs/inventory/scan_C.csv
-
-# Local Python build and runtime artifacts
+# Python environments, caches and build outputs
 .venv/
+.venv-build/
+.venv-test/
+venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
-build/
-dist/
 .pytest_cache/
+.coverage
+htmlcov/
+/build/
+/dist/
+/releases/
+
+# Temporary files and redundant backups (Git keeps the history)
+*.bak
+*.bak_*
+*.bak.*
+*.backup.ps1
+_backup_*/
+*.tmp
+*.log
+*.crdownload
+*.part
+Thumbs.db
+desktop.ini
+.DS_Store
+/logs/
+/logs_*/
+/Dry run/
+
+# Private local configuration and runtime state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+/sample_keys.json
+/inventory.config.json
+/data/gui/
+/analisis/
+catalog.sqlite*
+
+# New generated inventories stay local. Existing historical files remain tracked.
+/data/inventory*.json*
+/docs/data/inventory*.json*
+/docs/inventory/scan_*.csv
+/docs/inventory/hash_index.csv
+/docs/inventario_interactivo_offline.html

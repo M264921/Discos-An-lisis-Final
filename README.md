@@ -1,224 +1,99 @@
-> **Windows:** [Descargar MingoMedia](https://github.com/M264921/Discos-An-lisis-Final/releases) | [Instalacion y uso](MINGOMEDIA-WINDOWS.md)
+# MingoMedia
 
-# MingoMedia · Multimedia Mingorance
+Analiza las unidades de tu ordenador, consulta los archivos desde el móvil y
+revisa los duplicados antes de enviar las copias sobrantes a la Papelera.
 
-Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromecast/AirPlay y publicación directa en GitHub Pages.
+**[Descargar para Windows](https://github.com/M264921/Discos-An-lisis-Final/releases/latest)**
 
----
+## Instalar y empezar
 
-## Panorama general
+Descarga el archivo **MingoMedia-Setup-…-win64.exe** de Releases, instálalo y abre
+MingoMedia desde Inicio. Es para Windows 10/11 de 64 bits e incluye su propio
+Python: el equipo de destino no necesita Git, Python ni PowerShell 7.
 
-| Recurso | Descripción |
+También hay un **Portable-…-win64.zip**: descomprime la carpeta completa y abre
+`MingoMedia.exe`. Conserva todos los archivos de esa carpeta.
+
+1. Selecciona una, varias o todas las unidades disponibles. El programa distingue
+   discos fijos, externos/USB, extraíbles, red y ópticos; no busca letras ausentes.
+2. Elige todos los archivos o combina imágenes, vídeos, audio y documentos.
+3. Elige y confirma una contraseña de **al menos ocho caracteres**.
+4. Espera al análisis y abre o copia el enlace privado HTTPS. El PC y MingoMedia
+   deben permanecer encendidos y conectados para acceder desde fuera de casa.
+5. Usa **Revisar duplicados…** para marcar grupos de contenido idéntico. Se propone
+   una copia a conservar y puedes cambiarla. El resumen muestra todas las rutas
+   y unidades antes de confirmar el envío de las demás copias a la Papelera.
+
+El análisis inicial solo lee archivos. La revisión comprueba SHA-256 e identidad
+de los archivos, protege la copia conservada y omite archivos cambiados o unidades
+sin Papelera compatible. No hay borrado permanente alternativo en la aplicación.
+
+Los resultados privados se guardan en `%LOCALAPPDATA%\MingoMedia\analisis`, fuera
+del repositorio. **Preparar correo** abre un borrador para que lo envíes tú.
+
+Consulta [instalación, uso y compilación](MINGOMEDIA-WINDOWS.md) para los detalles.
+
+## Qué contiene este repositorio
+
+| Zona | Función |
 | --- | --- |
-| `docs/` | Sitio estático servido por Pages (HTML, CSS, JS y datos). |
-| `tools/` | Scripts PowerShell para escaneo, generación de datos y empaquetado. |
-| `tools/dlna-helper/` | Helper opcional (Node.js) para descubrir renderers DLNA y exponer/play. |
-| `inventory.config.sample.json` | Plantilla de configuración para `inventory-fileserver.ps1`. |
-| `environment.yml` (nuevo) | Entorno de Conda con Python 3.10, [flake8](https://flake8.pycqa.org) y [pytest](https://docs.pytest.org/) para pruebas. |
+| `tools/mingomedia_*.py` | Aplicación de Windows, análisis, revisión y Papelera. |
+| `tools/inventory_remote.py` | Visor privado con autenticación y acceso a los archivos del análisis. |
+| `tools/windows/` y `tools/build-mingomedia-windows.py` | Construcción del EXE portable y el instalador. |
+| `docs/` | Visor estático de GitHub Pages, recursos web e inventarios históricos. |
+| `src/discos_analisis/` | CLI Python para inventarios y enriquecimiento opcional. |
+| `tools/media-dedup/` | Catálogos y consolidación por identidad del volumen. |
+| `tools/dlna-helper/` | Servicio DLNA opcional para la red local. |
+| `tests/` | Pruebas con archivos ficticios y comprobaciones del visor. |
 
----
+Los inventarios históricos conservados no representan necesariamente las unidades
+conectadas hoy. Las letras antiguas H:, I: o J: no se asignan automáticamente a
+otros discos. Algunos archivos grandes usan Git LFS; para trabajar con esos datos
+históricos hace falta descargar sus objetos con Git LFS.
 
-## Flujo habitual
+El [sitio estático de Pages](https://m264921.github.io/Discos-An-lisis-Final/)
+permite consultar lo que se haya publicado allí. Su formulario de correo/PIN
+en JavaScript no protege los archivos públicos del sitio. Para compartir archivos
+personales con contraseña utiliza el enlace privado del programa de Windows.
 
-1. **Escaneo interactivo**
+## Desarrollo y comprobaciones
 
-   ```pwsh
-   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\scan-drives-interactive.ps1
-   ```
-
-   - Detecta unidades y permite elegirlas.
-   - Opcionalmente calcula **SHA-256** por lote.
-   - Genera `docs/hash_data.csv` y actualiza el HTML.
-   - Puede lanzar `tools/sync-to-github.ps1` para publicar en Pages.
-
-2. **Sincronizar sin escanear**
-
-   ```pwsh
-   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\sync-to-github.ps1
-   ```
-
-   Reinyecta los datos existentes y realiza *commit* + *push*.
-
-3. **Servir archivos en LAN** (opcional)
-
-   ```pwsh
-   pwsh -NoProfile -ExecutionPolicy Bypass -File tools\inventory-fileserver.ps1
-   ```
-
-   - Configura `inventory.config.json` con `publicBaseUrl`, `driveMappings` y `listenerPrefixes`.
-   - Los enlaces de la columna **Nombre** pasan a usar `http://host/files/<unidad>/...` cuando el servidor responde.
-
-4. **Helper DLNA** (opcional)
-
-   ```bash
-   cd tools/dlna-helper
-   npm install
-   node server.js
-   ```
-
-   Publica `/devices` y `/play` (HTTP + WebSocket) para poblar el selector DLNA del UI.
-
----
-
-## Inventario interactivo (Pages)
-
-- **Identidad**: el sitio se muestra como **MingoMedia** tanto en Pages como offline.
-- **Visor universal** (modal «Abrir con»):
-  - Navegador local, Chromecast/AirPlay, DLNA, nueva pestaña y descarga directa.
-  - Preferencia global guardada en `localStorage`.
-- **Acceso configurable**:
-  - `docs/assets/js/mingomedia-config.js` permite exigir correo y PIN antes de cargar el inventario.
-  - Sesiones opcionales en `localStorage` para no repetir el formulario.
-  - Desde octubre de 2025 se añadió soporte para listas blancas de dominios/correos y PIN por usuario. Se gestiona a través de `window.MingoMediaConfig.access` y ahora incluye la propiedad `version` para controlar caducidades.
-- **Visores integrados**:
-  - Imagen / PDF / HTML → pestaña nueva u overlay según tipo.
-  - Texto → overlay con `<pre>` + botón de descarga.
-  - Audio / vídeo → overlay ligero con `<audio>`/`<video>`.
-- **Cast**:
-  - Chromecast/AirPlay usa Remote Playback API; se oculta en navegadores sin soporte.
-  - Botón AirPlay visible sólo en Safari cuando hay destinos.
-- **DLNA**:
-  - Actívalo pasando `?dlnaHelper=ws://host:8787&dlnaApi=http://host:8787` o definiendo *defaults* en el UI.
-  - La acción DLNA dispara `POST /play` contra el helper opcional.
-- **Tabla**:
-  - Columnas arrastrables con ancho ajustable y filtros por columna.
-  - Descarga CSV del resultado filtrado y paginación configurable.
-  - Selección con casillas por fila (persistente por usuario) y contador en la barra.
-  - **Nuevo** (oct-2025): recuadro de selección tipo hoja de cálculo (Ctrl/Cmd para sumar, Alt para restar) y casilla general.
-  - Altura de filas ajustable arrastrando el tirador de la primera columna (doble clic para restaurar).
-  - Panel **«Vista…»** para ocultar/mostrar columnas, revisar filas ocultas y resetear toda la vista.
-  - Banner con el número de filas ocultas y botón rápido para volver a mostrarlas.
-
-### Configuración de acceso y preferencias
-
-`docs/assets/js/mingomedia-config.js` expone dos secciones:
-
-```js
-window.MingoMediaConfig = {
-  access: {
-    enabled: true,
-    requireEmail: true,
-    requirePin: true,
-    pin: "1234",             // PIN global opcional
-    allowedEmails: ["admin@mingomedia.local"],
-    allowedDomains: ["familia.local"],
-    users: [{ email: "ana@familia.local", pin: "7777" }],
-    rememberSession: true,
-    version: "2025-10-10"
-  },
-  view: {
-    storagePrefix: "mingomedia.inventory.view",
-    defaultUser: "public"
-  }
-};
-```
-
-- **`access`** controla la puerta de entrada (correo obligatorio, PIN global o por usuario y lista blanca de dominios/correos). La nueva propiedad `version` permite caducar configuraciones antiguas.
-- **`view`** define la clave base usada en `localStorage` para guardar el orden de columnas, anchos, filas ocultas, alturas y selección.
-- Los datos de vista se aíslan por usuario: el correo validado se normaliza y se usa como sufijo (`<prefijo>:<usuario>`).
-- El formulario respeta `rememberSession`; si es `false` se solicitarán credenciales en cada visita.
-
-El estado de la tabla y los filtros se exponen vía `window.mingoInventory`, un *store* con métodos como `getState()`, `on(evento, handler)` o `setFilter(columna, valor)`, útil para integraciones futuras.
-
----
-
-## Integración continua y calidad de código (nuevo)
-
-A partir de octubre de 2025 el proyecto integra un flujo de CI basado en GitHub Actions. El *workflow* `.github/workflows/python-package-conda.yml` configura un entorno Conda a partir de `environment.yml` y ejecuta:
-
-1. **Linting** con `flake8` para detectar errores de sintaxis comunes y problemas de estilo.
-2. **Pruebas** con `pytest`. Si no se encuentran pruebas (código 5) se considera éxito.
-
-El entorno de CI evita la activación automática de la base de Conda (`auto-activate-base: ""`), utiliza *mamba* para acelerar la resolución de paquetes y ejecuta los comandos dentro de un *shell* de Conda.
-
-Para ejecutar localmente el mismo flujo se puede crear el entorno con:
-
-```bash
-conda env create -f environment.yml
-conda activate ci-env
-flake8 .
-pytest
-```
-
----
-
-## Scripts principales
-
-| Script | Propósito |
-| --- | --- |
-| `tools/scan-drives-interactive.ps1` | Orquestador: escaneo, hash opcional, *merge* y regeneración de HTML. Incluye guardas de autodetección de discos y normalización de rutas. |
-| `tools/build-hash-data.ps1` | Reprocesa `index_by_hash.csv` a `docs/hash_data.csv`. |
-| `tools/inventory-fileserver.ps1` | Servidor HTTP para exponer archivos en LAN. Se ha corregido el manejo de raíces de unidades faltantes. |
-| `tools/make-inventory-package.ps1` | Construye paquete distribuible + `InventoryCleaner.exe`. |
-| `tools/dlna-helper/server.js` | Mini servicio DLNA (Node.js + HTTP/WS). |
-| `tools/agents/inventory-cleaner.ps1` | Limpia duplicados confirmados, genera HTML y tabla interactiva de duplicados. |
-| `remove_nonmedia_duplicates.py` | Script Python que **elimina permanentemente** (usa `os.remove`, sin enviar a papelera) los duplicados no multimedia listados en `dupes_confirmed.csv`; requiere Python 3 y se ejecuta desde `inventory-cleaner.ps1`. |
-| `tools/run-inventory-auto.ps1` | Ejecuta la cadena completa de inventario (hash → JSON → gzip) y ofrece ventanas emergentes para confirmar escaneo y publicación automática (`git add/commit/push`). |
-
----
-
-## Tips operativos
-
-1. Tras tocar la tubería, ejecuta el *cleaner* y revisa los logs de PowerShell.
-2. Usa `tools/normalize-inventory-html.ps1` como prueba de humo del HTML.
-3. Revisa `docs/hash_data.csv` cuando modifiques hashing o duplicados.
-4. Antes de publicar un *release*, genera el paquete (`tools/make-inventory-package.ps1`) y prueba `InventoryCleaner.exe -SweepMode DryRun`.
-5. Mantén `docs/` sólo a través de scripts; evita ediciones manuales en Pages.
-6. Para contribuir código, asegúrate de pasar `flake8` y, si existen, las pruebas de `pytest`.
-
----
-
-## Licencia y contacto
-
-Proyecto mantenido por **Antonio Durán Mingorance**. Preguntas y sugerencias vía issues o contacto directo.
-
-
-## Discos y deduplicacion portable
-
-### Enlaces a unidades disponibles
-
-El visor consulta las unidades listas en cada ejecucion del servidor local y al
-volver a la pagina. Solo activa enlaces de archivos de esas unidades. Las rutas
-historicas de discos ausentes siguen visibles como texto, sin buscar H:, I: o J:
-ni asociarlas automaticamente a otra letra. Si el servidor no responde, el
-inventario sigue disponible para consulta, con los enlaces locales desactivados.
-
-Arrancar el servidor de archivos con `pwsh -NoProfile -File tools/inventory-fileserver.ps1`.
-El visor lo consulta en `http://127.0.0.1:8765`; para otro puerto o equipo, indicar
-`?fileServer=http://equipo:puerto` en la URL del visor. Desde una pagina HTTP, los
-archivos se abren a traves del servidor; desde un HTML local usan `file:`. Las
-carpetas solo son enlaces en el HTML local, porque el servidor no lista carpetas.
-
-`tools/sync-drive-links.ps1` actualiza el recurso compartido y las paginas
-existentes sin regenerar sus inventarios. Las nuevas exportaciones del generador
-HTML incluyen la misma deteccion. La disponibilidad se comprueba por unidad;
-un archivo borrado dentro de un disco conectado puede seguir devolviendo 404.
-
-El flujo de media-dedup se mantiene en este repositorio, en
-[`tools/media-dedup/`](tools/media-dedup/STORAGE.md). Detecta discos fijos y
-extraibles por identidad del volumen, aunque cambien de letra entre equipos.
-
-```powershell
-pwsh -NoProfile -File tools/media-dedup/scripts/Get-MediaStorage.ps1
-```
-
-Este comando solo consulta metadatos. Para seleccionar volumenes, crear un
-catalogo, localizar duplicados y ensayar la consolidacion, consultar la
-[guia de almacenamiento](tools/media-dedup/STORAGE.md). No se presupone un
-destino I:; las copias, movimientos y restauraciones usan simulacion por
-defecto y requieren opciones explicitas para ejecutarse realmente.
-
-Los inventarios antiguos con letras H:/I:/J: deben asociarse una vez a sus
-volumenes correctos. Los nuevos catalogos guardan identidad y ruta relativa.
-
-## CLI Python desde una instalacion limpia
+Python 3.10 o posterior para la CLI y las herramientas; la compilación de Windows
+se valida con Python 3.13. PowerShell 7 y Node.js son necesarios para comprobar
+las herramientas PowerShell y los recursos JavaScript, respectivamente.
 
 ```powershell
 python -m venv .venv
-.venv/Scripts/python -m pip install --no-deps -e .
+.venv/Scripts/python -m pip install -e ".[test]"
 .venv/Scripts/python -m discos_analisis --help
 .venv/Scripts/discos-enrich --help
+.venv/Scripts/python tools/check-repository.py
+.venv/Scripts/python -m pytest
+node --test tests/drive-links.test.cjs tests/inventory-loader.test.cjs
+pwsh -NoProfile -File tools/check-powershell-syntax.ps1
 ```
 
-Los metadatos `.egg-info`, caches y el entorno virtual se generan localmente y no
-se versionan. Instalar no modifica el codigo ni llama a la API de enriquecimiento.
+En Linux/macOS, usa `.venv/bin/python` y `.venv/bin/discos-enrich`.
+Las pruebas usan datos ficticios; no requieren escanear discos personales.
+La prueba que utiliza la Papelera real de Windows se activa expresamente en CI
+con `MINGOMEDIA_RECYCLE_TEST=1` y solo procesa su propio archivo de prueba.
+
+- **Repository checks** valida Python 3.10 y 3.13, JavaScript y sintaxis PowerShell.
+- **MingoMedia Windows** prueba la aplicación, la Papelera, el EXE, la instalación
+  y la desinstalación. Publica nuevas versiones desde `main`. Un cambio de
+  mantenimiento no reemplaza una descarga ya publicada.
+- Sigue [AGENTS.md](AGENTS.md) para cambiar código o publicar una versión.
+
+## Herramientas anteriores y mantenimiento
+
+[tools/README.md](tools/README.md) identifica las herramientas actuales y sus
+generadores. [LEGACY.md](LEGACY.md) explica los flujos anteriores que se conservan.
+No ejecutes un escaneo o un cleaner como comprobación rutinaria del repositorio.
+
+[CLEANUP.md](CLEANUP.md) distingue la revisión con Papelera de los comandos
+anteriores con opciones explícitas de borrado.
+[REPOSITORY-MAINTENANCE.md](REPOSITORY-MAINTENANCE.md) registra qué archivos
+obsoletos se retiraron y por qué. Su historial sigue disponible en Git.
+
+Mantenido por Antonio Durán Mingorance. Incidencias y propuestas en
+[GitHub Issues](https://github.com/M264921/Discos-An-lisis-Final/issues).

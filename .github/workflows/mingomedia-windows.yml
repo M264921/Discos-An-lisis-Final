@@ -10,6 +10,12 @@ on:
       - 'tools/windows/**'
       - 'tests/test_mingomedia_desktop.py'
       - 'tests/test_mingomedia_duplicates.py'
+      - 'tools/check-*.py'
+      - 'tools/check-*.ps1'
+      - 'README.md'
+      - 'AGENTS.md'
+      - '.gitattributes'
+      - '.gitignore'
       - 'MINGOMEDIA-WINDOWS.md'
       - '.github/workflows/mingomedia-windows.yml'
   workflow_dispatch:
@@ -28,6 +34,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - name: Check repository structure and documentation
+        run: python tools/check-repository.py
+      - name: Check PowerShell syntax without executing scripts
+        shell: pwsh
+        run: ./tools/check-powershell-syntax.ps1
       - name: Test scan and private sharing
         run: python -m unittest discover -s tests -p 'test_mingomedia_desktop.py' -v
       - name: Test existing gateway
@@ -83,4 +94,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -n "s/^VERSION = '\([^']*\)'/\1/p" tools/mingomedia_core.py)
-          gh release create "mingomedia-v${version}" release-files/* --target "$GITHUB_SHA" --title "MingoMedia ${version} para Windows" --notes-file MINGOMEDIA-WINDOWS.md
+          tag="mingomedia-v${version}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            git fetch --no-tags origin "refs/tags/$tag:refs/tags/$tag"
+            if ! git diff --quiet "$tag" HEAD -- 'tools/mingomedia_*.py' tools/inventory_remote.py tools/build-mingomedia-windows.py tools/windows \
+              docs/index.html docs/assets/inventory-loader.js docs/assets/inventario.css docs/assets/inventario.js \
+              docs/assets/css/picker.css docs/assets/js/inventory-app.js docs/assets/js/inventory-state.js \
+              docs/assets/js/inventory-drive-links.js docs/assets/js/picker.js; then
+              echo '::error::The packaged application changed. Increment VERSION before publishing.'
+              exit 1
+            fi
+            echo "Version $version is already published; keeping its tested downloads unchanged."
+          else
+            gh release create "$tag" release-files/* --target "$GITHUB_SHA" --title "MingoMedia ${version} para Windows" --notes-file MINGOMEDIA-WINDOWS.md
+          fi

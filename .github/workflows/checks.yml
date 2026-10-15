@@ -1,0 +1,34 @@
+name: Repository checks
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install project and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Check structure and documentation links
+        run: python tools/check-repository.py
+      - name: Check Python syntax and undefined names
+        run: flake8 src tools tests --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Run synthetic Python tests
+        run: python -m pytest
+      - name: Test JavaScript inventory loader and drive links
+        run: node --test tests/drive-links.test.cjs tests/inventory-loader.test.cjs
+      - name: Parse PowerShell without running the scripts
+        shell: pwsh
+        run: ./tools/check-powershell-syntax.ps1

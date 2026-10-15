@@ -1,91 +1,103 @@
-# Agent Playbook
+# Guía de agentes de MingoMedia
 
-Guía operativa para mantener el flujo autónomo del inventario **MingoMedia**.
+El primo codex mantiene este repositorio junto con su usuario. Trabaja en una rama
+de `main`, conserva los cambios ajenos y entrega un resultado probado y revisable.
 
----
+## Arquitectura actual
 
-## Arquitectura del repositorio
-
-| Zona | Contenido | Notas |
-| --- | --- | --- |
-| Raíz | CSV y reportes (`index_by_hash.csv`, `inventory_by_folder.csv`) + scripts maestros. | Los artefactos se regeneran; evita ediciones manuales. |
-| `tools/` | Automatizaciones reutilizables: escaneo, inyección HTML, empaquetado, helper DLNA. | Los entry points viven en `tools/agents/`. |
-| `docs/` | Sitio público (HTML/JS/CSS, datos de hash y duplicados). | Trátalo como read-only; actualiza vía scripts. |
-
----
-
-## Comandos esenciales
-
-| Objetivo | Comando |
+| Zona | Responsabilidad |
 | --- | --- |
-| Pipeline completo (hash → HTML → sanitize) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/agents/inventory-cleaner.ps1 -RepoRoot . -SweepMode None` |
-| Refrescar sólo `docs/hash_data.csv` | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-hash-data.ps1 -RepoRoot . -IndexPath index_by_hash.csv` |
-| Regenerar analítica de duplicados | `python tools/generate_duplicates_table.py --input docs/hash_data.csv --output docs/duplicate_summary.json` |
-| Escaneo guiado (con filtro) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -ContentFilter Media` |
-| Escaneo sin publicar | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/scan-drives-interactive.ps1 -SkipPublish` |
-| Servir archivos vía HTTP (LAN) | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/inventory-fileserver.ps1` |
-| Helper DLNA opcional | `cd tools/dlna-helper && npm install && node server.js` |
-| Generar paquete + `.exe` | `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/make-inventory-package.ps1` |
+| `tools/mingomedia_desktop.py` | Asistente Tk de Windows: unidades, tipos, contraseña, progreso y enlace privado. |
+| `tools/mingomedia_core.py` | Detección de unidades montadas, catálogo SQLite, inventario y sesión del visor. |
+| `tools/mingomedia_duplicates*.py` | Grupos SHA-256, propuesta editable y confirmación local. |
+| `tools/mingomedia_recycle.py` | Lectura protegida y operación RecycleItem de Windows. |
+| `tools/inventory_remote.py` | Autenticación del visor y acceso de solo lectura a archivos autorizados. |
+| `tools/build-mingomedia-windows.py`, `tools/windows/` | Empaquetado, recursos explícitos e instalador por usuario. |
+| `src/discos_analisis/` | CLI instalable y enriquecimiento opcional. |
+| `tools/templates/`, scripts de sincronización | Fuentes y generación de los visores web. |
+| `docs/` | Sitio estático generado, recursos publicados y datos históricos. |
 
-Mantén los scripts idempotentes y sin rutas absolutas codificadas.
+Consulta [tools/README.md](tools/README.md) y [LEGACY.md](LEGACY.md) antes de cambiar
+una herramienta anterior. Los archivos antiguos con consumidores o datos únicos
+siguen teniendo función; no se borran por su fecha.
 
----
+## Límites operativos
 
-## Inventario MingoMedia
+- Las revisiones y pruebas no deben escanear unidades personales, limpiar archivos
+  reales, instalar programas ni publicar inventarios sin autorización del usuario.
+- Detecta solo unidades montadas y disponibles. Nunca presupongas H:, I:, J: ni un
+  destino por su letra; los flujos de consolidación usan identidad del volumen.
+- No leas claves, certificados ni credenciales. No incluyas inventarios privados,
+  contraseñas o configuraciones personales en commits, logs públicos o paquetes.
+- Los datos privados del asistente viven en la carpeta de datos del usuario,
+  fuera del repositorio. Los CSV/JSON/HTML históricos existentes son conjuntos
+  separados: no los regeneres o fusiones para una limpieza de código.
+- `docs/` es salida generada: actualiza los recursos mediante sus scripts o
+  modifica las fuentes correspondientes. No edites manualmente los inventarios
+  o HTML generados. Una retirada de artefactos debe usar un manifiesto explícito.
+- No ejecutes los cleaners ni los publicadores para verificar documentación.
+  Algunos comandos anteriores modifican archivos o hacen commit y push.
 
-- El HTML publica el modal **Abrir con** con soporte para navegador local, Chromecast/AirPlay, DLNA, nueva pestaña y descarga.
-- Preferencias de reproducción guardadas en `localStorage` (`auto`, `local`, `browser-picker`, `dlna:*`).
-- Botón AirPlay en la cabecera sólo aparece en Safari cuando detecta destinos (`WebKitPlaybackTargetAvailabilityEvent`).
-- Selector global incluye opciones DLNA que llegan por `/devices` (HTTP o WebSocket) desde `tools/dlna-helper`.
-- El helper DLNA expone `/play` (HTTP) y espera `controlURL`, `mediaUrl`, `position` en el payload.
-- `docs/assets/js/mingomedia-config.js` controla la puerta de acceso (`access.*`) y el almacenamiento de vistas por usuario (`view.*`).
-- El store global `window.mingoInventory` expone `getState()`, `on(evento, handler)`, `setFilter()` y helpers similares; úsalo para integraciones o automatizaciones.
-- El orden y ancho de columnas, filas ocultas, alturas personalizadas y la selección se persisten en `localStorage` con prefijo `view.storagePrefix` + usuario normalizado.
-- Los overlays (`texto`, `audio`, `video`) pueden cerrarse con botón o clic fuera.
-- `data-no-intercept` en cualquier contenedor evita que el listener global abra el modal.
-- La barra superior incluye botón **Vista…** para ocultar/mostrar columnas, listar filas ocultas y resetear la vista completa.
-- El banner bajo la tabla avisa de filas ocultas; desde ahí pueden restaurarse todas.
-- Las filas tienen tirador vertical en la primera columna (drag) y doble clic para resetear altura; se puede trazar un recuadro para seleccionar (Ctrl/Cmd suma, Alt resta).
+## Contratos que hay que conservar
 
----
+- Contraseña mínima de **8 caracteres**, validada tanto por la interfaz como por el
+  servidor. Protege datos, recursos y archivos mediante autenticación del servidor;
+  un formulario JavaScript en Pages no sustituye esa protección.
+- El visor solo sirve archivos publicados en el catálogo del análisis y unidades
+  seleccionadas disponibles. Mantén las guardas de rutas, CSRF, intentos y sesiones.
+- Los duplicados se comparan por contenido, tamaño e identidad. Cada grupo marcado
+  conserva una copia elegida y admite cambio manual antes de confirmar las rutas.
+- Antes de retirar, revalida el contenido y protege la copia conservada frente a
+  escritura, renombrado y borrado. Un cambio o una ausencia bloquea el grupo.
+- La aplicación usa exclusivamente Papelera. Nunca añadas una alternativa de
+  borrado permanente si RecycleItem falla. Informa de omisiones y actualiza el
+  catálogo, el inventario y el informe local de las operaciones realizadas.
+- Preparar correo abre un borrador; no envía mensajes automáticamente.
+- El empaquetado incluye recursos permitidos de forma explícita, sin arrastrar
+  datos históricos, archivos de acceso o configuraciones del equipo de desarrollo.
 
-## Estilo y convenciones
+## Estilo y dependencias
 
-- **PowerShell**: sangría 2 espacios, comandos `Verbo-Nombre`, ASCII puro.
-- **Python**: PE8, 4 espacios, sin dependencias externas.
-- **HTML/CSV generados**: nunca se editan a mano; usa los scripts.
-- **JS del picker**: evita dependencias externas; mantener funciones puras y proteger contra falta de APIs (`Remote Playback`, `fetch`).
+- Python: PEP 8, cuatro espacios. El runtime de la aplicación usa la biblioteca
+  estándar; las dependencias de compilación viven en `tools/windows/`.
+- La GUI anterior con PySimpleGUI es opcional y no forma parte del instalador.
+- JavaScript: sin nuevas dependencias para los visores; maneja APIs no disponibles.
+- PowerShell: conserva compatibilidad declarada y evita rutas absolutas personales.
+  Usa ASCII en scripts nuevos y rutas literales para operaciones de archivos.
+- Los scripts deben ser idempotentes y contener sus salidas dentro del destino
+  explícito. La simulación debe simular, sin mover ni borrar originales.
+- `.gitattributes` centraliza texto/binarios y conserva los patrones LFS. No hagas
+  una renormalización masiva de datos para una modificación de documentación.
 
----
+## Comprobaciones
 
-## Verificaciones recomendadas
+```powershell
+python tools/check-repository.py
+python -m pytest
+node --test tests/drive-links.test.cjs tests/inventory-loader.test.cjs
+pwsh -NoProfile -File tools/check-powershell-syntax.ps1
+```
 
-1. Tras modificar la tubería, ejecuta el cleaner y revisa logs + resumen H/I/J del HTML.
-2. Cambios de normalización → `pwsh -File tools/normalize-inventory-html.ps1 -HtmlPath docs/inventario_interactivo_offline.html`.
-3. Ajustes de hash o duplicados → inspecciona `docs/hash_data.csv` (`FullName`, `Hash`, `Length`, `Extension`, `Tipo`).
-4. Diferencias de visualización → abre el HTML generado, revisa el modal, overlays y la botonera de cast.
-5. Releases → `tools/make-inventory-package.ps1`, prueba `InventoryCleaner.exe -SweepMode DryRun`, valida `releases/InventoryCleaner-package.zip`.
-6. Servidor HTTP → con `inventory-fileserver.ps1` arriba, prueba `http://<host>:<puerto>/healthz` y descarga de archivos desde otra máquina.
+Prepara el entorno con `python -m pip install -e ".[test]"` dentro de un entorno
+virtual. Usa comprobaciones adecuadas al cambio; no instales dependencias en el
+Python global. Las pruebas trabajan con fixtures, sin archivos personales.
 
----
+Para cambios de la aplicación, Windows CI prueba también la interfaz, la Papelera
+real con un archivo ficticio y el instalador. Comprueba carga gzip, enlaces y
+vistas previas cuando cambies el visor. No presentes una comprobación interna de
+widgets como si fuese una prueba manual completa.
 
-## Notas operativas
+## Publicar
 
-- `docs/hash_data.csv` contiene rutas absolutas y tamaños: compártelo sólo con colaboradores de confianza.
-- Los sanitizadores del HTML bloquean protocolos externos; amplía la blocklist en lugar de deshabilitarla.
-- El merge de scans conserva la última ruta por hash/tamaño; usa `tools/merge-scans.ps1 -KeepDuplicates` para auditorías.
-- `tools/scan-drives-interactive.ps1` publica automáticamente (commit + push). Usa `-SkipPublish` para revisar el diff antes.
-- Duplica `inventory.config.sample.json` a `inventory.config.json` para ajustar `publicBaseUrl`, `listenerPrefixes` y `driveMappings`.
-- El helper DLNA es opcional: si no se pasa `dlnaHelper/dlnaApi`, el UI oculta la acción.
-- Mantén el repo limpio: nada de rutas absolutas, sin efectos fuera de `RepoRoot`, logs en `logs/`.
-- Para cambiar el formulario de acceso o las listas permitidas edita `docs/assets/js/mingomedia-config.js`; no hardcodees credenciales en otros archivos.
-
----
-
-## Roadmap sugerido
-
-1. Autenticación básica + preferencias de vista (PIN/código y `localStorage`).
-2. Controles tipo spreadsheet (selección múltiple, ocultar/mostrar columnas/filas, almacenamiento de orden).
-3. Lista de reproducción para múltiples archivos seleccionados.
-
-Trabaja cada fase en ramas separadas a partir de `main`.
+1. Actualiza los documentos afectados y revisa el diff, sin añadir resultados de
+   escaneos. Las copias de seguridad y los paquetes generados no se versionan.
+2. Para una nueva versión de la aplicación o sus recursos empaquetados, incrementa
+   `VERSION` en `tools/mingomedia_core.py`, el valor por defecto del instalador y
+   los nombres de descarga de [MINGOMEDIA-WINDOWS.md](MINGOMEDIA-WINDOWS.md).
+3. Abre el PR y espera a las comprobaciones aplicables antes de integrar. El flujo
+   de Windows valida ramas `feat/mingomedia-windows-*` y `main`.
+4. La release de `main` publica EXE, ZIP portable y SHA256SUMS. Si la versión ya
+   existe y el runtime/recursos son idénticos, no reemplaza sus descargas. Si han
+   cambiado, exige una nueva versión.
+5. Verifica las descargas nuevas y su SHA-256. Deja el repositorio sincronizado y
+   comunica qué cambió, qué se comprobó y cualquier limitación pendiente.

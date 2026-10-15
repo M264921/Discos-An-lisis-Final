@@ -1,4 +1,28 @@
-## Archivos gestionados por Git LFS para no sobrepasar el límite de tamaño de GitHub
+# Shared text policy. Do not renormalize historical inventories incidentally.
+* text=auto eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.psd1 text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary outputs must not receive line-ending conversions.
+*.gz -text
+*.zip -text
+*.exe -text
+*.dll -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.ico -text
+*.pdf -text
+*.sqlite -text
+
+# Preserve existing Git LFS contracts for historical data.
 docs/data/inventory.json filter=lfs diff=lfs merge=lfs -text
 docs/inventario_interactivo_offline.html filter=lfs diff=lfs merge=lfs -text
 docs/inventory/* filter=lfs diff=lfs merge=lfs -text
