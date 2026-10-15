@@ -97,7 +97,10 @@ jobs:
           tag="mingomedia-v${version}"
           if gh release view "$tag" >/dev/null 2>&1; then
             git fetch --no-tags origin "refs/tags/$tag:refs/tags/$tag"
-            if ! git diff --quiet "$tag" HEAD -- 'tools/mingomedia_*.py' tools/inventory_remote.py tools/build-mingomedia-windows.py tools/windows docs/index.html docs/assets; then
+            if ! git diff --quiet "$tag" HEAD -- 'tools/mingomedia_*.py' tools/inventory_remote.py tools/build-mingomedia-windows.py tools/windows \
+              docs/index.html docs/assets/inventory-loader.js docs/assets/inventario.css docs/assets/inventario.js \
+              docs/assets/css/picker.css docs/assets/js/inventory-app.js docs/assets/js/inventory-state.js \
+              docs/assets/js/inventory-drive-links.js docs/assets/js/picker.js; then
               echo '::error::The packaged application changed. Increment VERSION before publishing.'
               exit 1
             fi
