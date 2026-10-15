@@ -189,3 +189,15 @@ defecto y requieren opciones explicitas para ejecutarse realmente.
 
 Los inventarios antiguos con letras H:/I:/J: deben asociarse una vez a sus
 volumenes correctos. Los nuevos catalogos guardan identidad y ruta relativa.
+
+## CLI Python desde una instalacion limpia
+
+```powershell
+python -m venv .venv
+.venv/Scripts/python -m pip install --no-deps -e .
+.venv/Scripts/python -m discos_analisis --help
+.venv/Scripts/discos-enrich --help
+```
+
+Los metadatos `.egg-info`, caches y el entorno virtual se generan localmente y no
+se versionan. Instalar no modifica el codigo ni llama a la API de enriquecimiento.

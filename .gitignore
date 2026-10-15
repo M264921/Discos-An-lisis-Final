@@ -2,3 +2,12 @@
 docs/data/inventory.json
 docs/inventario_interactivo_offline.html
 docs/inventory/scan_C.csv
+
+# Local Python build and runtime artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
