@@ -19,7 +19,7 @@ import uuid
 
 from inventory_remote import ViewerServer
 
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 TUNNEL_VERSION = '2026.10.1'
 TUNNEL_SHA256 = '4d2490e74082c5d48dbfedaf92576fa5bd1702379ab88eb7faa0cfbe8dc891b6'
 EXTENSIONS = {
@@ -153,7 +153,7 @@ def scan(drives, categories, folder, progress, cancel, personal=True, hashes=Fal
     if catalog.exists():
         raise ValueError('El destino debe ser un análisis nuevo.')
     connection = sqlite3.connect(catalog)
-    connection.execute('CREATE TABLE files (path TEXT PRIMARY KEY, original TEXT, drive TEXT, size INTEGER, mtime INTEGER, published INTEGER DEFAULT 0)')
+    connection.execute("CREATE TABLE files (path TEXT PRIMARY KEY, original TEXT, drive TEXT, size INTEGER, mtime INTEGER, published INTEGER DEFAULT 0, sha256 TEXT DEFAULT '')")
     skipped = 0
     discovered = 0
     last_update = 0.0
@@ -250,7 +250,7 @@ def scan(drives, categories, folder, progress, cancel, personal=True, hashes=Fal
                     if published:
                         output.write(',')
                     json.dump(item, output, ensure_ascii=False, separators=(',',':'))
-                    connection.execute('UPDATE files SET published=1 WHERE path=?', (path,))
+                    connection.execute('UPDATE files SET published=1,sha256=? WHERE path=?', (digest,path))
                     published += 1
                     total_bytes += size
                 except (OSError, ValueError):

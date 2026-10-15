@@ -12,6 +12,7 @@ import uuid
 import webbrowser
 
 from inventory_remote import MIN_PASSWORD_LENGTH
+from mingomedia_duplicates_ui import DuplicateReview
 
 from mingomedia_core import (Cancelled, EXTENSIONS, VERSION, ShareSession, asset_directory,
                              data_directory, detect_drives, email_draft, prepare_web, scan)
@@ -33,6 +34,7 @@ class MingoMediaApp:
         self.session = None
         self.result = None
         self.worker = None
+        self.dedup_dialog = None
         self.busy = False
         self.page = 0
         self.password = tk.StringVar()
@@ -332,6 +334,8 @@ class MingoMediaApp:
         self.copy_button.pack(side='left',padx=(0,8))
         self.retry_button = self.button(actions,'Reintentar enlace',self.retry_tunnel)
         self.retry_button.pack(side='left')
+        self.duplicates_button = self.button(self.content,'Revisar duplicados…',self.review_duplicates)
+        self.duplicates_button.pack(anchor='w',pady=(0,12))
         self.label('Compartir por correo')
         row = ttk.Frame(self.content,style='Card.TFrame')
         row.pack(fill='x')
@@ -354,6 +358,11 @@ class MingoMediaApp:
         for button in (self.copy_button,self.mail_button):
             button.configure(state='normal' if remote else 'disabled')
         self.retry_button.configure(state='disabled' if self.busy or remote or not self.session else 'normal')
+        self.duplicates_button.configure(state='normal' if self.result and not self.busy else 'disabled')
+
+    def review_duplicates(self):
+        if not self.busy and self.result:
+            DuplicateReview(self)
 
     def retry_tunnel(self):
         if self.busy or not self.session:
@@ -395,6 +404,8 @@ class MingoMediaApp:
             messagebox.showinfo('Correo',str(error),parent=self.root)
 
     def stop_sharing(self):
+        if self.dedup_dialog:
+            return
         self.cancel.set()
         if self.worker and self.worker.is_alive():
             self.status.set('Cerrando acceso…')
@@ -489,6 +500,8 @@ class MingoMediaApp:
         if (self.busy or self.session) and not messagebox.askyesno('Cerrar MingoMedia','Se detendrá el análisis y se cerrará el acceso desde el móvil. ¿Cerrar?',parent=self.root):
             return
         self.cancel.set()
+        if self.dedup_dialog:
+            self.dedup_dialog.cancel.set()
         def finish():
             if self.worker and self.worker.is_alive():
                 self.root.after(100,finish)
@@ -517,11 +530,15 @@ def main():
             root.update_idletasks()
             screens.append({'page':page,'widgets':len(app.content.winfo_children()),
                             'required_height':root.winfo_reqheight(),'height':root.winfo_height()})
+        duplicate_review = DuplicateReview(app,autostart=False)
+        duplicate_review.window.withdraw()
+        root.update_idletasks()
+        duplicate_review.destroy()
         app.closed = True
         assets = asset_directory()
         result = {'version':VERSION,'tk':str(root.tk.call('info','patchlevel')),
                   'web':all((assets/'web'/name).is_file() for name in ('index.html','assets/js/picker.js')),
-                  'tunnel':(assets/'cloudflared.exe').is_file(),'screens':screens}
+                  'tunnel':(assets/'cloudflared.exe').is_file(),'screens':screens,'duplicate_review':True}
         args.self_test.write_text(json.dumps(result),encoding='utf-8')
         root.destroy()
         return
