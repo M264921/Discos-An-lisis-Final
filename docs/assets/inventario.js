@@ -5,7 +5,7 @@
     "./assets/js/mingomedia-config.js",
     "./assets/js/inventory-state.js",
     "./assets/js/inventory-drive-links.js",
-    "./assets/js/inventory-app.js"
+    "./assets/js/inventory-app.js?v=gzip-20261015"
   ];
 
   function loadSequential(list) {
