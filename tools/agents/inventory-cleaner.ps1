@@ -103,28 +103,21 @@ foreach ($cand in @("python","py","python3")) {
   } catch {}
 }
 
-if (Test-Path $PyRemove) {
-  Log "Running remove_nonmedia_duplicates.py ..."
+if ($SweepMode -ne 'None' -and (Test-Path $PyRemove) -and (Test-Path $DupesCsvPath)) {
+  Log "Running remove_nonmedia_duplicates.py ($SweepMode) ..."
   if ($pythonExe) {
-    & $pythonExe "$PyRemove" --csv "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
+    $removeArgs = @($PyRemove, '--csv', $DupesCsvPath, '--log', (Join-Path $LogDirPath "nonmedia-$SweepMode-$Ts.csv"))
+    if ($SweepMode -eq 'Apply') { $removeArgs += '--apply' }
+    & $pythonExe @removeArgs 2>&1 | Tee-Object -FilePath $LogFile -Append
+    if ($LASTEXITCODE -ne 0) { throw 'remove_nonmedia_duplicates.py fallo' }
   } else {
     Log "WARN: Python no detectado; se omite remove_nonmedia_duplicates.py"
   }
 } else {
-  Log "SKIP: tools/remove_nonmedia_duplicates.py no encontrado"
+  Log "SKIP: borrado desactivado (None) o falta script/CSV"
 }
 
-if ((Test-Path $MoveDupes) -and (Test-Path $DupesCsvPath)) {
-  $targetDrive = 'I:\'
-  if (Test-Path -LiteralPath $targetDrive) {
-    Log "Running Move-I-Duplicates.ps1 ..."
-    & $MoveDupes -CsvPath "$DupesCsvPath" 2>&1 | Tee-Object -FilePath $LogFile -Append
-  } else {
-    Log "SKIP: unidad I:\ no disponible; se omite Move-I-Duplicates.ps1"
-  }
-} else {
-  Log "SKIP: falta Move-I-Duplicates.ps1 o $DupesCsvPath"
-}
+Log 'SKIP: movimiento automatico retirado; use tools/media-dedup con volumenes identificados.'
 
 $hashDataPath = Join-Path $OutputDirPath "hash_data.csv"
 if (Test-Path $BuildHash) {

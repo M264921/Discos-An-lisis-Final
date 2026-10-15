@@ -1,5 +1,5 @@
 """
-Montana Inventory GUI
+MingoMedia Inventory GUI
 ---------------------
 
 Este script proporciona una interfaz gráfica sencilla para:
@@ -7,22 +7,22 @@ Este script proporciona una interfaz gráfica sencilla para:
   * Permitir al usuario seleccionar una o varias unidades con el ratón.
   * Elegir el algoritmo de hash (sha1, md5 o sha256).
   * Omitir archivos que ya han sido hasheados anteriormente (si existen en el inventario).
-  * Guardar los resultados en un fichero comprimido `data/inventory.json.gz` dentro de la raíz del proyecto.
+  * Guardar los resultados en un fichero comprimido `data/gui/inventory.json.gz` dentro de la raíz del proyecto.
 
 Para ejecutar este script:
 
 1. Instala las dependencias en un entorno de Python 3 (idealmente en un entorno virtual).
    ```bash
-   pip install PySimpleGUI pycryptodome
+   pip install PySimpleGUI
    ```
 2. Ejecuta el script desde PowerShell o la terminal:
    ```bash
-   python montana_inventory_gui.py
+   python tools/MingoMedia_inventory_gui.py
    ```
 
 Puedes convertir este script en un ejecutable `.exe` utilizando PyInstaller:
    ```bash
-   pyinstaller --onefile --noconsole --add-data "data;data" montana_inventory_gui.py
+   pyinstaller --onefile --noconsole --add-data "data;data" tools/MingoMedia_inventory_gui.py
    ```
 
 Copyleft © 2025 tu nombre. Distribuido bajo la licencia MIT.
@@ -34,14 +34,15 @@ import gzip
 import hashlib
 import threading
 import time
+import tempfile
 from pathlib import Path
 
 import PySimpleGUI as sg
 
 
 # Determina la raíz del repositorio (dos niveles arriba del script)
-ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "data"
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data" / "gui"
 INVENTORY_GZ = DATA_DIR / "inventory.json.gz"
 
 
@@ -50,17 +51,27 @@ def load_inventory() -> dict:
     if INVENTORY_GZ.exists():
         try:
             with gzip.open(INVENTORY_GZ, "rb") as f:
-                return json.loads(f.read().decode("utf-8"))
-        except Exception:
-            return {"generated_at": "corrupt", "items": []}
+                value = json.loads(f.read().decode("utf-8"))
+                if not isinstance(value, dict) or not isinstance(value.get("items"), list):
+                    raise ValueError("Formato de inventario GUI incompatible")
+                return value
+        except Exception as exc:
+            raise ValueError("Inventario GUI ilegible; se conserva sin sobrescribir") from exc
     return {"generated_at": "manual-placeholder", "items": []}
 
 
 def save_inventory(inv: dict) -> None:
     """Guarda el inventario en formato JSON comprimido en gzip."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with gzip.open(INVENTORY_GZ, "wb") as f:
-        f.write(json.dumps(inv, ensure_ascii=False, indent=2).encode("utf-8"))
+    payload = json.dumps(inv, ensure_ascii=False, indent=2).encode("utf-8")
+    fd, name = tempfile.mkstemp(prefix="inventory-", suffix=".tmp", dir=DATA_DIR)
+    os.close(fd)
+    try:
+        with gzip.open(name, "wb") as f:
+            f.write(payload)
+        os.replace(name, INVENTORY_GZ)
+    finally:
+        Path(name).unlink(missing_ok=True)
 
 
 def list_drives() -> list:
@@ -119,7 +130,14 @@ def scan_and_hash(drive_list: list, algo: str, skip_already_hashed: bool, window
             for fname in files:
                 full_path = os.path.join(root, fname)
                 processed += 1
-                if skip_already_hashed and full_path in items_map:
+                cached = items_map.get(full_path, {})
+                try:
+                    stat = os.stat(full_path)
+                except OSError:
+                    continue
+                if (skip_already_hashed and cached.get("algo") == algo
+                        and cached.get("size") == stat.st_size
+                        and cached.get("mtime_ns") == stat.st_mtime_ns):
                     # Emitir evento de avance, indicar salto
                     window.write_event_value(
                         "-PROG-", (processed, total_files, f"Saltado: {full_path}")
@@ -131,11 +149,19 @@ def scan_and_hash(drive_list: list, algo: str, skip_already_hashed: bool, window
                     "-PROG-", (processed, total_files, f"Hasheando: {full_path}")
                 )
                 if h:
+                    try:
+                        current = os.stat(full_path)
+                    except OSError:
+                        continue
+                    if (current.st_size, current.st_mtime_ns) != (stat.st_size, stat.st_mtime_ns):
+                        continue
                     entry = {
                         "path": full_path,
                         "hash": h,
                         "algo": algo,
                         "timestamp": time.time(),
+                        "size": stat.st_size,
+                        "mtime_ns": stat.st_mtime_ns,
                     }
                     new_items.append(entry)
 
@@ -184,7 +210,7 @@ def main() -> None:
             sg.Text("", key="-PROG_TXT-"),
         ],
     ]
-    window = sg.Window("Montana Inventory GUI", layout, finalize=True)
+    window = sg.Window("MingoMedia Inventory GUI", layout, finalize=True)
 
     # Bucle de eventos
     while True:
@@ -192,9 +218,11 @@ def main() -> None:
         if event in (sg.WIN_CLOSED, "Salir"):
             break
         if event == "-NEW-":
+            if sg.popup_yes_no("Se reemplazara solo el inventario GUI. Continuar?") != "Yes":
+                continue
             inv = {"generated_at": time.ctime(), "items": []}
             save_inventory(inv)
-            sg.popup("Inventario vacío guardado en data/inventory.json.gz")
+            sg.popup("Inventario vacío guardado en data/gui/inventory.json.gz")
         if event == "-START-":
             selected_drives = values["-DRIVES-"]
             if not selected_drives:
