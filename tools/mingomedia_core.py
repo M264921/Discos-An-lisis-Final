@@ -19,7 +19,7 @@ import uuid
 
 from inventory_remote import ViewerServer
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 TUNNEL_VERSION = '2026.10.1'
 TUNNEL_SHA256 = '4d2490e74082c5d48dbfedaf92576fa5bd1702379ab88eb7faa0cfbe8dc891b6'
 EXTENSIONS = {

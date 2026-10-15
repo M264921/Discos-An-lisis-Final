@@ -21,6 +21,9 @@ import time
 from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 
+MIN_PASSWORD_LENGTH = 8
+
+
 def mounted_drives():
     """Query Windows metadata only; do not probe disconnected drive letters."""
     if os.name != 'nt':
@@ -76,8 +79,8 @@ class ViewerServer(ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, address, docs, password, roots=None, file_authorizer=None):
-        if len(password) < 16:
-            raise ValueError('Use a password of at least 16 characters')
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise ValueError(f'Use a password of at least {MIN_PASSWORD_LENGTH} characters')
         self.docs = Path(docs).resolve()
         self.password_hash = hashlib.sha256(password.encode()).digest()
         self.sessions = {}
@@ -313,7 +316,7 @@ def main():
     parser.add_argument('--port', type=int, default=8766)
     parser.add_argument('--password-env', help='Environment variable containing a generated password')
     args = parser.parse_args()
-    password = os.environ.pop(args.password_env, '') if args.password_env else getpass.getpass('Contraseña (16+ caracteres): ')
+    password = os.environ.pop(args.password_env, '') if args.password_env else getpass.getpass(f'Contraseña ({MIN_PASSWORD_LENGTH}+ caracteres): ')
     server = ViewerServer(('127.0.0.1', args.port), args.docs, password)
     del password
     print(json.dumps({'url': f'http://127.0.0.1:{server.server_port}', 'drives': sorted(server.roots)}), flush=True)

@@ -11,6 +11,8 @@ from tkinter import messagebox, ttk
 import uuid
 import webbrowser
 
+from inventory_remote import MIN_PASSWORD_LENGTH
+
 from mingomedia_core import (Cancelled, EXTENSIONS, VERSION, ShareSession, asset_directory,
                              data_directory, detect_drives, email_draft, prepare_web, scan)
 
@@ -212,7 +214,7 @@ class MingoMediaApp:
 
     def page_password(self):
         self.label('Elige tu contraseña privada','Heading.TLabel')
-        self.label('La necesitarás para entrar desde el móvil. Usa al menos 16 caracteres; puede ser una frase que recuerdes.')
+        self.label(f'La necesitarás para entrar desde el móvil. Usa al menos {MIN_PASSWORD_LENGTH} caracteres; puede ser una frase que recuerdes.')
         entries = []
         for title,variable in (('Contraseña',self.password),('Repite la contraseña',self.confirm)):
             self.label(title)
@@ -238,8 +240,8 @@ class MingoMediaApp:
                 return messagebox.showinfo('Elige archivos','Marca uno o varios tipos de archivo.',parent=self.root)
             self.show_page(2)
         elif self.page == 2:
-            if len(self.password.get()) < 16:
-                return messagebox.showinfo('Contraseña','Usa al menos 16 caracteres.',parent=self.root)
+            if len(self.password.get()) < MIN_PASSWORD_LENGTH:
+                return messagebox.showinfo('Contraseña',f'Usa al menos {MIN_PASSWORD_LENGTH} caracteres.',parent=self.root)
             if self.password.get() != self.confirm.get():
                 return messagebox.showinfo('Contraseña','Las contraseñas no coinciden.',parent=self.root)
             self.start_scan()

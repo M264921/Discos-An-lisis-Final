@@ -3,7 +3,7 @@
 ## Descargar e instalar
 
 En [Releases](https://github.com/M264921/Discos-An-lisis-Final/releases), descarga
-**MingoMedia-Setup-1.0.0-win64.exe**. Ábrelo con doble clic y sigue el instalador.
+**MingoMedia-Setup-1.0.1-win64.exe**. Ábrelo con doble clic y sigue el instalador.
 Después abre **MingoMedia** desde el menú Inicio. Opcionalmente puedes crear un
 acceso directo en el Escritorio durante la instalación.
 
@@ -24,7 +24,7 @@ mostrar un aviso de editor desconocido; verifica el origen y el SHA-256 publicad
 2. **Archivos.** Elige todos los tipos o combina imágenes, vídeos, audio,
    documentos y otros. Por defecto se omiten Windows, programas y cachés.
    Puedes activar la comprobación SHA-256 para identificar duplicados; tarda más.
-3. **Contraseña.** Elige y confirma una contraseña de al menos 16 caracteres.
+3. **Contraseña.** Elige y confirma una contraseña de al menos 8 caracteres.
    No se guarda en archivos ni se publica en GitHub.
 4. **Analizar y compartir.** Primero se descubren y cuentan los archivos. Después
    se muestra un porcentaje sobre ese conjunto. Se omiten archivos inaccesibles,
