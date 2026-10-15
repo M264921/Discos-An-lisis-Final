@@ -75,7 +75,7 @@ def safe_path(root, segments):
 class ViewerServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, docs, password, roots=None):
+    def __init__(self, address, docs, password, roots=None, file_authorizer=None):
         if len(password) < 16:
             raise ValueError('Use a password of at least 16 characters')
         self.docs = Path(docs).resolve()
@@ -85,6 +85,7 @@ class ViewerServer(ThreadingHTTPServer):
         self.lock = threading.Lock()
         self.roots = dict(roots) if roots is not None else mounted_drives()
         self.dynamic_roots = roots is None
+        self.file_authorizer = file_authorizer
         self.stop_refresh = threading.Event()
         super().__init__(address, ViewerHandler)
         if self.dynamic_roots:
@@ -262,6 +263,8 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 if len(segments) < 3 or segments[1] not in self.server.roots:
                     return self.send_bytes(404)
                 target = safe_path(self.server.roots[segments[1]], segments[2:])
+                if self.server.file_authorizer and not self.server.file_authorizer(target):
+                    return self.send_bytes(404, b'Archivo fuera del analisis seleccionado.')
             else:
                 if path == '/':
                     segments = ['index.html']

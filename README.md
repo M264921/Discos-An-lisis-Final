@@ -1,3 +1,5 @@
+> **Windows:** [Descargar MingoMedia](https://github.com/M264921/Discos-An-lisis-Final/releases) | [Instalacion y uso](MINGOMEDIA-WINDOWS.md)
+
 # MingoMedia · Multimedia Mingorance
 
 Inventario multimedia autoservicio con visores universales, soporte DLNA/Chromecast/AirPlay y publicación directa en GitHub Pages.
