@@ -207,7 +207,7 @@ def scan(drives, categories, folder, progress, cancel, personal=True, hashes=Fal
                             skipped += 1
                             continue
                         added = connection.execute('INSERT OR IGNORE INTO files(path,original,drive,size,mtime) VALUES(?,?,?,?,?)',
-                                                   (path_key(path), str(path.resolve()), drive.letter, stat.st_size, stat.st_mtime_ns)).rowcount
+                                                   (path_key(path), str(path.absolute()), drive.letter, stat.st_size, stat.st_mtime_ns)).rowcount
                         discovered += added
                     except OSError:
                         skipped += 1

@@ -108,6 +108,18 @@ class DesktopTests(unittest.TestCase):
         result = core.scan([self.drive],{'todos'},self.input/'our-output',self.events.append,self.cancel,personal=False)
         self.assertFalse(any('our-output' in r['ruta'] for r in self.records(result)))
 
+    def test_logical_drive_paths_are_preserved_when_the_root_is_an_alias(self):
+        alias = self.base/'mapped-volume'
+        try:
+            alias.symlink_to(self.input,target_is_directory=True)
+        except OSError:
+            self.skipTest('Creating a synthetic directory alias is unavailable')
+        result = core.scan([core.Drive('I',alias)],{'documentos'},self.base/'result',self.events.append,self.cancel)
+        record = self.records(result)[0]
+        self.assertEqual(record['ruta'],str(alias))
+        self.assertEqual(record['unidad'],'I:')
+        self.assertTrue(core.inventory_authorizer(result.catalog)(self.input/'Documento.pdf'))
+
     def test_windows_detection_uses_only_reported_ready_volumes(self):
         payload = [{'letter':'C','kind':'Disco fijo','label':'Sistema','size':100,'free':10},
                    {'letter':'K','kind':'Externo / USB','label':'Fotos','size':200,'free':20}]
